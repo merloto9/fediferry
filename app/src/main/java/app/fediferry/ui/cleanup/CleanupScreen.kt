@@ -187,6 +187,7 @@ private fun TreatmentKind.label(): String = when (this) {
     TreatmentKind.CROP_AWAY -> "Crop away"
     TreatmentKind.BLUR -> "Blur"
     TreatmentKind.PIXELATE -> "Pixelate"
+    TreatmentKind.AI_ERASE -> "Erase with AI"
 }
 
 @Composable

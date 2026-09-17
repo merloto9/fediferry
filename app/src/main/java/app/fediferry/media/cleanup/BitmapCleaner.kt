@@ -33,16 +33,30 @@ object BitmapCleaner {
     /** Longest edge for the live preview. Full resolution is wasted on a phone screen. */
     private const val PREVIEW_MAX_EDGE = 900
 
-    suspend fun clean(path: String, rules: List<CleanupRule>): Bitmap? =
-        withContext(Dispatchers.Default) {
-            if (rules.isEmpty()) return@withContext null
-            val source = BitmapFactory.decodeFile(path) ?: return@withContext null
-            val cleaned = clean(source, rules)
-            if (cleaned !== source) source.recycle()
-            cleaned
-        }
+    /**
+     * @param provider used for [TreatmentKind.AI_ERASE] regions. Anything it
+     *   cannot do falls back to a local fill.
+     */
+    suspend fun clean(
+        path: String,
+        rules: List<CleanupRule>,
+        provider: ImageEditProvider = NoImageEditProvider,
+        polarity: MaskPolarity = MaskPolarity.TRANSPARENT_HOLE,
+        instruction: String = "",
+    ): CleanupPipeline.Outcome? = withContext(Dispatchers.Default) {
+        if (rules.isEmpty()) return@withContext null
+        val source = BitmapFactory.decodeFile(path) ?: return@withContext null
+        val outcome = CleanupPipeline.run(source, rules, provider, polarity, instruction)
+        if (outcome.bitmap !== source) source.recycle()
+        outcome
+    }
 
-    /** A downscaled render, for showing the user what the rules will do. */
+    /**
+     * A downscaled render, for showing the user what the rules will do.
+     *
+     * Deliberately offline: an AI region is previewed as its local fallback
+     * rather than billed on every drag. The label on screen says so.
+     */
     suspend fun preview(path: String, rules: List<CleanupRule>): Bitmap? =
         withContext(Dispatchers.Default) {
             val file = File(path).takeIf { it.isFile } ?: return@withContext null

@@ -10,6 +10,24 @@ Obtainium installs.
 
 ## [Unreleased]
 
+### Added
+
+- **Erase with AI**, a fifth cleanup treatment for overlays sitting on detail,
+  where filling from the surroundings only smears. `ImageEditProvider` is an
+  interface beside `AltTextProvider`, with the endpoint, model, key and
+  instruction configured in Settings — no vendor is named in the code.
+- Because inpainting has no standard request shape, the wire format is a setting
+  rather than a guess: multipart for the OpenAI images/edits family, JSON with
+  base64 for the Stable Diffusion derived servers. Mask polarity is configurable
+  the same way.
+- All AI regions go in one request carrying the whole picture and one mask, so
+  the model sees the context around every hole and it costs one call rather than
+  one per area.
+- Failure degrades rather than blocking: an unconfigured, unreachable or unhappy
+  model means those regions are filled locally, exactly as they would have been
+  without a model. A reply whose dimensions differ from the original is refused,
+  since every other rule is expressed in fractions of the picture.
+
 ### Fixed
 
 - **Sharing something again reopened the old item instead of making a new one.**

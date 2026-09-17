@@ -63,6 +63,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.data.model.Visibility
+import app.fediferry.media.cleanup.CleanupPipeline
+import app.fediferry.media.cleanup.EditWireFormat
+import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.ui.PlaceholderHelpDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,6 +117,8 @@ fun SettingsScreen(
             PostingSection(state, viewModel)
             HorizontalDivider()
             CleanupSection(state, viewModel)
+            HorizontalDivider()
+            ImageModelSection(state, viewModel)
             HorizontalDivider()
             VisionSection(state, viewModel)
         }
@@ -415,6 +420,82 @@ private fun CleanupSection(state: SettingsState, viewModel: SettingsViewModel) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel) {
+    SectionTitle("Image model")
+    Text(
+        "Used by the \"Erase with AI\" treatment on the Clean up screen, for " +
+            "overlays that sit on detail where filling from the surroundings " +
+            "only smears. Leave the endpoint empty and that treatment falls " +
+            "back to a local fill.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Text(
+        "Inpainting has no standard request shape, so the format is a setting " +
+            "rather than a guess. Multipart suits the OpenAI images/edits " +
+            "family; JSON suits the Stable Diffusion derived servers.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+
+    OutlinedTextField(
+        value = state.settings.imageEndpoint,
+        onValueChange = viewModel::setImageEndpoint,
+        label = { Text("Endpoint URL") },
+        placeholder = { Text("https://api.example.com/v1/images/edits") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = state.settings.imageModel,
+        onValueChange = viewModel::setImageModel,
+        label = { Text("Model") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = state.settings.imageApiKey,
+        onValueChange = viewModel::setImageApiKey,
+        label = { Text("API key") },
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = state.settings.imageInstruction,
+        onValueChange = viewModel::setImageInstruction,
+        label = { Text("Instruction") },
+        placeholder = { Text(CleanupPipeline.DEFAULT_INSTRUCTION) },
+        minLines = 2,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    Text("Request format", style = MaterialTheme.typography.labelMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        EditWireFormat.entries.forEach { format ->
+            FilterChip(
+                selected = state.settings.imageWireFormat == format.name,
+                onClick = { viewModel.setImageWireFormat(format.name) },
+                label = { Text(if (format == EditWireFormat.MULTIPART) "Multipart" else "JSON") },
+            )
+        }
+    }
+
+    Text("Mask marks the area to replace as", style = MaterialTheme.typography.labelMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MaskPolarity.entries.forEach { polarity ->
+            FilterChip(
+                selected = state.settings.imageMaskPolarity == polarity.name,
+                onClick = { viewModel.setImageMaskPolarity(polarity.name) },
+                label = {
+                    Text(
+                        if (polarity == MaskPolarity.TRANSPARENT_HOLE) "Transparent" else "White",
+                    )
+                },
+            )
         }
     }
 }

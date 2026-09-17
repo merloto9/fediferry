@@ -97,6 +97,7 @@ over anything that should go and pick what happens there:
 | Fill in | a small badge over a flat area — invisible when it works |
 | Crop away | a bar along an edge — costs a little content, never smears |
 | Blur / Pixelate | a username or a face you would rather not publish |
+| Erase with AI | an overlay sitting on detail, where filling only smears |
 
 Tick **Remember** and the areas are saved to a named profile, so the next
 screenshot from the same source needs no drawing. Profiles live in
@@ -105,7 +106,18 @@ somewhere new, you edit the rule yourself rather than wait for an update. The
 profile marked default is applied automatically to shares that do not stop for
 input; leave none default and nothing happens unasked.
 
-No inpainting is reliably good over busy detail at these sizes — which is why
+**Erase with AI** hands the marked areas to an image model configured in
+*Settings → Image model*. Inpainting has no standard request shape, so the
+format is a setting, not a guess: multipart suits the OpenAI images/edits
+family, JSON with base64 suits the Stable Diffusion derived servers, and the
+mask polarity is selectable too. Leave the endpoint empty and the treatment
+falls back to a local fill — an unreachable model costs quality, never a post.
+
+> The request building and response unpacking are covered by tests, but they
+> have not been run against a live paid endpoint. If a service you use disagrees
+> with both shapes, that is the thing most likely to need adjusting.
+
+No *local* inpainting is reliably good over busy detail at these sizes — which is why
 crop away and blur exist alongside fill, and why every result is previewed
 before it is applied. **Undo edits** always restores the original.
 

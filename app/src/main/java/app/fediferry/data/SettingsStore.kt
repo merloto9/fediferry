@@ -54,6 +54,16 @@ data class Settings(
     val resolveLinks: Boolean = true,
     /** The cleanup profile used last; the one almost always wanted again. */
     val lastCleanupProfileId: String = "",
+
+    // --- the image model used by the "Erase with AI" treatment -----------
+    val imageEndpoint: String = "",
+    val imageModel: String = "",
+    val imageApiKey: String = "",
+    val imageInstruction: String = "",
+    /** Name of an [app.fediferry.media.cleanup.EditWireFormat]. */
+    val imageWireFormat: String = "MULTIPART",
+    /** Name of an [app.fediferry.media.cleanup.MaskPolarity]. */
+    val imageMaskPolarity: String = "TRANSPARENT_HOLE",
 ) {
     companion object {
         const val DEFAULT_VISION_PROMPT =
@@ -74,6 +84,12 @@ class SettingsStore(private val context: Context) {
         val autoCrop = booleanPreferencesKey("auto_crop")
         val resolveLinks = booleanPreferencesKey("resolve_links")
         val lastCleanupProfile = stringPreferencesKey("last_cleanup_profile")
+        val imageEndpoint = stringPreferencesKey("image_endpoint")
+        val imageModel = stringPreferencesKey("image_model")
+        val imageApiKey = stringPreferencesKey("image_api_key")
+        val imageInstruction = stringPreferencesKey("image_instruction")
+        val imageWireFormat = stringPreferencesKey("image_wire_format")
+        val imageMaskPolarity = stringPreferencesKey("image_mask_polarity")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -87,6 +103,12 @@ class SettingsStore(private val context: Context) {
             autoCrop = p[Keys.autoCrop] ?: true,
             resolveLinks = p[Keys.resolveLinks] ?: true,
             lastCleanupProfileId = p[Keys.lastCleanupProfile].orEmpty(),
+            imageEndpoint = p[Keys.imageEndpoint].orEmpty(),
+            imageModel = p[Keys.imageModel].orEmpty(),
+            imageApiKey = p[Keys.imageApiKey].orEmpty(),
+            imageInstruction = p[Keys.imageInstruction].orEmpty(),
+            imageWireFormat = p[Keys.imageWireFormat] ?: "MULTIPART",
+            imageMaskPolarity = p[Keys.imageMaskPolarity] ?: "TRANSPARENT_HOLE",
         )
     }
 
@@ -97,6 +119,13 @@ class SettingsStore(private val context: Context) {
     suspend fun setVisionModel(v: String) = edit { it[Keys.visionModel] = v }
     suspend fun setVisionApiKey(v: String) = edit { it[Keys.visionApiKey] = v }
     suspend fun setVisionPrompt(v: String) = edit { it[Keys.visionPrompt] = v }
+    suspend fun setImageEndpoint(v: String) = edit { it[Keys.imageEndpoint] = v }
+    suspend fun setImageModel(v: String) = edit { it[Keys.imageModel] = v }
+    suspend fun setImageApiKey(v: String) = edit { it[Keys.imageApiKey] = v }
+    suspend fun setImageInstruction(v: String) = edit { it[Keys.imageInstruction] = v }
+    suspend fun setImageWireFormat(v: String) = edit { it[Keys.imageWireFormat] = v }
+    suspend fun setImageMaskPolarity(v: String) = edit { it[Keys.imageMaskPolarity] = v }
+
     suspend fun setLastCleanupProfile(id: String) = edit { it[Keys.lastCleanupProfile] = id }
     suspend fun setResolveLinks(enabled: Boolean) = edit { it[Keys.resolveLinks] = enabled }
     suspend fun setAutoCrop(enabled: Boolean) = edit { it[Keys.autoCrop] = enabled }

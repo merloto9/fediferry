@@ -33,6 +33,11 @@ import app.fediferry.data.db.AppDatabase
 import app.fediferry.link.LinkResolver
 import app.fediferry.link.NineGagResolver
 import app.fediferry.link.OkHttpMediaFetcher
+import app.fediferry.media.cleanup.EditWireFormat
+import app.fediferry.media.cleanup.HttpImageEditProvider
+import app.fediferry.media.cleanup.ImageEditProvider
+import app.fediferry.media.cleanup.MaskPolarity
+import app.fediferry.media.cleanup.NoImageEditProvider
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.mastodon.AuthManager
@@ -69,6 +74,9 @@ object ServiceLocator {
                 accounts = database.accounts(),
                 media = MediaVault(context.applicationContext),
                 cleanupDao = database.cleanup(),
+                editProvider = { imageEditProvider(context) },
+                maskPolarity = { maskPolarity(context) },
+                editInstruction = { settings(context).current().imageInstruction },
                 resolvers = linkResolvers(),
                 fetcher = OkHttpMediaFetcher(linkHttp()),
             )
@@ -125,6 +133,28 @@ object ServiceLocator {
             tokens = tokens(context),
         ).also { authManager = it }
     }
+
+    /**
+     * The image model behind the "Erase with AI" treatment, or
+     * [NoImageEditProvider] when none is configured. The cleanup pipeline falls
+     * back to a local fill either way, so an absent model is not an error.
+     */
+    suspend fun imageEditProvider(context: Context): ImageEditProvider {
+        val s = settings(context).current()
+        if (s.imageEndpoint.isBlank()) return NoImageEditProvider
+        return HttpImageEditProvider(
+            client = http(),
+            endpoint = s.imageEndpoint,
+            model = s.imageModel,
+            apiKey = s.imageApiKey,
+            wireFormat = runCatching { EditWireFormat.valueOf(s.imageWireFormat) }
+                .getOrDefault(EditWireFormat.MULTIPART),
+        )
+    }
+
+    suspend fun maskPolarity(context: Context): MaskPolarity =
+        runCatching { MaskPolarity.valueOf(settings(context).current().imageMaskPolarity) }
+            .getOrDefault(MaskPolarity.TRANSPARENT_HOLE)
 
     /**
      * Resolves the provider a template asks for. The posting path only ever sees

@@ -46,6 +46,16 @@ enum class TreatmentKind {
 
     /** Coarse blocks. Same purpose as blur, harder to reverse. */
     PIXELATE,
+
+    /**
+     * Hand the region to a configured image model, which paints it out with
+     * something plausible instead of smearing the surroundings over it.
+     *
+     * Applied before the local treatments, since it needs the whole picture.
+     * Falls back to [FILL] whenever the model is unconfigured or unreachable,
+     * so choosing it never costs a post.
+     */
+    AI_ERASE,
 }
 
 /** A rectangle in fractions of the image, so one rule fits every screen size. */
@@ -100,6 +110,10 @@ object ImageCleaner {
                 TreatmentKind.FILL -> fill(out, width, height, r)
                 TreatmentKind.BLUR -> blur(out, width, height, r)
                 TreatmentKind.PIXELATE -> pixelate(out, width, r)
+                // Handled before this pass, by the pipeline that can await a
+                // network call; anything still marked AI_ERASE here did not get
+                // through and is filled locally instead.
+                TreatmentKind.AI_ERASE -> fill(out, width, height, r)
                 TreatmentKind.CROP_AWAY -> Unit
             }
         }

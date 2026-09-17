@@ -182,7 +182,14 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
         }
 
         _state.update { it.copy(applying = true) }
-        repo.applyCleanup(item, s.rules.map { it.toCleanupRule() }).fold(
+        val app = getApplication<Application>()
+        repo.applyCleanup(
+            item = item,
+            rules = s.rules.map { it.toCleanupRule() },
+            provider = ServiceLocator.imageEditProvider(app),
+            polarity = ServiceLocator.maskPolarity(app),
+            instruction = settings.current().imageInstruction,
+        ).fold(
             onSuccess = { onDone(it.id) },
             onFailure = { e ->
                 _state.update { it.copy(applying = false, message = "Could not clean up: ${e.message}") }

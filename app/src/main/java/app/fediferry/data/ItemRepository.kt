@@ -32,6 +32,9 @@ import app.fediferry.media.ScreenshotAnalyzer
 import app.fediferry.media.ScreenshotCropper
 import app.fediferry.media.cleanup.BitmapCleaner
 import app.fediferry.media.cleanup.CleanupRule
+import app.fediferry.media.cleanup.ImageEditProvider
+import app.fediferry.media.cleanup.MaskPolarity
+import app.fediferry.media.cleanup.NoImageEditProvider
 import app.fediferry.share.SharePayload
 import app.fediferry.template.TemplateEngine
 import kotlinx.coroutines.flow.Flow
@@ -48,6 +51,9 @@ class ItemRepository(
     private val accounts: AccountDao,
     private val media: MediaVault,
     private val cleanupDao: CleanupDao? = null,
+    private val editProvider: suspend () -> ImageEditProvider = { NoImageEditProvider },
+    private val maskPolarity: suspend () -> MaskPolarity = { MaskPolarity.TRANSPARENT_HOLE },
+    private val editInstruction: suspend () -> String = { "" },
     private val resolvers: List<LinkResolver> = emptyList(),
     private val fetcher: MediaFetcher = MediaFetcher { Result.failure(UnsupportedOperationException()) },
 ) {
@@ -291,10 +297,18 @@ class ItemRepository(
      * screenshot stays in [Item.originalMediaPath], so one undo still returns
      * the item to exactly what was shared.
      */
-    suspend fun applyCleanup(item: Item, rules: List<CleanupRule>): Result<Item> = runCatching {
+    suspend fun applyCleanup(
+        item: Item,
+        rules: List<CleanupRule>,
+        provider: ImageEditProvider = NoImageEditProvider,
+        polarity: MaskPolarity = MaskPolarity.TRANSPARENT_HOLE,
+        instruction: String = "",
+    ): Result<Item> = runCatching {
         if (rules.isEmpty()) return@runCatching item
         val source = item.mediaPath ?: error("This item has no image to clean up")
-        val bitmap = BitmapCleaner.clean(source, rules) ?: error("Could not read the image")
+        val outcome = BitmapCleaner.clean(source, rules, provider, polarity, instruction)
+            ?: error("Could not read the image")
+        val bitmap = outcome.bitmap
         val stored = media.store(bitmap, item.mimeType).getOrThrow()
         bitmap.recycle()
 
@@ -324,7 +338,8 @@ class ItemRepository(
         val rules = dao.enabledRules(profile.id).map { it.toCleanupRule() }
         if (rules.isEmpty()) return item
 
-        return applyCleanup(item, rules).getOrDefault(item)
+        return applyCleanup(item, rules, editProvider(), maskPolarity(), editInstruction())
+            .getOrDefault(item)
     }
 
     /** Puts the untouched screenshot back, undoing every edit made to it. */

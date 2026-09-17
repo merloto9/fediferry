@@ -130,6 +130,16 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setAutoCrop(enabled: Boolean) = viewModelScope.launch { settingsStore.setAutoCrop(enabled) }
     fun setPurgeAfterDays(days: Int) = viewModelScope.launch { settingsStore.setPurgeAfterDays(days) }
 
+    fun setImageEndpoint(v: String) = viewModelScope.launch { settingsStore.setImageEndpoint(v) }
+    fun setImageModel(v: String) = viewModelScope.launch { settingsStore.setImageModel(v) }
+    fun setImageApiKey(v: String) = viewModelScope.launch { settingsStore.setImageApiKey(v) }
+    fun setImageInstruction(v: String) =
+        viewModelScope.launch { settingsStore.setImageInstruction(v) }
+    fun setImageWireFormat(v: String) =
+        viewModelScope.launch { settingsStore.setImageWireFormat(v) }
+    fun setImageMaskPolarity(v: String) =
+        viewModelScope.launch { settingsStore.setImageMaskPolarity(v) }
+
     fun setDefaultCleanupProfile(id: String) =
         viewModelScope.launch { cleanupDao.setDefaultProfile(id) }
 

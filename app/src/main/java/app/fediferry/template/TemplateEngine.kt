@@ -56,6 +56,10 @@ object TemplateEngine {
         return if (known > 0 && filled == 0) null else substituted.trimEnd()
     }
 
-    private val PLACEHOLDER = Regex("""\{(\w+)}""")
+    // Both braces are escaped. Android's java.util.regex is ICU-backed and
+    // rejects an unmatched `}` outright, where the OpenJDK engine the unit tests
+    // run on accepts it — so an unescaped brace compiles on the host and throws
+    // PatternSyntaxException on a device.
+    private val PLACEHOLDER = Regex("""\{(\w+)\}""")
     private val BLANK_RUN = Regex("""\n{3,}""")
 }

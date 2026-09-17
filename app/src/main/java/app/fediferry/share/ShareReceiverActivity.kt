@@ -2,6 +2,7 @@ package app.fediferry.share
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -49,7 +50,12 @@ class ShareReceiverActivity : ComponentActivity() {
             result.fold(
                 onSuccess = { item -> handle(mode, item.id) },
                 onFailure = { error ->
-                    toast("Could not read the shared image: ${error.message}")
+                    // The whole throwable goes to the log: a bare `message` is
+                    // useless for the errors that actually occur here (a
+                    // NoClassDefFoundError's message is just the mangled class
+                    // name). The payload itself is never logged.
+                    Log.e(TAG, "Ingest failed for a $mode share", error)
+                    toast("Could not read the share: ${error.describe()}")
                     finish()
                 },
             )
@@ -96,7 +102,19 @@ class ShareReceiverActivity : ComponentActivity() {
     private fun toast(message: String) =
         Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
 
+    /**
+     * Class name plus message. Errors thrown by the class loader carry only a
+     * mangled name as their message, so the message alone says nothing.
+     */
+    private fun Throwable.describe(): String {
+        val root = generateSequence(this) { it.cause }.last()
+        val name = root::class.java.simpleName
+        return root.message?.takeIf { it.isNotBlank() }?.let { "$name: $it" } ?: name
+    }
+
     private companion object {
+        const val TAG = "ShareReceiver"
+
         /** Set by the launcher when a Sharing Shortcut is tapped. */
         const val EXTRA_SHORTCUT_ID = "android.intent.extra.shortcut.ID"
     }

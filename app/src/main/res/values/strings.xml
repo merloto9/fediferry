@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FediFerry</string>
+    <string name="share_post_now">Post now</string>
+    <string name="share_compose">Compose</string>
+    <string name="share_save_later">Save for later</string>
+</resources>

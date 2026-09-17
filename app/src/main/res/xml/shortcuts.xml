@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Static declaration of the share-target capability. ShortcutPublisher publishes
+  the three modes dynamically at runtime; these entries tell the system what
+  kind of data each target accepts so they surface in the direct-share row.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="app.fediferry.share.ShareReceiverActivity">
+        <data android:mimeType="image/*" />
+        <data android:mimeType="video/*" />
+        <data android:mimeType="text/plain" />
+        <category android:name="app.fediferry.category.SHARE_TARGET" />
+    </share-target>
+</shortcuts>

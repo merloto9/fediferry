@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.Visibility
 import app.fediferry.ui.PlaceholderHelpDialog
+import app.fediferry.ui.StableTextField
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -158,10 +159,11 @@ fun EditorScreen(
 
             TemplatePicker(state, viewModel)
 
-            OutlinedTextField(
+            StableTextField(
+                key = item.id,
                 value = item.bodyText,
                 onValueChange = viewModel::setBody,
-                label = { Text("Post text") },
+                label = "Post text",
                 minLines = 3,
                 trailingIcon = {
                     IconButton(onClick = { showPlaceholderHelp = true }) {
@@ -174,10 +176,13 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
+            StableTextField(
+                // Regenerating alt text replaces it from outside, so the field
+                // must re-seed when that happens rather than keep the old text.
+                key = item.id to item.altText,
                 value = item.altText.orEmpty(),
                 onValueChange = viewModel::setAltText,
-                label = { Text("Alt text") },
+                label = "Alt text",
                 supportingText = {
                     if (item.altTextFailed) {
                         Text(
@@ -199,10 +204,11 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
+            StableTextField(
+                key = item.id,
                 value = item.contentWarning.orEmpty(),
                 onValueChange = viewModel::setContentWarning,
-                label = { Text("Content warning") },
+                label = "Content warning",
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

@@ -23,6 +23,7 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.video.VideoFrameDecoder
 import app.fediferry.di.ServiceLocator
 import app.fediferry.share.ShortcutPublisher
@@ -37,13 +38,22 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
-     * Animated 9GAG posts resolve to an mp4, and without the video decoder the
-     * preview is simply blank — the attachment is fine, but the user cannot see
-     * what they are about to post.
+     * Two things Coil does not do on its own.
+     *
+     * It ships no network fetcher, so a remote URL simply never loads — which
+     * went unnoticed until the Sources space, since every image before it came
+     * from a local file. And without the video decoder an animated 9GAG post
+     * previews as a blank box, though the attachment itself is fine.
+     *
+     * The app's own OkHttp client is reused, so images share its timeouts and
+     * connection pool rather than opening a second stack.
      */
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context)
-            .components { add(VideoFrameDecoder.Factory()) }
+            .components {
+                add(OkHttpNetworkFetcherFactory(callFactory = { ServiceLocator.http() }))
+                add(VideoFrameDecoder.Factory())
+            }
             .build()
 
     override fun onCreate() {

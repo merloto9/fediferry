@@ -120,40 +120,51 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun makeDefaultTemplate(id: String) =
         viewModelScope.launch { db.templates().setDefault(id) }
 
-    fun setUndoDelay(seconds: Int) = viewModelScope.launch { settingsStore.setUndoDelay(seconds) }
-    fun setVisionEndpoint(v: String) = viewModelScope.launch { settingsStore.setVisionEndpoint(v) }
-    fun setVisionModel(v: String) = viewModelScope.launch { settingsStore.setVisionModel(v) }
-    fun setVisionApiKey(v: String) = viewModelScope.launch { settingsStore.setVisionApiKey(v) }
-    fun setVisionPrompt(v: String) = viewModelScope.launch { settingsStore.setVisionPrompt(v) }
+    fun setUndoDelay(seconds: Int) = persist { settingsStore.setUndoDelay(seconds) }
+    fun setVisionEndpoint(v: String) = persist { settingsStore.setVisionEndpoint(v) }
+    fun setVisionModel(v: String) = persist { settingsStore.setVisionModel(v) }
+    fun setVisionApiKey(v: String) = persist { settingsStore.setVisionApiKey(v) }
+    fun setVisionPrompt(v: String) = persist { settingsStore.setVisionPrompt(v) }
     fun setResolveLinks(enabled: Boolean) =
-        viewModelScope.launch { settingsStore.setResolveLinks(enabled) }
-    fun setAutoCrop(enabled: Boolean) = viewModelScope.launch { settingsStore.setAutoCrop(enabled) }
-    fun setPurgeAfterDays(days: Int) = viewModelScope.launch { settingsStore.setPurgeAfterDays(days) }
+        persist { settingsStore.setResolveLinks(enabled) }
+    fun setAutoCrop(enabled: Boolean) = persist { settingsStore.setAutoCrop(enabled) }
+    fun setPurgeAfterDays(days: Int) = persist { settingsStore.setPurgeAfterDays(days) }
 
-    fun setImageEndpoint(v: String) = viewModelScope.launch { settingsStore.setImageEndpoint(v) }
-    fun setImageModel(v: String) = viewModelScope.launch { settingsStore.setImageModel(v) }
-    fun setImageApiKey(v: String) = viewModelScope.launch { settingsStore.setImageApiKey(v) }
+    fun setImageEndpoint(v: String) = persist { settingsStore.setImageEndpoint(v) }
+    fun setImageModel(v: String) = persist { settingsStore.setImageModel(v) }
+    fun setImageApiKey(v: String) = persist { settingsStore.setImageApiKey(v) }
     fun setImageInstruction(v: String) =
-        viewModelScope.launch { settingsStore.setImageInstruction(v) }
+        persist { settingsStore.setImageInstruction(v) }
     fun setImageWireFormat(v: String) =
-        viewModelScope.launch { settingsStore.setImageWireFormat(v) }
+        persist { settingsStore.setImageWireFormat(v) }
     fun setImageMaskPolarity(v: String) =
-        viewModelScope.launch { settingsStore.setImageMaskPolarity(v) }
+        persist { settingsStore.setImageMaskPolarity(v) }
 
     fun setDefaultCleanupProfile(id: String) =
-        viewModelScope.launch { cleanupDao.setDefaultProfile(id) }
+        persist { cleanupDao.setDefaultProfile(id) }
 
     fun clearDefaultCleanupProfile() =
-        viewModelScope.launch { cleanupDao.setDefaultProfile("") }
+        persist { cleanupDao.setDefaultProfile("") }
 
     fun deleteCleanupProfile(id: String) =
-        viewModelScope.launch { cleanupDao.deleteProfile(id) }
+        persist { cleanupDao.deleteProfile(id) }
 
     fun setCleanupRuleEnabled(id: String, enabled: Boolean) =
-        viewModelScope.launch { cleanupDao.setRuleEnabled(id, enabled) }
+        persist { cleanupDao.setRuleEnabled(id, enabled) }
 
     fun deleteCleanupRule(id: String) =
-        viewModelScope.launch { cleanupDao.deleteRule(id) }
+        persist { cleanupDao.deleteRule(id) }
+
+    /**
+     * Runs a save on the application scope rather than this ViewModel's.
+     *
+     * Leaving the settings screen cancels viewModelScope, and a DataStore write
+     * in flight goes with it — so the value typed a moment earlier is simply
+     * lost. Persisting must outlive the screen that asked for it.
+     */
+    private fun persist(block: suspend () -> Unit) {
+        ServiceLocator.appScope.launch { block() }
+    }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 }

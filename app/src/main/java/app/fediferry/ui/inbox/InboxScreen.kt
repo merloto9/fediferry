@@ -66,6 +66,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
+import app.fediferry.ui.Space
+import app.fediferry.ui.SpaceBar
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -74,6 +76,7 @@ import java.io.File
 fun InboxScreen(
     onOpenItem: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onSwitchSpace: (Space) -> Unit = {},
     viewModel: InboxViewModel = viewModel(),
 ) {
     val items by viewModel.items.collectAsState()
@@ -81,6 +84,7 @@ fun InboxScreen(
     val selecting = selection.isNotEmpty()
 
     Scaffold(
+        bottomBar = { SpaceBar(Space.INBOX, onSwitchSpace) },
         topBar = {
             TopAppBar(
                 title = { Text(if (selecting) "${selection.size} selected" else "Inbox") },

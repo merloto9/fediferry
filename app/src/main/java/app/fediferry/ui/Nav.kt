@@ -31,9 +31,14 @@ import app.fediferry.ui.crop.CropScreen
 import app.fediferry.ui.editor.EditorScreen
 import app.fediferry.ui.inbox.InboxScreen
 import app.fediferry.ui.settings.SettingsScreen
+import app.fediferry.ui.sources.ChannelScreen
+import app.fediferry.ui.sources.SourcesScreen
+import androidx.navigation.NavController
 
 object Routes {
     const val INBOX = "inbox"
+    const val SOURCES = "sources"
+    const val CHANNEL = "channel/{sourceId}"
     const val SETTINGS = "settings"
     const val EDITOR = "editor/{itemId}"
     const val CROP = "crop/{itemId}"
@@ -42,6 +47,7 @@ object Routes {
     fun editor(itemId: String) = "editor/$itemId"
     fun crop(itemId: String) = "crop/$itemId"
     fun cleanup(itemId: String) = "cleanup/$itemId"
+    fun channel(sourceId: String) = "channel/$sourceId"
 }
 
 @Composable
@@ -70,6 +76,24 @@ fun FediFerryNavHost(
             InboxScreen(
                 onOpenItem = { navController.navigate(Routes.editor(it)) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(Routes.SOURCES) {
+            SourcesScreen(
+                onOpenChannel = { navController.navigate(Routes.channel(it)) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(
+            route = Routes.CHANNEL,
+            arguments = listOf(navArgument("sourceId") { type = NavType.StringType }),
+        ) { entry ->
+            ChannelScreen(
+                sourceId = entry.arguments?.getString("sourceId").orEmpty(),
+                onBack = { navController.popBackStack() },
+                onPicked = { itemId -> navController.navigate(Routes.editor(itemId)) },
             )
         }
         composable(
@@ -117,5 +141,16 @@ fun FediFerryNavHost(
         composable(Routes.SETTINGS) {
             SettingsScreen(onBack = { navController.popBackStack() })
         }
+    }
+}
+
+/**
+ * Switching space replaces the current one rather than stacking on it, so Back
+ * always leaves the app from a space instead of cycling between the two.
+ */
+private fun NavController.switchSpace(space: Space) {
+    navigate(space.route) {
+        popUpTo(Routes.INBOX) { inclusive = space.route == Routes.INBOX }
+        launchSingleTop = true
     }
 }

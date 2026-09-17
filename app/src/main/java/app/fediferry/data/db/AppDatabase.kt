@@ -31,6 +31,7 @@ import app.fediferry.data.model.InstanceApp
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ProfileRule
+import app.fediferry.data.model.Source
 import app.fediferry.data.model.Template
 
 @Database(
@@ -41,8 +42,9 @@ import app.fediferry.data.model.Template
         Template::class,
         CleanupProfile::class,
         ProfileRule::class,
+        Source::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -51,6 +53,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun accounts(): AccountDao
     abstract fun templates(): TemplateDao
     abstract fun cleanup(): CleanupDao
+    abstract fun sources(): SourceDao
 
     companion object {
         /**
@@ -100,9 +103,28 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds the followed sources. Purely additive; posts are never stored. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `sources` (
+                        `id` TEXT NOT NULL,
+                        `kind` TEXT NOT NULL,
+                        `handle` TEXT NOT NULL,
+                        `displayName` TEXT NOT NULL,
+                        `addedAt` INTEGER NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }

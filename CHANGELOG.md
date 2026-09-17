@@ -20,6 +20,39 @@ Obtainium installs.
   message is quoted, never the whole body, since a rejected request can echo the
   image back.
 
+## [Unreleased]
+
+### Added
+
+- **A Sources space beside the Inbox.** Follow YouTube channels, browse their
+  community posts at the size they deserve, and tap a picture to land in the
+  same editor a share or a screenshot reaches. The post's own text feeds
+  `{caption}` and its permalink feeds `{link}`.
+- Only the subscription is stored. Posts are fetched live and never persisted —
+  they are someone else's content, and only the picture actually chosen becomes
+  an item.
+
+### Fixed
+
+- **Typing was close to impossible.** Every text field was bound to a value that
+  travelled through a StateFlow, and for the settings fields through DataStore
+  and back off disk. Each keystroke was followed a frame later by the field
+  being handed an older string, so the cursor jumped and characters arrived out
+  of order. Fields now own their text while focused and follow outside changes
+  only when they do not.
+- **Settings could be lost on the way out.** Saving ran on the screen's own
+  coroutine scope, which is cancelled the moment the screen is left — so typing
+  a value and going straight back discarded it. Saving now outlives the screen
+  that asked for it.
+
+### Notes
+
+- YouTube publishes no API for community posts: the Data API covers videos,
+  channels, playlists and comments and stops there. The channel page's own
+  embedded JSON is the only route, which makes this the most fragile thing in
+  the app. It is written to fail loudly rather than quietly — "the page changed"
+  and "this channel has no posts" are reported differently.
+
 ## [0.5.1] — 2026-09-18
 
 ### Added

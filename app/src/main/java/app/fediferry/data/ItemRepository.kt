@@ -204,6 +204,56 @@ class ItemRepository(
     suspend fun update(item: Item) = items.update(item)
 
     /**
+     * Turns a picture picked in the Sources space into an item, so it lands in
+     * the same editor as a share or a screenshot.
+     *
+     * The post's own text feeds `{caption}` and its permalink feeds `{link}`,
+     * which is what those placeholders were for. An identical picture already
+     * waiting as a draft is reused rather than duplicated, the same rule a
+     * repeated share follows.
+     */
+    suspend fun ingestFromSource(
+        imageUrl: String,
+        permalink: String,
+        caption: String?,
+        templateId: String? = null,
+        status: Status = Status.DRAFT,
+    ): Result<Item> = runCatching {
+        val template = resolveTemplate(templateId)
+        val bytes = fetcher.fetch(imageUrl).getOrThrow()
+        val stored = media.store(bytes, mimeOf(imageUrl)).getOrThrow()
+
+        items.draftByMediaHash(stored.sha256)?.let { return@runCatching it }
+
+        val item = Item(
+            id = UUID.randomUUID().toString(),
+            mediaPath = stored.file.absolutePath,
+            mediaHash = stored.sha256,
+            mimeType = stored.mimeType,
+            sourceUrl = permalink,
+            bodyText = TemplateEngine.render(
+                template,
+                TemplateEngine.Inputs(link = permalink, caption = caption),
+            ),
+            contentWarning = template.contentWarning,
+            visibility = template.visibility,
+            templateId = template.id,
+            accountId = template.accountId ?: accounts.defaultAccount()?.id,
+            status = status,
+        )
+        items.upsert(item)
+        item
+    }
+
+    /** YouTube serves WebP from its image CDN whatever the extension suggests. */
+    private fun mimeOf(url: String): String = when {
+        url.contains(".png", ignoreCase = true) -> "image/png"
+        url.contains(".gif", ignoreCase = true) -> "image/gif"
+        url.contains("webp", ignoreCase = true) -> "image/webp"
+        else -> "image/jpeg"
+    }
+
+    /**
      * Fetches the media behind a link-only item, for the services that publish
      * it — 9GAG does, Instagram does not.
      *

@@ -71,6 +71,18 @@ degrades to nothing when it cannot be resolved.
 Turn this off with *Settings → Fetch images from shared links*. Instagram
 publishes nothing fetchable, so its shares are unaffected either way.
 
+### Sources
+
+Beside the Inbox is a **Sources** space. Add a YouTube channel by handle or URL,
+browse its community posts, and tap a picture to go straight to the editor — the
+same one a share or a screenshot reaches. The post's text fills `{caption}` and
+its link fills `{link}`.
+
+Only the subscription is stored; posts are fetched fresh each time. YouTube has
+no API for community posts, so this reads the channel page's embedded data — the
+most fragile part of the app, and the part most likely to need attention if
+YouTube changes its pages.
+
 ### Trimming
 
 A screenshot includes the whole screen; the post wants the picture. FediFerry

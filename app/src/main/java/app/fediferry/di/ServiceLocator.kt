@@ -21,6 +21,9 @@ package app.fediferry.di
 
 import android.annotation.SuppressLint
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import app.fediferry.alt.AltTextProvider
 import app.fediferry.alt.NoAltTextProvider
 import app.fediferry.alt.StaticAltTextProvider
@@ -38,6 +41,7 @@ import app.fediferry.media.cleanup.HttpImageEditProvider
 import app.fediferry.media.cleanup.ImageEditProvider
 import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.media.cleanup.NoImageEditProvider
+import app.fediferry.source.YouTubeSourceClient
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.mastodon.AuthManager
@@ -60,6 +64,18 @@ object ServiceLocator {
     @Volatile private var settingsStore: SettingsStore? = null
     @Volatile private var authManager: AuthManager? = null
     @Volatile private var resolverHttp: OkHttpClient? = null
+    @Volatile private var youtubeClient: YouTubeSourceClient? = null
+
+    /**
+     * For work that must finish even though the screen that started it is gone.
+     *
+     * Saving a setting is the case that matters: viewModelScope is cancelled
+     * the moment the settings screen is left, so typing a value and going
+     * straight back lost it.
+     */
+    val appScope: CoroutineScope by lazy {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    }
 
     fun database(context: Context): AppDatabase = db ?: synchronized(this) {
         db ?: AppDatabase.build(context.applicationContext).also { db = it }
@@ -97,6 +113,11 @@ object ServiceLocator {
      * Services whose links can be turned back into media. Order matters only in
      * that the first match wins; no two resolvers claim the same host.
      */
+    /** Reads followed channels' community posts. */
+    fun youtube(): YouTubeSourceClient = youtubeClient ?: synchronized(this) {
+        youtubeClient ?: YouTubeSourceClient(http()).also { youtubeClient = it }
+    }
+
     fun linkResolvers(): List<LinkResolver> = listOf(NineGagResolver(linkHttp()))
 
     /**

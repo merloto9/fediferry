@@ -69,6 +69,7 @@ import androidx.compose.foundation.Image
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.Region
+import app.fediferry.ui.StableTextField
 import app.fediferry.media.cleanup.TreatmentKind
 import kotlin.math.max
 import kotlin.math.min
@@ -215,11 +216,12 @@ private fun AiPrompt(state: CleanupState, viewModel: CleanupViewModel) {
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        OutlinedTextField(
+        StableTextField(
+            key = state.item?.id,
             value = state.instruction,
             onValueChange = viewModel::setInstruction,
-            label = { Text("Tell the model what to do") },
-            placeholder = { Text(CleanupPipeline.DEFAULT_INSTRUCTION) },
+            label = "Tell the model what to do",
+            placeholder = CleanupPipeline.DEFAULT_INSTRUCTION,
             enabled = state.modelConfigured,
             minLines = 2,
             modifier = Modifier.fillMaxWidth(),

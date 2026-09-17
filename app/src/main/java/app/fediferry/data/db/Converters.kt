@@ -22,6 +22,7 @@ package app.fediferry.data.db
 import androidx.room.TypeConverter
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Status
+import app.fediferry.data.model.SourceKind
 import app.fediferry.data.model.Visibility
 import app.fediferry.media.cleanup.TreatmentKind
 
@@ -34,6 +35,9 @@ class Converters {
 
     @TypeConverter fun altModeToString(v: AltTextMode): String = v.name
     @TypeConverter fun stringToAltMode(v: String): AltTextMode = AltTextMode.valueOf(v)
+
+    @TypeConverter fun sourceKindToString(v: SourceKind): String = v.name
+    @TypeConverter fun stringToSourceKind(v: String): SourceKind = SourceKind.valueOf(v)
 
     @TypeConverter fun treatmentToString(v: TreatmentKind): String = v.name
     @TypeConverter fun stringToTreatment(v: String): TreatmentKind = TreatmentKind.valueOf(v)

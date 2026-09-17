@@ -67,6 +67,7 @@ import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.ui.PlaceholderHelpDialog
+import app.fediferry.ui.StableTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -441,34 +442,38 @@ private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel
         style = MaterialTheme.typography.bodySmall,
     )
 
-    OutlinedTextField(
+    StableTextField(
+        key = "image-endpoint",
         value = state.settings.imageEndpoint,
         onValueChange = viewModel::setImageEndpoint,
-        label = { Text("Endpoint URL") },
-        placeholder = { Text("https://api.example.com/v1/images/edits") },
+        label = "Endpoint URL",
+        placeholder = "https://api.example.com/v1/images/edits",
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    StableTextField(
+        key = "image-model",
         value = state.settings.imageModel,
         onValueChange = viewModel::setImageModel,
-        label = { Text("Model") },
+        label = "Model",
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    StableTextField(
+        key = "image-key",
         value = state.settings.imageApiKey,
         onValueChange = viewModel::setImageApiKey,
-        label = { Text("API key") },
+        label = "API key",
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    StableTextField(
+        key = "image-instruction",
         value = state.settings.imageInstruction,
         onValueChange = viewModel::setImageInstruction,
-        label = { Text("Instruction") },
-        placeholder = { Text(CleanupPipeline.DEFAULT_INSTRUCTION) },
+        label = "Instruction",
+        placeholder = CleanupPipeline.DEFAULT_INSTRUCTION,
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -509,33 +514,37 @@ private fun VisionSection(state: SettingsState, viewModel: SettingsViewModel) {
         style = MaterialTheme.typography.bodySmall,
     )
 
-    OutlinedTextField(
+    StableTextField(
+        key = "vision-endpoint",
         value = state.settings.visionEndpoint,
         onValueChange = viewModel::setVisionEndpoint,
-        label = { Text("Endpoint URL") },
-        placeholder = { Text("https://api.example.com/v1/chat/completions") },
+        label = "Endpoint URL",
+        placeholder = "https://api.example.com/v1/chat/completions",
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    StableTextField(
+        key = "vision-model",
         value = state.settings.visionModel,
         onValueChange = viewModel::setVisionModel,
-        label = { Text("Model") },
+        label = "Model",
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    StableTextField(
+        key = "vision-key",
         value = state.settings.visionApiKey,
         onValueChange = viewModel::setVisionApiKey,
-        label = { Text("API key") },
+        label = "API key",
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
+    StableTextField(
+        key = "vision-prompt",
         value = state.settings.visionPrompt,
         onValueChange = viewModel::setVisionPrompt,
-        label = { Text("Prompt") },
+        label = "Prompt",
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
     )

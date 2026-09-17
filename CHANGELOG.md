@@ -8,6 +8,22 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.5.1] — 2026-09-18
+
+### Added
+
+- A prompt field on the Clean up screen, so the model can be told what to do for
+  *this* image rather than only through the default in Settings. It appears once
+  an area is actually going to the model.
+
+### Fixed
+
+- **"Erase with AI" looked like a dead button.** When no model was configured —
+  or the call failed — the marked areas were quietly filled from their
+  surroundings and nothing said so. The pipeline had reported the fallback all
+  along; the repository discarded it. The outcome now reaches the user, and
+  choosing the treatment says up front when no model is set up.
+
 ## [0.5.0] — 2026-09-17
 
 ### Added
@@ -189,6 +205,7 @@ Initial release. **Superseded — this build cannot ingest any share**; see 0.1.
 - `AltTextProvider` with none, static and vision implementations.
 - GitHub Actions release pipeline producing an Obtainium-installable APK.
 
+[0.5.1]: https://github.com/merloto9/fediferry/releases/tag/v0.5.1
 [0.5.0]: https://github.com/merloto9/fediferry/releases/tag/v0.5.0
 [0.4.0]: https://github.com/merloto9/fediferry/releases/tag/v0.4.0
 [0.3.0]: https://github.com/merloto9/fediferry/releases/tag/v0.3.0

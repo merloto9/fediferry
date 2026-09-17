@@ -21,6 +21,7 @@ package app.fediferry.ui.cleanup
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.data.model.CleanupProfile
@@ -55,6 +56,10 @@ data class CleanupState(
     val profiles: List<CleanupProfile> = emptyList(),
     val profileId: String? = null,
     val rememberForProfile: Boolean = false,
+    /** Sent with an AI region. Starts from the settings default, edited per image. */
+    val instruction: String = "",
+    /** True when an image model is configured at all. */
+    val modelConfigured: Boolean = false,
     val preview: Bitmap? = null,
     val previewing: Boolean = false,
     val applying: Boolean = false,
@@ -87,6 +92,7 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
             ?: profiles.firstOrNull()?.id
 
         val saved = profileId?.let { cleanupDao.enabledRules(it) }.orEmpty()
+        val current = settings.current()
 
         _state.update {
             it.copy(
@@ -100,6 +106,8 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
                         treatment = rule.treatment,
                     )
                 },
+                instruction = current.imageInstruction,
+                modelConfigured = current.imageEndpoint.isNotBlank(),
                 loaded = true,
             )
         }
@@ -107,6 +115,11 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setTreatment(treatment: TreatmentKind) = _state.update { it.copy(treatment = treatment) }
+
+    fun setInstruction(text: String) = _state.update { it.copy(instruction = text) }
+
+    /** Whether any area is set to go to the model. */
+    fun usesModel(): Boolean = _state.value.rules.any { it.treatment == TreatmentKind.AI_ERASE }
 
     fun addRule(region: Region) {
         if (!region.isSane()) return
@@ -188,14 +201,27 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
             rules = s.rules.map { it.toCleanupRule() },
             provider = ServiceLocator.imageEditProvider(app),
             polarity = ServiceLocator.maskPolarity(app),
-            instruction = settings.current().imageInstruction,
+            instruction = s.instruction,
         ).fold(
-            onSuccess = { onDone(it.id) },
+            onSuccess = { cleaned ->
+                // Say which treatment actually ran. Falling back to a local fill
+                // without a word is indistinguishable from nothing happening.
+                cleaned.aiFailure?.let { why -> report("Filled in locally instead — $why") }
+                onDone(cleaned.item.id)
+            },
             onFailure = { e ->
                 _state.update { it.copy(applying = false, message = "Could not clean up: ${e.message}") }
             },
         )
     }
+
+    /**
+     * A toast rather than a snackbar: applying navigates straight to the editor,
+     * and a snackbar on a screen that is going away is a message nobody reads.
+     */
+    private fun report(text: String) = Toast
+        .makeText(getApplication(), text, Toast.LENGTH_LONG)
+        .show()
 
     private suspend fun saveToProfile(s: CleanupState) {
         val profileId = s.profileId ?: return

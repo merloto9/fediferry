@@ -297,14 +297,23 @@ class ItemRepository(
      * screenshot stays in [Item.originalMediaPath], so one undo still returns
      * the item to exactly what was shared.
      */
+    /**
+     * The result of a cleanup, including what the image model did or did not do.
+     *
+     * [aiFailure] exists because a model that is unreachable falls back to a
+     * local fill, and silently substituting one treatment for another looks
+     * from the outside exactly like a button that does nothing.
+     */
+    data class Cleaned(val item: Item, val aiUsed: Boolean, val aiFailure: String?)
+
     suspend fun applyCleanup(
         item: Item,
         rules: List<CleanupRule>,
         provider: ImageEditProvider = NoImageEditProvider,
         polarity: MaskPolarity = MaskPolarity.TRANSPARENT_HOLE,
         instruction: String = "",
-    ): Result<Item> = runCatching {
-        if (rules.isEmpty()) return@runCatching item
+    ): Result<Cleaned> = runCatching {
+        if (rules.isEmpty()) return@runCatching Cleaned(item, aiUsed = false, aiFailure = null)
         val source = item.mediaPath ?: error("This item has no image to clean up")
         val outcome = BitmapCleaner.clean(source, rules, provider, polarity, instruction)
             ?: error("Could not read the image")
@@ -319,7 +328,7 @@ class ItemRepository(
             originalMediaPath = item.originalMediaPath ?: source,
         )
         items.update(cleaned)
-        cleaned
+        Cleaned(cleaned, outcome.aiUsed, outcome.aiFailure)
     }
 
     /**
@@ -339,6 +348,7 @@ class ItemRepository(
         if (rules.isEmpty()) return item
 
         return applyCleanup(item, rules, editProvider(), maskPolarity(), editInstruction())
+            .map { it.item }
             .getOrDefault(item)
     }
 

@@ -113,6 +113,11 @@ family, JSON with base64 suits the Stable Diffusion derived servers, and the
 mask polarity is selectable too. Leave the endpoint empty and the treatment
 falls back to a local fill — an unreachable model costs quality, never a post.
 
+Leaving the endpoint empty is not an error, but it is also not silent: choosing
+the treatment says so, and applying it reports that the areas were filled in
+locally instead. The prompt on the Clean up screen applies to that image only;
+the default lives in Settings.
+
 > The request building and response unpacking are covered by tests, but they
 > have not been run against a live paid endpoint. If a service you use disagrees
 > with both shapes, that is the thing most likely to need adjusting.

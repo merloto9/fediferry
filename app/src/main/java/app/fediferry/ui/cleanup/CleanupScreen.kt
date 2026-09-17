@@ -67,6 +67,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Image
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.Region
 import app.fediferry.media.cleanup.TreatmentKind
 import kotlin.math.max
@@ -132,6 +133,12 @@ fun CleanupScreen(
 
             TreatmentPicker(state.treatment, viewModel::setTreatment)
 
+            // Only in the way when it is relevant: the prompt appears once an
+            // area is actually going to the model.
+            if (state.treatment == TreatmentKind.AI_ERASE || viewModel.usesModel()) {
+                AiPrompt(state, viewModel)
+            }
+
             PreviewCanvas(
                 state = state,
                 onRegion = viewModel::addRule,
@@ -188,6 +195,41 @@ private fun TreatmentKind.label(): String = when (this) {
     TreatmentKind.BLUR -> "Blur"
     TreatmentKind.PIXELATE -> "Pixelate"
     TreatmentKind.AI_ERASE -> "Erase with AI"
+}
+
+/**
+ * The instruction sent with the AI regions, and an honest word about whether a
+ * model is configured at all.
+ */
+@Composable
+private fun AiPrompt(state: CleanupState, viewModel: CleanupViewModel) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (!state.modelConfigured) {
+            Text(
+                "No image model is set up, so these areas will be filled in from " +
+                    "their surroundings instead. Add one under Settings → Image model.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        OutlinedTextField(
+            value = state.instruction,
+            onValueChange = viewModel::setInstruction,
+            label = { Text("Tell the model what to do") },
+            placeholder = { Text(CleanupPipeline.DEFAULT_INSTRUCTION) },
+            enabled = state.modelConfigured,
+            minLines = 2,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            "Applies to this image only. The default lives in Settings.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable

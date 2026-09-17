@@ -145,12 +145,39 @@ jobs:
           } > RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
+      # Published with the GitHub CLI, which is preinstalled on the runner, rather
+      # than a third-party action. softprox/action-gh-release@v2 began failing
+      # with "Error creating asset temp dir" once GitHub started forcing Node 20
+      # actions onto Node 24, and the release path is not a good place for a
+      # dependency that breaks under someone else's runtime migration.
       - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: FediFerry ${{ steps.version.outputs.name }}
-          body_path: RELEASE_NOTES.md
-          files: ${{ steps.apk.outputs.path }}
-          draft: false
-          prerelease: ${{ contains(steps.version.outputs.name, '-') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          TITLE: FediFerry ${{ steps.version.outputs.name }}
+          APK: ${{ steps.apk.outputs.path }}
+          VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          set -euo pipefail
+
+          # Idempotent, so re-running a failed publish finishes the job instead
+          # of erroring on a release that already half-exists.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists; updating it."
+            gh release edit "$TAG" --title "$TITLE" --notes-file RELEASE_NOTES.md
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" \
+              --title "$TITLE" \
+              --notes-file RELEASE_NOTES.md \
+              "$APK"
+          fi
+
+          # Set separately rather than through an array argument: expanding an
+          # empty array under `set -u` is an error on bash before 4.4.
+          case "$VERSION" in
+            *-*) gh release edit "$TAG" --prerelease ;;
+          esac
+
+          gh release view "$TAG" --json tagName,assets \
+            --jq '"published \(.tagName) with \(.assets | length) asset(s)"'

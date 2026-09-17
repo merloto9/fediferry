@@ -163,8 +163,15 @@ jobs:
           # Idempotent, so re-running a failed publish finishes the job instead
           # of erroring on a release that already half-exists.
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG exists; updating it."
-            gh release edit "$TAG" --title "$TITLE" --notes-file RELEASE_NOTES.md
+            # --draft=false matters: a publish that failed part way through
+            # leaves the release as a draft, and a draft is invisible to
+            # everyone but the repository owner. Uploading into it then looks
+            # like success while nobody can actually download the build.
+            echo "Release $TAG exists; updating and publishing it."
+            gh release edit "$TAG" \
+              --title "$TITLE" \
+              --notes-file RELEASE_NOTES.md \
+              --draft=false
             gh release upload "$TAG" "$APK" --clobber
           else
             gh release create "$TAG" \
@@ -179,5 +186,11 @@ jobs:
             *-*) gh release edit "$TAG" --prerelease ;;
           esac
 
-          gh release view "$TAG" --json tagName,assets \
-            --jq '"published \(.tagName) with \(.assets | length) asset(s)"'
+          # Fail loudly rather than reporting success on an empty release.
+          PUBLISHED=$(gh release view "$TAG" --json isDraft,assets \
+            --jq '"draft=\(.isDraft) assets=\(.assets | length)"')
+          echo "$TAG -> $PUBLISHED"
+          case "$PUBLISHED" in
+            *draft=true*) echo "::error::$TAG is still a draft"; exit 1 ;;
+            *assets=0*)   echo "::error::$TAG has no APK attached"; exit 1 ;;
+          esac

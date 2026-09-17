@@ -77,4 +77,23 @@ class TemplateEngineTest {
         )
         assertEquals("{nope}", out)
     }
+
+    /**
+     * The rule the pairing code uses to decide whether a draft's body is still
+     * the template's own output, and therefore safe to re-render once a link
+     * turns up. Hand-edited text must survive.
+     */
+    @Test
+    fun `an unedited body matches the link-less render exactly`() {
+        val t = template("{tags}\n\nvia {link}")
+        val unlinked = TemplateEngine.render(t, TemplateEngine.Inputs(link = null))
+        assertEquals("#meme", unlinked)
+
+        val relinked = TemplateEngine.render(
+            t,
+            TemplateEngine.Inputs(link = "https://instagram.com/p/abc"),
+        )
+        assertEquals("#meme\n\nvia https://instagram.com/p/abc", relinked)
+        assertTrue(relinked != unlinked)
+    }
 }

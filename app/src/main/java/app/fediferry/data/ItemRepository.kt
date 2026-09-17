@@ -49,7 +49,33 @@ class ItemRepository(
     suspend fun byId(id: String): Item? = items.byId(id)
 
     /**
+     * Ingests one shared payload into a persisted [Item], reporting how it was
+     * resolved so the caller can say something useful about it.
+     */
+    data class Ingested(val item: Item, val outcome: Outcome) {
+        enum class Outcome {
+            /** A new item, complete as shared. */
+            CREATED,
+
+            /** The same screenshot was already pending; folded into that item. */
+            DUPLICATE,
+
+            /** Joined to the other half of a two-step Instagram share. */
+            PAIRED,
+
+            /** A permalink with no image yet — a screenshot can still join it. */
+            AWAITING_MEDIA,
+        }
+    }
+
+    /**
      * Ingests one shared payload into a persisted [Item].
+     *
+     * Instagram's share sheet only ever hands over a permalink, so getting an
+     * image and its attribution into one post takes two shares: the link, then a
+     * screenshot. Rather than leaving two unrelated drafts behind, a share that
+     * supplies the half another recent draft is missing joins that draft instead
+     * of starting its own. See [PAIRING_WINDOW_MS].
      *
      * If the same screenshot was already ingested and is still pending, that item
      * is returned instead of a duplicate — sharing a screenshot twice by accident
@@ -59,7 +85,7 @@ class ItemRepository(
         payload: SharePayload,
         templateId: String? = null,
         status: Status = Status.DRAFT,
-    ): Result<Item> = runCatching {
+    ): Result<Ingested> = runCatching {
         val template = resolveTemplate(templateId)
 
         val stored = payload.imageUris.firstOrNull()
@@ -69,13 +95,13 @@ class ItemRepository(
             items.byMediaHash(hash)?.let { existing ->
                 // Same bytes, still pending: fold the new share into it rather
                 // than creating a second copy.
-                val merged = existing.copy(
-                    sourceUrl = existing.sourceUrl ?: payload.link,
-                )
+                val merged = existing.copy(sourceUrl = existing.sourceUrl ?: payload.link)
                 if (merged != existing) items.update(merged)
-                return@runCatching merged
+                return@runCatching Ingested(merged, Ingested.Outcome.DUPLICATE)
             }
         }
+
+        pair(payload, stored, status)?.let { return@runCatching it }
 
         val body = TemplateEngine.render(
             template,
@@ -97,7 +123,66 @@ class ItemRepository(
             status = status,
         )
         items.upsert(item)
-        item
+
+        val outcome = if (stored == null && payload.link != null) {
+            Ingested.Outcome.AWAITING_MEDIA
+        } else {
+            Ingested.Outcome.CREATED
+        }
+        Ingested(item, outcome)
+    }
+
+    /**
+     * Joins this share to a recent draft that is missing exactly what it carries,
+     * or returns null when there is nothing to join.
+     *
+     * A share that carries both halves is self-contained and never pairs — only a
+     * share supplying precisely the missing half is unambiguous enough to merge.
+     */
+    private suspend fun pair(
+        payload: SharePayload,
+        stored: MediaVault.Stored?,
+        status: Status,
+    ): Ingested? {
+        val since = System.currentTimeMillis() - PAIRING_WINDOW_MS
+
+        if (stored != null && payload.link == null) {
+            val waiting = items.latestAwaitingMedia(since) ?: return null
+            // Its body already rendered with the link, so it needs no rewrite.
+            val merged = waiting.copy(
+                mediaPath = stored.file.absolutePath,
+                mediaHash = stored.sha256,
+                mimeType = stored.mimeType,
+                status = status,
+            )
+            items.update(merged)
+            return Ingested(merged, Ingested.Outcome.PAIRED)
+        }
+
+        if (stored == null && payload.link != null) {
+            val waiting = items.latestAwaitingLink(since) ?: return null
+            val merged = waiting.copy(
+                sourceUrl = payload.link,
+                bodyText = relink(waiting, payload.link),
+                status = status,
+            )
+            items.update(merged)
+            return Ingested(merged, Ingested.Outcome.PAIRED)
+        }
+
+        return null
+    }
+
+    /**
+     * Re-renders a draft's body now that a link is available — but only if the
+     * body is still exactly what the template produced without one. Anything else
+     * means the user has edited it, and their text is not ours to overwrite.
+     */
+    private suspend fun relink(item: Item, link: String): String {
+        val template = resolveTemplate(item.templateId)
+        val unlinked = TemplateEngine.render(template, TemplateEngine.Inputs(link = null))
+        if (item.bodyText != unlinked) return item.bodyText
+        return TemplateEngine.render(template, TemplateEngine.Inputs(link = link))
     }
 
     suspend fun update(item: Item) = items.update(item)
@@ -137,6 +222,13 @@ class ItemRepository(
     }
 
     companion object {
+        /**
+         * How long a half-finished Instagram share stays open to pairing. Long
+         * enough to screenshot and share, short enough that an unrelated share
+         * half an hour later does not get swallowed into it.
+         */
+        const val PAIRING_WINDOW_MS = 10 * 60 * 1000L
+
         /** A share that carried neither media nor text is not worth persisting. */
         fun isActionable(payload: SharePayload): Boolean = !payload.isEmpty
     }

@@ -52,6 +52,31 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE mediaHash = :hash AND status != 'FAILED' LIMIT 1")
     suspend fun byMediaHash(hash: String): Item?
 
+    /**
+     * The newest draft that carries a permalink but no image yet — an Instagram
+     * share waiting for the screenshot that goes with it.
+     */
+    @Query(
+        """
+        SELECT * FROM items
+        WHERE status = 'DRAFT' AND mediaPath IS NULL AND sourceUrl IS NOT NULL
+          AND createdAt >= :since
+        ORDER BY createdAt DESC LIMIT 1
+        """,
+    )
+    suspend fun latestAwaitingMedia(since: Long): Item?
+
+    /** The newest draft that carries an image but no permalink yet. */
+    @Query(
+        """
+        SELECT * FROM items
+        WHERE status = 'DRAFT' AND mediaPath IS NOT NULL AND sourceUrl IS NULL
+          AND createdAt >= :since
+        ORDER BY createdAt DESC LIMIT 1
+        """,
+    )
+    suspend fun latestAwaitingLink(since: Long): Item?
+
     @Query("UPDATE items SET status = :status WHERE id = :id")
     suspend fun setStatus(id: String, status: Status)
 

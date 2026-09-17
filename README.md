@@ -41,8 +41,22 @@ offers each later release as an in-place update.
 | Save for later | Keeps it in the inbox as a draft                    |
 
 Instagram's share sheet only ever sends a permalink (`text/plain`) — never the
-image and never the caption. Share the permalink alongside a screenshot if you
-want `{link}` to resolve.
+image and never the caption. That is Instagram's limit, not a bug here: no
+sanctioned endpoint returns the media, for public or private accounts (the
+reasoning and the tests behind it are in [SPEC.md](SPEC.md)).
+
+So getting an image *and* its attribution into one post takes two shares, in
+either order:
+
+1. Share the post from Instagram — you get a draft with the link and no image,
+   and the app says so.
+2. Screenshot it and share that — the screenshot **joins the draft you just
+   made** instead of starting a second one.
+
+You end up with one post carrying both. Only a share supplying exactly the half
+that is missing gets joined, and only within ten minutes; a share carrying both
+an image and a link stands on its own. If you have already edited a draft's text
+by hand, pairing leaves your wording alone.
 
 ### Alt text
 

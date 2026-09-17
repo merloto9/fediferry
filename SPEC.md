@@ -15,19 +15,52 @@ image, no caption, no author handle.
 
 Approaches that were considered and rejected:
 
-- **Scraping the permalink for caption + image URL.** Instagram serves a login
-  wall to unauthenticated requests unpredictably. Building the core feature on
-  this means posts silently degrade in production with no signal to the user.
-- **Official oEmbed.** Requires a Facebook app with `oembed_read`, business
-  verification, and App Review. Heavy, and revocable at Meta's discretion.
+- **Scraping the permalink for caption + image URL.** The permalink returns a
+  contentless JS shell to unauthenticated clients — no `og:image`, no `og:title`,
+  no caption, for public and private accounts alike. Only the web app's own
+  static assets appear in the markup. Getting at the media needs a TLS-level
+  impersonating client, which breaks silently in production with no signal to
+  the user, and violates Instagram's terms.
+- **Official oEmbed.** *Re-tested 2026-09-17, and the original objection no
+  longer holds:* Meta made public-post oEmbed tokenless in June 2026, so no app,
+  `oembed_read` permission or App Review is needed, and it cleanly distinguishes
+  a public post (`200`) from anything else (`OAuthException` code 24). It is
+  still no use here, for a different reason — the response carries only
+  `version`, `provider_name`, `provider_url`, `type`, `width` and `html`. Meta
+  stripped `thumbnail_url`, `author_name` and `title`, and the `html` is a
+  placeholder blockquote whose entire visible text is "View this post on
+  Instagram". There is no image and no caption in it.
 - **Private mobile API.** Violates Instagram's terms, risks account termination,
   breaks on their release cadence.
 - **Accessibility service reading the screen.** Invasive, Play Store policy
   hostile, fragile against UI changes.
+- **Capturing the screenshot automatically.** Structurally impossible in the
+  share flow: tapping Share brings our activity to the foreground, so Instagram
+  is already gone by the time any of our code runs, and a `MediaProjection`
+  capture would photograph our own UI. Capturing earlier needs a separate
+  trigger while Instagram is still on screen — a Quick Settings tile or a
+  bubble — which costs a per-session consent dialog, a `mediaProjection`
+  foreground service and a persistent recording indicator, to save no taps at
+  all over pressing the screenshot combination.
 
 The image therefore comes from a **user-taken screenshot**, shared as `image/*`.
 Android 13+ offers crop directly from the screenshot notification, so this is two
 taps. The permalink can optionally be shared alongside for attribution.
+
+### Pairing the two halves
+
+Attribution needs two shares — the permalink from Instagram, then the
+screenshot — and left alone that produces two unrelated drafts to reconcile by
+hand. Instead, a share that supplies exactly the half a recent draft is missing
+joins that draft rather than starting its own: a screenshot with no link of its
+own adopts the newest link-only draft, and a link with no image adopts the newest
+image-only draft. The window is `ItemRepository.PAIRING_WINDOW_MS`.
+
+Only a share carrying precisely one half ever pairs. One carrying both is
+self-contained and stands alone, which keeps the rule unambiguous. Pairing a link
+into an existing draft re-renders its body so `{link}` resolves — but only when
+the body still matches the template's own link-less output, so hand-edited text
+is never overwritten.
 
 ## Workflows
 

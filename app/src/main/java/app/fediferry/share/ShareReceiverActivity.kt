@@ -27,6 +27,7 @@ import androidx.activity.ComponentActivity
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.lifecycleScope
 import app.fediferry.MainActivity
+import app.fediferry.data.ItemRepository
 import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
 import app.fediferry.work.Notifications
@@ -67,7 +68,7 @@ class ShareReceiverActivity : ComponentActivity() {
             )
 
             result.fold(
-                onSuccess = { item -> handle(mode, item.id) },
+                onSuccess = { ingested -> handle(mode, ingested) },
                 onFailure = { error ->
                     // The whole throwable goes to the log: a bare `message` is
                     // useless for the errors that actually occur here (a
@@ -81,7 +82,8 @@ class ShareReceiverActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun handle(mode: ShareMode, itemId: String) {
+    private suspend fun handle(mode: ShareMode, ingested: ItemRepository.Ingested) {
+        val itemId = ingested.item.id
         when (mode) {
             ShareMode.POST_NOW -> {
                 val delay = ServiceLocator.settings(this).current().undoDelaySeconds
@@ -102,7 +104,7 @@ class ShareReceiverActivity : ComponentActivity() {
             }
 
             ShareMode.SAVE_FOR_LATER -> {
-                toast("Saved to the inbox")
+                toast(ingested.describe())
                 finish()
             }
         }
@@ -117,6 +119,19 @@ class ShareReceiverActivity : ComponentActivity() {
         ShareMode.fromName(intent.getStringExtra(ShareMode.EXTRA))
             ?: ShareMode.fromShortcutId(intent.getStringExtra(EXTRA_SHORTCUT_ID))
             ?: ShareMode.COMPOSE
+
+    /**
+     * Says what actually happened. A permalink on its own is the common
+     * Instagram case and looks like a no-op otherwise — the user cannot tell
+     * that the post still has no image.
+     */
+    private fun ItemRepository.Ingested.describe(): String = when (outcome) {
+        ItemRepository.Ingested.Outcome.PAIRED -> "Joined to your other share"
+        ItemRepository.Ingested.Outcome.DUPLICATE -> "Already in the inbox"
+        ItemRepository.Ingested.Outcome.AWAITING_MEDIA ->
+            "Link saved — share a screenshot next to attach the image"
+        ItemRepository.Ingested.Outcome.CREATED -> "Saved to the inbox"
+    }
 
     private fun toast(message: String) =
         Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()

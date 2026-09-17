@@ -8,6 +8,18 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [Unreleased]
+
+### Fixed
+
+- **A failed call to a configured endpoint said only its status code.** "vision
+  endpoint returned 404" cannot distinguish a mistyped URL from a model the
+  service does not have, and those need opposite fixes — while the server had
+  said which all along. Both the alt-text and image endpoints now quote the
+  server's own explanation and add a hint for the common codes. Only the error
+  message is quoted, never the whole body, since a rejected request can echo the
+  image back.
+
 ## [0.5.1] — 2026-09-18
 
 ### Added

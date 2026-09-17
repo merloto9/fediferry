@@ -30,6 +30,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
+import app.fediferry.net.ApiError
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -84,8 +85,9 @@ class VisionAltTextProvider(
                     .build()
 
                 client.newCall(request).execute().use { response ->
-                    // The body may carry the image back in an error echo; never logged.
-                    check(response.isSuccessful) { "vision endpoint returned ${response.code}" }
+                    if (!response.isSuccessful) {
+                        error(describeFailure(response.code, response.body.string()))
+                    }
                     val body = response.body.string()
                     val text = json.parseToJsonElement(body)
                         .jsonObject["choices"]?.jsonArray?.firstOrNull()
@@ -97,8 +99,17 @@ class VisionAltTextProvider(
             }
         }
 
-    private companion object {
-        val JSON = "application/json; charset=utf-8".toMediaType()
-        val json = Json { ignoreUnknownKeys = true }
+    companion object {
+        private val JSON = "application/json; charset=utf-8".toMediaType()
+        private val json = Json { ignoreUnknownKeys = true }
+
+        /**
+         * Adds the one hint that is specific to this endpoint: the path has to
+         * end in /chat/completions, which is the mistake a 404 usually is.
+         */
+        fun describeFailure(code: Int, body: String): String {
+            val base = ApiError.describe("vision endpoint", code, body)
+            return if (code == 404) "$base (it must end in /chat/completions)" else base
+        }
     }
 }

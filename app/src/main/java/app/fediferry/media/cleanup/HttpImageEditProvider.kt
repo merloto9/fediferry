@@ -19,6 +19,7 @@
  */
 package app.fediferry.media.cleanup
 
+import app.fediferry.net.ApiError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -73,7 +74,9 @@ class HttpImageEditProvider(
                     .build()
 
                 client.newCall(http).execute().use { response ->
-                    check(response.isSuccessful) { "image endpoint returned ${response.code}" }
+                    if (!response.isSuccessful) {
+                        error(ApiError.describe("image endpoint", response.code, response.body.string()))
+                    }
                     val contentType = response.body.contentType()?.toString().orEmpty()
                     val bytes = response.body.bytes()
                     decode(bytes, contentType).getOrThrow()

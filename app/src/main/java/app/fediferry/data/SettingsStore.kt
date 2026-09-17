@@ -52,6 +52,8 @@ data class Settings(
      * screenshot flow.
      */
     val resolveLinks: Boolean = true,
+    /** The cleanup profile used last; the one almost always wanted again. */
+    val lastCleanupProfileId: String = "",
 ) {
     companion object {
         const val DEFAULT_VISION_PROMPT =
@@ -71,6 +73,7 @@ class SettingsStore(private val context: Context) {
         val purgeAfterDays = intPreferencesKey("purge_posted_after_days")
         val autoCrop = booleanPreferencesKey("auto_crop")
         val resolveLinks = booleanPreferencesKey("resolve_links")
+        val lastCleanupProfile = stringPreferencesKey("last_cleanup_profile")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -83,6 +86,7 @@ class SettingsStore(private val context: Context) {
             purgePostedAfterDays = p[Keys.purgeAfterDays] ?: 0,
             autoCrop = p[Keys.autoCrop] ?: true,
             resolveLinks = p[Keys.resolveLinks] ?: true,
+            lastCleanupProfileId = p[Keys.lastCleanupProfile].orEmpty(),
         )
     }
 
@@ -93,6 +97,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setVisionModel(v: String) = edit { it[Keys.visionModel] = v }
     suspend fun setVisionApiKey(v: String) = edit { it[Keys.visionApiKey] = v }
     suspend fun setVisionPrompt(v: String) = edit { it[Keys.visionPrompt] = v }
+    suspend fun setLastCleanupProfile(id: String) = edit { it[Keys.lastCleanupProfile] = id }
     suspend fun setResolveLinks(enabled: Boolean) = edit { it[Keys.resolveLinks] = enabled }
     suspend fun setAutoCrop(enabled: Boolean) = edit { it[Keys.autoCrop] = enabled }
     suspend fun setPurgeAfterDays(days: Int) = edit { it[Keys.purgeAfterDays] = days.coerceAtLeast(0) }

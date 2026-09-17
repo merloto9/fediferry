@@ -24,6 +24,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.data.Settings
 import app.fediferry.data.model.Account
+import app.fediferry.data.model.CleanupProfile
+import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.di.ServiceLocator
@@ -38,6 +40,8 @@ import java.util.UUID
 data class SettingsState(
     val accounts: List<Account> = emptyList(),
     val templates: List<Template> = emptyList(),
+    val cleanupProfiles: List<CleanupProfile> = emptyList(),
+    val cleanupRules: List<ProfileRule> = emptyList(),
     val settings: Settings = Settings(),
     val connecting: Boolean = false,
     val message: String? = null,
@@ -48,11 +52,21 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     private val db = ServiceLocator.database(app)
     private val settingsStore = ServiceLocator.settings(app)
     private val auth = ServiceLocator.auth(app)
+    private val cleanupDao = ServiceLocator.database(app).cleanup()
 
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            combine(
+                cleanupDao.observeProfiles(),
+                cleanupDao.observeAllRules(),
+            ) { profiles, rules -> profiles to rules }
+                .collect { (profiles, rules) ->
+                    _state.update { it.copy(cleanupProfiles = profiles, cleanupRules = rules) }
+                }
+        }
         viewModelScope.launch {
             combine(
                 db.accounts().observeAll(),
@@ -115,6 +129,21 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsStore.setResolveLinks(enabled) }
     fun setAutoCrop(enabled: Boolean) = viewModelScope.launch { settingsStore.setAutoCrop(enabled) }
     fun setPurgeAfterDays(days: Int) = viewModelScope.launch { settingsStore.setPurgeAfterDays(days) }
+
+    fun setDefaultCleanupProfile(id: String) =
+        viewModelScope.launch { cleanupDao.setDefaultProfile(id) }
+
+    fun clearDefaultCleanupProfile() =
+        viewModelScope.launch { cleanupDao.setDefaultProfile("") }
+
+    fun deleteCleanupProfile(id: String) =
+        viewModelScope.launch { cleanupDao.deleteProfile(id) }
+
+    fun setCleanupRuleEnabled(id: String, enabled: Boolean) =
+        viewModelScope.launch { cleanupDao.setRuleEnabled(id, enabled) }
+
+    fun deleteCleanupRule(id: String) =
+        viewModelScope.launch { cleanupDao.deleteRule(id) }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 }

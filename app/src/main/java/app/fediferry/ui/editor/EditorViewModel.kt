@@ -116,10 +116,10 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Puts the untouched screenshot back after a crop. */
-    fun revertCrop() = viewModelScope.launch {
+    /** Puts the untouched screenshot back, undoing trimming and cleanup alike. */
+    fun revertEdits() = viewModelScope.launch {
         val item = _state.value.item ?: return@launch
-        val restored = repo.revertCrop(item)
+        val restored = repo.revertEdits(item)
         _state.update { it.copy(item = restored, message = "Original screenshot restored") }
     }
 

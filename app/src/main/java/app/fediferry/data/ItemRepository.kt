@@ -20,6 +20,7 @@
 package app.fediferry.data
 
 import app.fediferry.data.db.AccountDao
+import app.fediferry.data.db.CleanupDao
 import app.fediferry.data.db.ItemDao
 import app.fediferry.data.db.TemplateDao
 import app.fediferry.data.model.Item
@@ -29,6 +30,8 @@ import app.fediferry.link.LinkResolver
 import app.fediferry.link.MediaFetcher
 import app.fediferry.media.ScreenshotAnalyzer
 import app.fediferry.media.ScreenshotCropper
+import app.fediferry.media.cleanup.BitmapCleaner
+import app.fediferry.media.cleanup.CleanupRule
 import app.fediferry.share.SharePayload
 import app.fediferry.template.TemplateEngine
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +47,7 @@ class ItemRepository(
     private val templates: TemplateDao,
     private val accounts: AccountDao,
     private val media: MediaVault,
+    private val cleanupDao: CleanupDao? = null,
     private val resolvers: List<LinkResolver> = emptyList(),
     private val fetcher: MediaFetcher = MediaFetcher { Result.failure(UnsupportedOperationException()) },
 ) {
@@ -279,8 +283,52 @@ class ItemRepository(
         cropped
     }
 
-    /** Puts the untouched screenshot back. */
-    suspend fun revertCrop(item: Item): Item {
+    /**
+     * Applies cleanup rules to the item's current image.
+     *
+     * Unlike a crop this works from what is on screen rather than from the
+     * original, because the rules were drawn against that. The untouched
+     * screenshot stays in [Item.originalMediaPath], so one undo still returns
+     * the item to exactly what was shared.
+     */
+    suspend fun applyCleanup(item: Item, rules: List<CleanupRule>): Result<Item> = runCatching {
+        if (rules.isEmpty()) return@runCatching item
+        val source = item.mediaPath ?: error("This item has no image to clean up")
+        val bitmap = BitmapCleaner.clean(source, rules) ?: error("Could not read the image")
+        val stored = media.store(bitmap, item.mimeType).getOrThrow()
+        bitmap.recycle()
+
+        val cleaned = item.copy(
+            mediaPath = stored.file.absolutePath,
+            mediaHash = stored.sha256,
+            mimeType = stored.mimeType,
+            originalMediaPath = item.originalMediaPath ?: source,
+        )
+        items.update(cleaned)
+        cleaned
+    }
+
+    /**
+     * Applies the default cleanup profile, if one is set and has rules.
+     *
+     * A profile becomes automatic by being marked default; leaving no profile
+     * default means nothing ever happens without being asked for, which is the
+     * control this needs rather than another switch in settings.
+     */
+    suspend fun applyDefaultCleanup(item: Item): Item {
+        val dao = cleanupDao ?: return item
+        if (item.mediaPath == null) return item
+        if (item.mimeType?.startsWith("video/") == true) return item
+
+        val profile = dao.defaultProfile() ?: return item
+        val rules = dao.enabledRules(profile.id).map { it.toCleanupRule() }
+        if (rules.isEmpty()) return item
+
+        return applyCleanup(item, rules).getOrDefault(item)
+    }
+
+    /** Puts the untouched screenshot back, undoing every edit made to it. */
+    suspend fun revertEdits(item: Item): Item {
         val original = item.originalMediaPath ?: return item
         val restored = item.copy(mediaPath = original, originalMediaPath = null)
         items.update(restored)

@@ -111,7 +111,7 @@ class PostWorker(
                 token = token,
                 bytes = bytes,
                 mimeType = item.mimeType ?: "image/jpeg",
-                fileName = (item.mediaHash ?: item.id) + ".jpg",
+                fileName = (item.mediaHash ?: item.id) + extensionFor(item.mimeType),
                 description = altText,
             )
             mediaIds += attachment.id
@@ -156,6 +156,19 @@ class PostWorker(
         repo.update(item.copy(status = Status.FAILED, failureReason = reason))
         Notifications.showResult(app, item.id, "Post failed", reason)
         return Result.failure()
+    }
+
+    /**
+     * Instances key off the filename as well as the content type, so a resolved
+     * 9GAG animation must not be uploaded as ".jpg".
+     */
+    private fun extensionFor(mimeType: String?): String = when (mimeType) {
+        "image/png" -> ".png"
+        "image/gif" -> ".gif"
+        "image/webp" -> ".webp"
+        "video/mp4" -> ".mp4"
+        "video/webm" -> ".webm"
+        else -> ".jpg"
     }
 
     companion object {

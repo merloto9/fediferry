@@ -63,6 +63,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.data.model.Visibility
+import app.fediferry.ui.PlaceholderHelpDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +73,11 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    var showPlaceholderHelp by remember { mutableStateOf(false) }
+
+    if (showPlaceholderHelp) {
+        PlaceholderHelpDialog(onDismiss = { showPlaceholderHelp = false })
+    }
 
     LaunchedEffect(state.message) {
         state.message?.let {
@@ -103,9 +109,11 @@ fun SettingsScreen(
         ) {
             AccountsSection(state, viewModel)
             HorizontalDivider()
-            TemplatesSection(state, viewModel)
+            TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
             HorizontalDivider()
             PostingSection(state, viewModel)
+            HorizontalDivider()
+            CleanupSection(state, viewModel)
             HorizontalDivider()
             VisionSection(state, viewModel)
         }
@@ -162,18 +170,25 @@ private fun AccountsSection(state: SettingsState, viewModel: SettingsViewModel) 
 }
 
 @Composable
-private fun TemplatesSection(state: SettingsState, viewModel: SettingsViewModel) {
+private fun TemplatesSection(
+    state: SettingsState,
+    viewModel: SettingsViewModel,
+    onShowPlaceholderHelp: () -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         SectionTitle("Templates", Modifier.weight(1f))
         IconButton(onClick = viewModel::newTemplate) {
             Icon(Icons.Default.Add, contentDescription = "New template")
         }
     }
-    Text(
-        "Placeholders: {link}, {tags}, {date}. A placeholder with nothing to fill " +
-            "it resolves to an empty string and its line is dropped.",
-        style = MaterialTheme.typography.bodySmall,
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "Bodies can use placeholders such as {tags} and {link}.",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onShowPlaceholderHelp) { Text("What can I use?") }
+    }
 
     state.templates.forEach { template ->
         TemplateCard(template, viewModel)
@@ -329,6 +344,79 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
         valueRange = 0f..90f,
         steps = 89,
     )
+}
+
+@Composable
+private fun CleanupSection(state: SettingsState, viewModel: SettingsViewModel) {
+    SectionTitle("Cleanup profiles")
+    Text(
+        "Areas to remove from a screenshot, per source. Drawn on the Clean up " +
+            "screen and kept here, so when a layout moves you adjust the rule " +
+            "rather than wait for an update.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Text(
+        "The profile marked default is applied on its own to shares that do not " +
+            "stop for input. Leave none default and nothing happens unasked.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+
+    if (state.cleanupProfiles.isEmpty()) {
+        Text(
+            "No profiles yet — draw on Clean up in the editor and tick Remember.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+
+    state.cleanupProfiles.forEach { profile ->
+        val rules = state.cleanupRules.filter { it.profileId == profile.id }
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        profile.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (profile.isDefault) {
+                        TextButton(onClick = viewModel::clearDefaultCleanupProfile) {
+                            Text("Default")
+                        }
+                    } else {
+                        TextButton(onClick = { viewModel.setDefaultCleanupProfile(profile.id) }) {
+                            Text("Make default")
+                        }
+                    }
+                    IconButton(onClick = { viewModel.deleteCleanupProfile(profile.id) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete profile")
+                    }
+                }
+                if (rules.isEmpty()) {
+                    Text("No areas yet", style = MaterialTheme.typography.bodySmall)
+                }
+                rules.forEach { rule ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = rule.enabled,
+                            onCheckedChange = { viewModel.setCleanupRuleEnabled(rule.id, it) },
+                        )
+                        Text(
+                            "${rule.treatment.name.lowercase().replace('_', ' ')} · " +
+                                "${(rule.left * 100).toInt()},${(rule.top * 100).toInt()}% → " +
+                                "${(rule.right * 100).toInt()},${(rule.bottom * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f).padding(start = 8.dp),
+                        )
+                        IconButton(onClick = { viewModel.deleteCleanupRule(rule.id) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete area")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

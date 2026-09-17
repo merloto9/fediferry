@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -66,6 +67,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.Visibility
+import app.fediferry.ui.PlaceholderHelpDialog
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -75,10 +77,16 @@ fun EditorScreen(
     itemId: String,
     onDone: () -> Unit,
     onTrim: (String) -> Unit = {},
+    onCleanUp: (String) -> Unit = {},
     viewModel: EditorViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    var showPlaceholderHelp by remember { mutableStateOf(false) }
+
+    if (showPlaceholderHelp) {
+        PlaceholderHelpDialog(onDismiss = { showPlaceholderHelp = false })
+    }
 
     LaunchedEffect(itemId) { viewModel.load(itemId) }
 
@@ -137,12 +145,13 @@ fun EditorScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // The trimmer works on stills; a resolved animation is a video.
+                    // Both tools decode a still; a resolved animation is a video.
                     if (item.mimeType?.startsWith("video/") != true) {
                         TextButton(onClick = { onTrim(item.id) }) { Text("Trim") }
+                        TextButton(onClick = { onCleanUp(item.id) }) { Text("Clean up") }
                     }
                     if (item.originalMediaPath != null) {
-                        TextButton(onClick = viewModel::revertCrop) { Text("Undo trim") }
+                        TextButton(onClick = viewModel::revertEdits) { Text("Undo edits") }
                     }
                 }
             }
@@ -154,6 +163,14 @@ fun EditorScreen(
                 onValueChange = viewModel::setBody,
                 label = { Text("Post text") },
                 minLines = 3,
+                trailingIcon = {
+                    IconButton(onClick = { showPlaceholderHelp = true }) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = "Which placeholders can I use?",
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
 

@@ -81,4 +81,60 @@ class MigrationTest {
             assertEquals(1, c.count)
         }
     }
+
+    @Test
+    fun migrate2To3AddsCleanupTablesAndKeepsDrafts() {
+        helper.createDatabase(database, 2).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO items
+                  (id, mediaPath, originalMediaPath, mediaHash, mimeType, sourceUrl,
+                   bodyText, altText, altTextFailed, contentWarning, visibility,
+                   templateId, accountId, status, failureReason, createdAt, postedAt,
+                   statusUrl, scheduledAt)
+                VALUES
+                  ('still-here', '/data/media/b.jpg', NULL, 'bcd', 'image/jpeg', NULL,
+                   '#meme', NULL, 0, NULL, 'PUBLIC',
+                   'default', NULL, 'DRAFT', NULL, 1700000000000, NULL,
+                   NULL, NULL)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(database, 3, true, AppDatabase.MIGRATION_2_3)
+
+        db.query("SELECT id FROM items").use { c ->
+            assertTrue("the draft was lost", c.moveToFirst())
+            assertEquals("still-here", c.getString(0))
+        }
+        // The new tables exist and are usable, not merely declared.
+        db.execSQL("INSERT INTO cleanup_profiles (id, name, isDefault) VALUES ('p1','Instagram',1)")
+        db.execSQL(
+            """
+            INSERT INTO cleanup_rules
+              (id, profileId, `left`, `top`, `right`, `bottom`, treatment, enabled, sortOrder)
+            VALUES ('r1','p1',0.8,0.02,0.97,0.08,'FILL',1,0)
+            """.trimIndent(),
+        )
+        db.query("SELECT treatment FROM cleanup_rules WHERE profileId = 'p1'").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("FILL", c.getString(0))
+        }
+    }
+
+    @Test
+    fun migratingAllTheWayFrom1Works() {
+        helper.createDatabase(database, 1).close()
+        val db = helper.runMigrationsAndValidate(
+            database,
+            3,
+            true,
+            AppDatabase.MIGRATION_1_2,
+            AppDatabase.MIGRATION_2_3,
+        )
+        db.query("SELECT COUNT(*) FROM cleanup_profiles").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+    }
 }

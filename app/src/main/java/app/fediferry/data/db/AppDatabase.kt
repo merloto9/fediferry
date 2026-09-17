@@ -29,11 +29,20 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import app.fediferry.data.model.Account
 import app.fediferry.data.model.InstanceApp
 import app.fediferry.data.model.Item
+import app.fediferry.data.model.CleanupProfile
+import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.Template
 
 @Database(
-    entities = [Item::class, Account::class, InstanceApp::class, Template::class],
-    version = 2,
+    entities = [
+        Item::class,
+        Account::class,
+        InstanceApp::class,
+        Template::class,
+        CleanupProfile::class,
+        ProfileRule::class,
+    ],
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -41,6 +50,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun items(): ItemDao
     abstract fun accounts(): AccountDao
     abstract fun templates(): TemplateDao
+    abstract fun cleanup(): CleanupDao
 
     companion object {
         /**
@@ -54,9 +64,45 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds the cleanup profiles and their rules. Purely additive. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `cleanup_profiles` (
+                        `id` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `isDefault` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `cleanup_rules` (
+                        `id` TEXT NOT NULL,
+                        `profileId` TEXT NOT NULL,
+                        `left` REAL NOT NULL,
+                        `top` REAL NOT NULL,
+                        `right` REAL NOT NULL,
+                        `bottom` REAL NOT NULL,
+                        `treatment` TEXT NOT NULL,
+                        `enabled` INTEGER NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_cleanup_rules_profileId` " +
+                        "ON `cleanup_rules` (`profileId`)",
+                )
+            }
+        }
+
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

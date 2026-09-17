@@ -26,6 +26,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import app.fediferry.ui.cleanup.CleanupScreen
 import app.fediferry.ui.crop.CropScreen
 import app.fediferry.ui.editor.EditorScreen
 import app.fediferry.ui.inbox.InboxScreen
@@ -36,9 +37,11 @@ object Routes {
     const val SETTINGS = "settings"
     const val EDITOR = "editor/{itemId}"
     const val CROP = "crop/{itemId}"
+    const val CLEANUP = "cleanup/{itemId}"
 
     fun editor(itemId: String) = "editor/$itemId"
     fun crop(itemId: String) = "crop/$itemId"
+    fun cleanup(itemId: String) = "cleanup/$itemId"
 }
 
 @Composable
@@ -76,6 +79,7 @@ fun FediFerryNavHost(
             EditorScreen(
                 itemId = entry.arguments?.getString("itemId").orEmpty(),
                 onTrim = { navController.navigate(Routes.crop(it)) },
+                onCleanUp = { navController.navigate(Routes.cleanup(it)) },
                 onDone = {
                     if (!navController.popBackStack()) {
                         navController.navigate(Routes.INBOX)
@@ -93,6 +97,19 @@ fun FediFerryNavHost(
                 onDone = { croppedId ->
                     navController.navigate(Routes.editor(croppedId)) {
                         popUpTo(Routes.CROP) { inclusive = true }
+                    }
+                },
+            )
+        }
+        composable(
+            route = Routes.CLEANUP,
+            arguments = listOf(navArgument("itemId") { type = NavType.StringType }),
+        ) { entry ->
+            CleanupScreen(
+                itemId = entry.arguments?.getString("itemId").orEmpty(),
+                onDone = { cleanedId ->
+                    navController.navigate(Routes.editor(cleanedId)) {
+                        popUpTo(Routes.CLEANUP) { inclusive = true }
                     }
                 },
             )

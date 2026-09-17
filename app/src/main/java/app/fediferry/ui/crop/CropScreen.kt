@@ -44,6 +44,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -160,6 +161,11 @@ private fun CropCanvas(
 ) {
     var container by remember { mutableStateOf(Size.Zero) }
     var dragging by remember { mutableStateOf(Handle.NONE) }
+    // Read inside the gesture without keying pointerInput on it. Keying on the
+    // crop restarts the detector the instant the crop moves, which cancels the
+    // gesture after a single delta and makes the handles crawl one step per
+    // press instead of following the finger.
+    val currentCrop by rememberUpdatedState(crop)
 
     Box(modifier.onSizeChanged { container = Size(it.width.toFloat(), it.height.toFloat()) }) {
         AsyncImage(
@@ -173,14 +179,14 @@ private fun CropCanvas(
             val shown = fittedRect(container, aspect)
 
             Canvas(
-                modifier = Modifier.fillMaxSize().pointerInput(shown, crop) {
+                modifier = Modifier.fillMaxSize().pointerInput(shown) {
                     detectDragGestures(
-                        onDragStart = { at -> dragging = handleAt(at, shown, crop) },
+                        onDragStart = { at -> dragging = handleAt(at, shown, currentCrop) },
                         onDragEnd = { dragging = Handle.NONE },
                         onDragCancel = { dragging = Handle.NONE },
                     ) { change, delta ->
                         change.consume()
-                        onCropChange(crop.moved(dragging, delta, shown))
+                        onCropChange(currentCrop.moved(dragging, delta, shown))
                     }
                 },
             ) {

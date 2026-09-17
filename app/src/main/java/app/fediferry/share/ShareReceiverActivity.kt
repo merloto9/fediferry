@@ -92,7 +92,10 @@ class ShareReceiverActivity : ComponentActivity() {
         when (mode) {
             ShareMode.POST_NOW -> {
                 // Only a screenshot needs trimming; fetched media arrives cropped.
-                if (resolved === original.item) autoCrop(ingested.item)
+                if (resolved === original.item) {
+                    val trimmed = autoCropped(ingested.item)
+                    ServiceLocator.items(this).applyDefaultCleanup(trimmed)
+                }
                 val delay = ServiceLocator.settings(this).current().undoDelaySeconds
                 if (delay > 0) Notifications.showUndo(this, itemId, delay)
                 PostScheduler.enqueue(this, itemId, delay * 1000L)
@@ -115,7 +118,12 @@ class ShareReceiverActivity : ComponentActivity() {
             }
 
             ShareMode.SAVE_FOR_LATER -> {
-                val trimmed = resolved === original.item && autoCrop(ingested.item)
+                var trimmed = false
+                if (resolved === original.item) {
+                    val after = autoCropped(ingested.item)
+                    trimmed = after !== ingested.item
+                    ServiceLocator.items(this).applyDefaultCleanup(after)
+                }
                 toast(
                     when {
                         resolved !== original.item -> "Saved with the image from the link"
@@ -153,19 +161,19 @@ class ShareReceiverActivity : ComponentActivity() {
      * input. Only a confident suggestion is applied, and the untouched
      * screenshot is kept, so the editor can always put it back.
      *
-     * @return whether anything was actually trimmed.
+     * @return the trimmed item, or the original one when nothing was trimmed.
      */
-    private suspend fun autoCrop(item: Item): Boolean {
-        if (item.mediaPath == null) return false
-        if (!ServiceLocator.settings(this).current().autoCrop) return false
+    private suspend fun autoCropped(item: Item): Item {
+        if (item.mediaPath == null) return item
+        if (!ServiceLocator.settings(this).current().autoCrop) return item
 
         val repo = ServiceLocator.items(this)
-        val suggestion = repo.suggestCrop(item) ?: return false
-        if (suggestion.confidence < AUTO_CROP_MIN_CONFIDENCE) return false
+        val suggestion = repo.suggestCrop(item) ?: return item
+        if (suggestion.confidence < AUTO_CROP_MIN_CONFIDENCE) return item
 
         return repo.applyCrop(item, suggestion.crop)
             .onFailure { Log.e(TAG, "Auto-crop failed", it) }
-            .isSuccess
+            .getOrDefault(item)
     }
 
     /**

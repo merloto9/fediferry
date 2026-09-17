@@ -86,6 +86,29 @@ The original screenshot is always kept, so **Undo trim** in the editor puts it
 back, and re-trimming works from the original rather than cutting into a
 previous crop.
 
+### Cleaning up
+
+Some sources overlay things on the picture — a carousel indicator, an audio
+badge — and a screenshot catches them. **Clean up** in the editor lets you drag
+over anything that should go and pick what happens there:
+
+| Treatment | Good for |
+|---|---|
+| Fill in | a small badge over a flat area — invisible when it works |
+| Crop away | a bar along an edge — costs a little content, never smears |
+| Blur / Pixelate | a username or a face you would rather not publish |
+
+Tick **Remember** and the areas are saved to a named profile, so the next
+screenshot from the same source needs no drawing. Profiles live in
+*Settings → Cleanup profiles*: when a layout moves, or you start screenshotting
+somewhere new, you edit the rule yourself rather than wait for an update. The
+profile marked default is applied automatically to shares that do not stop for
+input; leave none default and nothing happens unasked.
+
+No inpainting is reliably good over busy detail at these sizes — which is why
+crop away and blur exist alongside fill, and why every result is previewed
+before it is applied. **Undo edits** always restores the original.
+
 ### Alt text
 
 Each template picks a mode: `NONE`, `STATIC` (a fixed string on the template) or

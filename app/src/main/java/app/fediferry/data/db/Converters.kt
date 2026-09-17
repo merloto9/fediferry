@@ -23,6 +23,7 @@ import androidx.room.TypeConverter
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.Visibility
+import app.fediferry.media.cleanup.TreatmentKind
 
 class Converters {
     @TypeConverter fun visibilityToString(v: Visibility): String = v.name
@@ -33,4 +34,7 @@ class Converters {
 
     @TypeConverter fun altModeToString(v: AltTextMode): String = v.name
     @TypeConverter fun stringToAltMode(v: String): AltTextMode = AltTextMode.valueOf(v)
+
+    @TypeConverter fun treatmentToString(v: TreatmentKind): String = v.name
+    @TypeConverter fun stringToTreatment(v: String): TreatmentKind = TreatmentKind.valueOf(v)
 }

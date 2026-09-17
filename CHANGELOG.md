@@ -8,6 +8,42 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [Unreleased]
+
+### Added
+
+- **Clean up**: draw over anything that should go and choose what happens
+  there — fill in, crop away, blur or pixelate. The treatment belongs to each
+  area, not to the profile, because the kind of artefact varies as much as its
+  position.
+- **Cleanup profiles.** Tick *Remember* and the areas are saved against a named
+  profile, so the next screenshot from the same place needs no drawing. Profiles
+  are data, editable in Settings: when a layout moves, adjust the rule instead of
+  waiting for an update. Marking a profile default applies it on its own to
+  shares that do not stop for input; leaving none default means nothing ever
+  happens unasked.
+- **In-app placeholder reference** behind the info icon on the post text field,
+  and from the template editor. Lists every placeholder, says when each is
+  empty, and explains that a line whose placeholders all came back empty is
+  dropped whole.
+
+### Fixed
+
+- **Crop handles could not be dragged**, only nudged a step at a time. The
+  gesture detector was keyed on the crop rectangle, so changing the crop
+  restarted the detector and cancelled the drag in progress. Handles now follow
+  the finger.
+- A resolved 9GAG animation was uploaded with a `.jpg` filename whatever it
+  actually was. Instances key off the filename as well as the content type.
+- Trim and Clean up are hidden for video, since both decode a still.
+
+### Changed
+
+- Database schema version 3, adding cleanup profiles and their rules, with a
+  migration and tests covering 1→2, 2→3 and the whole path 1→3.
+- *Undo trim* is now *Undo edits*: it reverts trimming and cleanup alike, back
+  to exactly what was shared.
+
 ## [0.3.0] — 2026-09-17
 
 ### Added

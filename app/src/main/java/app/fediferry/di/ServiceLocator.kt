@@ -68,6 +68,7 @@ object ServiceLocator {
                 templates = database.templates(),
                 accounts = database.accounts(),
                 media = MediaVault(context.applicationContext),
+                cleanupDao = database.cleanup(),
                 resolvers = linkResolvers(),
                 fetcher = OkHttpMediaFetcher(linkHttp()),
             )

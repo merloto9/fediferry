@@ -112,8 +112,19 @@ jobs:
           set -euo pipefail
           PREV=$(git tag --list 'v*' --sort=-v:refname \
                  | grep -v "^${{ steps.version.outputs.tag }}$" | head -1 || true)
+
+          # CHANGELOG.md is written for people; the commit list is the fallback
+          # for a release that predates an entry.
+          SECTION=$(awk -v v="${{ steps.version.outputs.name }}" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md 2>/dev/null | sed '/./,$!d')
+
           {
-            if [ -n "$PREV" ]; then
+            if [ -n "$SECTION" ]; then
+              echo "$SECTION"
+            elif [ -n "$PREV" ]; then
               echo "## Changes since $PREV"
               echo
               git log --no-merges --pretty='- %s' "$PREV..HEAD"

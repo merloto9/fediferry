@@ -8,6 +8,20 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [Unreleased]
+
+### Fixed
+
+- **Sharing something again reopened the old item instead of making a new one.**
+  The duplicate check matched any item that was not FAILED, so a repeated share
+  — a 9GAG repost, or the same post shared twice — folded into whatever already
+  held those bytes, including posts that had already gone out. It now folds only
+  into an unsent draft. Re-sharing a meme you already posted starts a fresh
+  draft, as it should.
+- The trim step was offered for images fetched from a link. Those are already
+  exactly the picture, and the screenshot detector proposed a crop through the
+  middle of the meme. Trimming is now offered for screenshots only.
+
 ## [0.4.0] — 2026-09-17
 
 ### Added

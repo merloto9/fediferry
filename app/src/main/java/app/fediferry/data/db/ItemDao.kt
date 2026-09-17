@@ -49,8 +49,21 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE status = 'POSTED' ORDER BY postedAt DESC")
     fun observeHistory(): Flow<List<Item>>
 
-    @Query("SELECT * FROM items WHERE mediaHash = :hash AND status != 'FAILED' LIMIT 1")
-    suspend fun byMediaHash(hash: String): Item?
+    /**
+     * An unsent draft holding these exact bytes, for folding a repeated share
+     * into rather than duplicating it.
+     *
+     * Deliberately drafts only. Matching a posted item makes re-sharing
+     * something reopen the post that already went out; matching a queued one
+     * lets it be edited while it is on its way to the instance. Either is worse
+     * than an extra draft.
+     */
+    @Query("SELECT * FROM items WHERE mediaHash = :hash AND status = 'DRAFT' LIMIT 1")
+    suspend fun draftByMediaHash(hash: String): Item?
+
+    /** Any item at all referencing these bytes, so media is not deleted early. */
+    @Query("SELECT * FROM items WHERE mediaHash = :hash LIMIT 1")
+    suspend fun anyByMediaHash(hash: String): Item?
 
     /**
      * The newest draft that carries a permalink but no image yet — an Instagram

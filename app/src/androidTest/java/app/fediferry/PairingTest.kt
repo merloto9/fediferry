@@ -127,4 +127,35 @@ class PairingTest {
         items.upsert(newer)
         assertEquals(newer.id, items.latestAwaitingMedia(window)?.id)
     }
+
+    // --- re-sharing something already dealt with ---------------------------
+
+    @Test
+    fun aDraftWithTheSameBytesIsFoldedInto() = runBlocking {
+        val draft = item(media = "/data/media/a.jpg")
+        items.upsert(draft)
+        assertEquals(draft.id, items.draftByMediaHash("hash-/data/media/a.jpg")?.id)
+    }
+
+    @Test
+    fun anItemThatAlreadyWentOutIsNotReopened() = runBlocking {
+        // Re-sharing a meme that was already posted must start a new draft, not
+        // reopen the post that went out. Matching on anything but DRAFT made
+        // sharing a 9GAG repost silently open the old, already-sent item.
+        for (status in listOf(Status.POSTED, Status.QUEUED, Status.POSTING, Status.FAILED)) {
+            items.upsert(item(media = "/data/media/$status.jpg", status = status))
+            assertNull(
+                "a $status item should not be folded into",
+                items.draftByMediaHash("hash-/data/media/$status.jpg"),
+            )
+        }
+    }
+
+    @Test
+    fun aSentItemStillCountsAsReferencingItsMedia() = runBlocking {
+        // Deleting a draft must not delete media a posted item still points at.
+        val posted = item(media = "/data/media/shared.jpg", status = Status.POSTED)
+        items.upsert(posted)
+        assertEquals(posted.id, items.anyByMediaHash("hash-/data/media/shared.jpg")?.id)
+    }
 }

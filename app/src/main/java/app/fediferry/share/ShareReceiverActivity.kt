@@ -104,9 +104,12 @@ class ShareReceiverActivity : ComponentActivity() {
             }
 
             ShareMode.COMPOSE -> {
-                // Offer the trim step only when there is something to trim; an
-                // already-cropped image should go straight to the editor.
-                val trim = ingested.item.mediaPath != null &&
+                // Offer the trim step only for a screenshot with something to
+                // trim. Media fetched from a link is already exactly the
+                // picture, and running the screenshot detector over it proposes
+                // a crop through the middle of the meme.
+                val trim = resolved === original.item &&
+                    ingested.item.mediaPath != null &&
                     ServiceLocator.items(this).suggestCrop(ingested.item) != null
                 startActivity(
                     Intent(this, MainActivity::class.java)

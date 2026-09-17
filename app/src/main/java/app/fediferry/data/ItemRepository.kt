@@ -102,9 +102,9 @@ class ItemRepository(
             ?.let { uri -> media.ingest(uri).getOrThrow() }
 
         stored?.sha256?.let { hash ->
-            items.byMediaHash(hash)?.let { existing ->
-                // Same bytes, still pending: fold the new share into it rather
-                // than creating a second copy.
+            items.draftByMediaHash(hash)?.let { existing ->
+                // Same bytes, still an unsent draft: fold the new share into it
+                // rather than creating a second copy.
                 val merged = existing.copy(sourceUrl = existing.sourceUrl ?: payload.link)
                 if (merged != existing) items.update(merged)
                 return@runCatching Ingested(merged, Ingested.Outcome.DUPLICATE)
@@ -215,9 +215,9 @@ class ItemRepository(
         val bytes = fetcher.fetch(post.mediaUrl).getOrElse { return item }
         val stored = media.store(bytes, post.mimeType).getOrElse { return item }
 
-        // The same post resolved twice is the same bytes, so fold into the
-        // existing item rather than leaving a duplicate behind.
-        items.byMediaHash(stored.sha256)?.takeIf { it.id != item.id }?.let { existing ->
+        // The same post resolved twice while still a draft is the same bytes,
+        // so fold into it rather than leaving a duplicate behind.
+        items.draftByMediaHash(stored.sha256)?.takeIf { it.id != item.id }?.let { existing ->
             items.delete(item.id)
             return existing
         }
@@ -343,7 +343,8 @@ class ItemRepository(
         val item = items.byId(id) ?: return
         items.delete(id)
         val hash = item.mediaHash
-        val stillUsed = hash != null && items.byMediaHash(hash) != null
+        // Any surviving reference counts here, sent ones included.
+        val stillUsed = hash != null && items.anyByMediaHash(hash) != null
         media.deleteIfUnreferenced(item.mediaPath, stillUsed)
     }
 

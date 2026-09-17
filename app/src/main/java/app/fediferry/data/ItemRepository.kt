@@ -25,6 +25,8 @@ import app.fediferry.data.db.TemplateDao
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.Template
+import app.fediferry.link.LinkResolver
+import app.fediferry.link.MediaFetcher
 import app.fediferry.media.ScreenshotAnalyzer
 import app.fediferry.media.ScreenshotCropper
 import app.fediferry.share.SharePayload
@@ -42,6 +44,8 @@ class ItemRepository(
     private val templates: TemplateDao,
     private val accounts: AccountDao,
     private val media: MediaVault,
+    private val resolvers: List<LinkResolver> = emptyList(),
+    private val fetcher: MediaFetcher = MediaFetcher { Result.failure(UnsupportedOperationException()) },
 ) {
 
     fun observeInbox(): Flow<List<Item>> = items.observeInbox()
@@ -188,6 +192,60 @@ class ItemRepository(
     }
 
     suspend fun update(item: Item) = items.update(item)
+
+    /**
+     * Fetches the media behind a link-only item, for the services that publish
+     * it — 9GAG does, Instagram does not.
+     *
+     * Every failure is a no-op that returns the item untouched: no resolver for
+     * this host, the service declining, the download failing. The item keeps its
+     * link and the screenshot path still works exactly as before, which is what
+     * makes this safe to attempt on every share.
+     */
+    suspend fun resolveLinkMedia(item: Item): Item {
+        if (item.mediaPath != null) return item
+        val url = item.sourceUrl ?: return item
+        val resolver = resolvers.firstOrNull { it.handles(url) } ?: return item
+
+        val post = resolver.resolve(url).getOrElse { return item }
+        val bytes = fetcher.fetch(post.mediaUrl).getOrElse { return item }
+        val stored = media.store(bytes, post.mimeType).getOrElse { return item }
+
+        // The same post resolved twice is the same bytes, so fold into the
+        // existing item rather than leaving a duplicate behind.
+        items.byMediaHash(stored.sha256)?.takeIf { it.id != item.id }?.let { existing ->
+            items.delete(item.id)
+            return existing
+        }
+
+        val resolved = item.copy(
+            mediaPath = stored.file.absolutePath,
+            mediaHash = stored.sha256,
+            mimeType = stored.mimeType,
+            bodyText = recaption(item, post.caption),
+        )
+        items.update(resolved)
+        return resolved
+    }
+
+    /**
+     * Re-renders the body now that the post's own title is known, so a template
+     * using `{caption}` fills in. Same guard as [relink]: only a body that is
+     * still exactly the template's output is touched.
+     */
+    private suspend fun recaption(item: Item, caption: String?): String {
+        if (caption.isNullOrBlank()) return item.bodyText
+        val template = resolveTemplate(item.templateId)
+        val withoutCaption = TemplateEngine.render(
+            template,
+            TemplateEngine.Inputs(link = item.sourceUrl),
+        )
+        if (item.bodyText != withoutCaption) return item.bodyText
+        return TemplateEngine.render(
+            template,
+            TemplateEngine.Inputs(link = item.sourceUrl, caption = caption),
+        )
+    }
 
     /**
      * What the cropper thinks should be trimmed off this item's screenshot, or

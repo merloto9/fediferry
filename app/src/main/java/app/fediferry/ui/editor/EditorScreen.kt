@@ -137,7 +137,10 @@ fun EditorScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TextButton(onClick = { onTrim(item.id) }) { Text("Trim") }
+                    // The trimmer works on stills; a resolved animation is a video.
+                    if (item.mimeType?.startsWith("video/") != true) {
+                        TextButton(onClick = { onTrim(item.id) }) { Text("Trim") }
+                    }
                     if (item.originalMediaPath != null) {
                         TextButton(onClick = viewModel::revertCrop) { Text("Undo trim") }
                     }

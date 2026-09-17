@@ -95,13 +95,24 @@ class MediaVault(private val context: Context) {
 
                 val buffer = ByteArrayOutputStream()
                 check(bitmap.compress(format, 92, buffer)) { "Cannot encode the cropped image" }
-                val encoded = buffer.toByteArray()
+                store(buffer.toByteArray(), mime).getOrThrow()
+            }
+        }
 
-                val hash = MessageDigest.getInstance("SHA-256").digest(encoded)
+    /**
+     * Stores bytes that did not come through a content URI — media fetched from
+     * a resolved link. Named by content hash like everything else, so the same
+     * post resolved twice reuses the file and the existing dedupe applies.
+     */
+    suspend fun store(bytes: ByteArray, mimeType: String): Result<Stored> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                check(bytes.isNotEmpty()) { "No media to store" }
+                val hash = MessageDigest.getInstance("SHA-256").digest(bytes)
                     .joinToString("") { "%02x".format(it) }
-                val target = File(dir, hash + extensionFor(mime))
-                if (!target.exists()) target.writeBytes(encoded)
-                Stored(target, hash, mime)
+                val target = File(dir, hash + extensionFor(mimeType))
+                if (!target.exists()) target.writeBytes(bytes)
+                Stored(target, hash, mimeType)
             }
         }
 
@@ -122,6 +133,7 @@ class MediaVault(private val context: Context) {
         "image/webp" -> ".webp"
         "image/gif" -> ".gif"
         "video/mp4" -> ".mp4"
+        "video/webm" -> ".webm"
         else -> ".jpg"
     }
 }

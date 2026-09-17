@@ -47,6 +47,24 @@ The image therefore comes from a **user-taken screenshot**, shared as `image/*`.
 Android 13+ offers crop directly from the screenshot notification, so this is two
 taps. The permalink can optionally be shared alongside for attribution.
 
+### Resolving a shared link
+
+Some services publish the media behind a permalink; Instagram does not. A
+`LinkResolver` turns a link-only share into an attachment where that is
+possible, and the screenshot path stays the fallback everywhere else.
+
+`NineGagResolver` uses 9GAG's own post endpoint rather than the page's Open
+Graph tags. `og:image` is the more obviously public surface and is used nowhere
+here for one reason: for an animated post it returns a *still frame*, and the
+page carries no `og:video`, so nothing indicates the animation was lost. The
+endpoint reports the post type and links the mp4, so a GIF meme stays a GIF.
+
+Resolution runs after the item is persisted, never before — the store is still
+written first — and every failure is a no-op that leaves the item with its link.
+No resolver for the host, the service declining, the download failing: all of
+them simply mean the user screenshots as before. A resolved post's title feeds
+the `{caption}` placeholder, which remains best-effort and empty by default.
+
 ### Trimming the screenshot
 
 A screenshot is the whole screen, and the post wants only the picture. Rather

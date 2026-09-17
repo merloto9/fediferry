@@ -20,6 +20,10 @@
 package app.fediferry
 
 import android.app.Application
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.video.VideoFrameDecoder
 import app.fediferry.di.ServiceLocator
 import app.fediferry.share.ShortcutPublisher
 import app.fediferry.work.Notifications
@@ -28,9 +32,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class FediFerryApp : Application() {
+class FediFerryApp : Application(), SingletonImageLoader.Factory {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Animated 9GAG posts resolve to an mp4, and without the video decoder the
+     * preview is simply blank — the attachment is fine, but the user cannot see
+     * what they are about to post.
+     */
+    override fun newImageLoader(context: PlatformContext): ImageLoader =
+        ImageLoader.Builder(context)
+            .components { add(VideoFrameDecoder.Factory()) }
+            .build()
 
     override fun onCreate() {
         super.onCreate()

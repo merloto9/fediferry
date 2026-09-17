@@ -58,6 +58,19 @@ that is missing gets joined, and only within ten minutes; a share carrying both
 an image and a link stands on its own. If you have already edited a draft's text
 by hand, pairing leaves your wording alone.
 
+### Sharing from 9GAG
+
+Share a 9GAG link on its own and the image is fetched for you — no screenshot,
+no trimming, and at the original quality rather than a re-encoded screen grab.
+Animated posts come across as the video, not a still frame.
+
+The post's title is available to templates as `{caption}`, so a template like
+`{caption}\n\n{tags}\n\nvia {link}` carries it over. As always the placeholder
+degrades to nothing when it cannot be resolved.
+
+Turn this off with *Settings → Fetch images from shared links*. Instagram
+publishes nothing fetchable, so its shares are unaffected either way.
+
 ### Trimming
 
 A screenshot includes the whole screen; the post wants the picture. FediFerry

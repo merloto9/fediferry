@@ -30,6 +30,9 @@ import app.fediferry.data.MediaVault
 import app.fediferry.data.SettingsStore
 import app.fediferry.data.TokenStore
 import app.fediferry.data.db.AppDatabase
+import app.fediferry.link.LinkResolver
+import app.fediferry.link.NineGagResolver
+import app.fediferry.link.OkHttpMediaFetcher
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.mastodon.AuthManager
@@ -51,6 +54,7 @@ object ServiceLocator {
     @Volatile private var tokenStore: TokenStore? = null
     @Volatile private var settingsStore: SettingsStore? = null
     @Volatile private var authManager: AuthManager? = null
+    @Volatile private var resolverHttp: OkHttpClient? = null
 
     fun database(context: Context): AppDatabase = db ?: synchronized(this) {
         db ?: AppDatabase.build(context.applicationContext).also { db = it }
@@ -64,6 +68,8 @@ object ServiceLocator {
                 templates = database.templates(),
                 accounts = database.accounts(),
                 media = MediaVault(context.applicationContext),
+                resolvers = linkResolvers(),
+                fetcher = OkHttpMediaFetcher(linkHttp()),
             )
         }.also { repo = it }
     }
@@ -76,6 +82,26 @@ object ServiceLocator {
             .retryOnConnectionFailure(true)
             .build()
             .also { http = it }
+    }
+
+    /**
+     * Services whose links can be turned back into media. Order matters only in
+     * that the first match wins; no two resolvers claim the same host.
+     */
+    fun linkResolvers(): List<LinkResolver> = listOf(NineGagResolver(linkHttp()))
+
+    /**
+     * A tighter-deadline client for link resolution. A share must not sit
+     * waiting on a slow third party — if it takes this long, fall back to the
+     * screenshot flow instead.
+     */
+    private fun linkHttp(): OkHttpClient = resolverHttp ?: synchronized(this) {
+        resolverHttp ?: http().newBuilder()
+            .callTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .build()
+            .also { resolverHttp = it }
     }
 
     fun mastodon(context: Context): MastodonClient = api ?: synchronized(this) {

@@ -100,7 +100,7 @@ android {
     }
 
     sourceSets.getByName("androidTest") {
-        assets.srcDirs("$projectDir/schemas")
+        assets.directories.add("$projectDir/schemas")
     }
 
     lint {
@@ -154,6 +154,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
+    implementation(libs.coil.video)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

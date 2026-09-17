@@ -46,6 +46,12 @@ data class Settings(
      * so this is always reversible from the editor.
      */
     val autoCrop: Boolean = true,
+    /**
+     * Fetch the image behind a shared link, for services that publish one.
+     * Instagram does not; 9GAG does. Off means every share falls back to the
+     * screenshot flow.
+     */
+    val resolveLinks: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_VISION_PROMPT =
@@ -64,6 +70,7 @@ class SettingsStore(private val context: Context) {
         val visionPrompt = stringPreferencesKey("vision_prompt")
         val purgeAfterDays = intPreferencesKey("purge_posted_after_days")
         val autoCrop = booleanPreferencesKey("auto_crop")
+        val resolveLinks = booleanPreferencesKey("resolve_links")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -75,6 +82,7 @@ class SettingsStore(private val context: Context) {
             visionPrompt = p[Keys.visionPrompt] ?: Settings.DEFAULT_VISION_PROMPT,
             purgePostedAfterDays = p[Keys.purgeAfterDays] ?: 0,
             autoCrop = p[Keys.autoCrop] ?: true,
+            resolveLinks = p[Keys.resolveLinks] ?: true,
         )
     }
 
@@ -85,6 +93,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setVisionModel(v: String) = edit { it[Keys.visionModel] = v }
     suspend fun setVisionApiKey(v: String) = edit { it[Keys.visionApiKey] = v }
     suspend fun setVisionPrompt(v: String) = edit { it[Keys.visionPrompt] = v }
+    suspend fun setResolveLinks(enabled: Boolean) = edit { it[Keys.resolveLinks] = enabled }
     suspend fun setAutoCrop(enabled: Boolean) = edit { it[Keys.autoCrop] = enabled }
     suspend fun setPurgeAfterDays(days: Int) = edit { it[Keys.purgeAfterDays] = days.coerceAtLeast(0) }
 

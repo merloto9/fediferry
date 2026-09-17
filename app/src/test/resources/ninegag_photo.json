@@ -1,0 +1,28 @@
+{
+  "data": {
+    "post": {
+      "id": "ayNyegr",
+      "title": "Its somewhat a downer",
+      "type": "Photo",
+      "url": "http://9gag.com/gag/ayNyegr",
+      "nsfw": 0,
+      "images": {
+        "image700": {
+          "url": "https://img-9gag-fun.9cache.com/photo/ayNyegr_700b.jpg",
+          "width": 379,
+          "height": 372
+        },
+        "image460": {
+          "url": "https://img-9gag-fun.9cache.com/photo/ayNyegr_460s.jpg",
+          "width": 379,
+          "height": 372
+        },
+        "imageFbThumbnail": {
+          "url": "https://img-9gag-fun.9cache.com/photo/ayNyegr_fbthumbnail.jpg",
+          "width": 220,
+          "height": 220
+        }
+      }
+    }
+  }
+}

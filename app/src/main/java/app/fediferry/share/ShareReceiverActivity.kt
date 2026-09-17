@@ -83,11 +83,16 @@ class ShareReceiverActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun handle(mode: ShareMode, ingested: ItemRepository.Ingested) {
+    private suspend fun handle(mode: ShareMode, original: ItemRepository.Ingested) {
+        // A link-only share may carry media we can fetch. This is a no-op for
+        // Instagram and for anything already carrying an image.
+        val resolved = resolveLink(original.item)
+        val ingested = if (resolved === original.item) original else original.copy(item = resolved)
         val itemId = ingested.item.id
         when (mode) {
             ShareMode.POST_NOW -> {
-                autoCrop(ingested.item)
+                // Only a screenshot needs trimming; fetched media arrives cropped.
+                if (resolved === original.item) autoCrop(ingested.item)
                 val delay = ServiceLocator.settings(this).current().undoDelaySeconds
                 if (delay > 0) Notifications.showUndo(this, itemId, delay)
                 PostScheduler.enqueue(this, itemId, delay * 1000L)
@@ -110,8 +115,14 @@ class ShareReceiverActivity : ComponentActivity() {
             }
 
             ShareMode.SAVE_FOR_LATER -> {
-                val trimmed = autoCrop(ingested.item)
-                toast(if (trimmed) ingested.describe() + ", trimmed" else ingested.describe())
+                val trimmed = resolved === original.item && autoCrop(ingested.item)
+                toast(
+                    when {
+                        resolved !== original.item -> "Saved with the image from the link"
+                        trimmed -> ingested.describe() + ", trimmed"
+                        else -> ingested.describe()
+                    },
+                )
                 finish()
             }
         }
@@ -126,6 +137,16 @@ class ShareReceiverActivity : ComponentActivity() {
         ShareMode.fromName(intent.getStringExtra(ShareMode.EXTRA))
             ?: ShareMode.fromShortcutId(intent.getStringExtra(EXTRA_SHORTCUT_ID))
             ?: ShareMode.COMPOSE
+
+    /**
+     * Fetches the media behind a shared link when the service publishes one.
+     * Silent on failure by design — the screenshot path remains the fallback.
+     */
+    private suspend fun resolveLink(item: Item): Item {
+        if (item.mediaPath != null || item.sourceUrl == null) return item
+        if (!ServiceLocator.settings(this).current().resolveLinks) return item
+        return ServiceLocator.items(this).resolveLinkMedia(item)
+    }
 
     /**
      * Trims a screenshot without asking, for the modes that do not stop for

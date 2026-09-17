@@ -271,6 +271,25 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
+            Text("Fetch images from shared links")
+            Text(
+                "When a link is shared on its own, get the image from the service " +
+                    "instead of waiting for a screenshot. Works for 9GAG; Instagram " +
+                    "publishes nothing to fetch.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Switch(
+            checked = state.settings.resolveLinks,
+            onCheckedChange = viewModel::setResolveLinks,
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
             Text("Trim screenshots automatically")
             Text(
                 "Post now and Save for later cut a screenshot down to the picture " +

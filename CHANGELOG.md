@@ -8,7 +8,7 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
-## [Unreleased]
+## [0.4.0] — 2026-09-17
 
 ### Added
 
@@ -157,6 +157,7 @@ Initial release. **Superseded — this build cannot ingest any share**; see 0.1.
 - `AltTextProvider` with none, static and vision implementations.
 - GitHub Actions release pipeline producing an Obtainium-installable APK.
 
+[0.4.0]: https://github.com/merloto9/fediferry/releases/tag/v0.4.0
 [0.3.0]: https://github.com/merloto9/fediferry/releases/tag/v0.3.0
 [0.2.0]: https://github.com/merloto9/fediferry/releases/tag/v0.2.0
 [0.1.2]: https://github.com/merloto9/fediferry/releases/tag/v0.1.2

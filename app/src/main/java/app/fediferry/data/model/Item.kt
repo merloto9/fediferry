@@ -43,6 +43,11 @@ enum class Status { DRAFT, QUEUED, POSTING, POSTED, FAILED }
 data class Item(
     @PrimaryKey val id: String,
     val mediaPath: String? = null,
+    /**
+     * The uncropped screenshot, kept so the crop can be redone or undone.
+     * Null when the item was never cropped.
+     */
+    val originalMediaPath: String? = null,
     val mediaHash: String? = null,
     val mimeType: String? = null,
     val sourceUrl: String? = null,

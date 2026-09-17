@@ -20,10 +20,12 @@
 package app.fediferry.data
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.MessageDigest
 
@@ -75,6 +77,33 @@ class MediaVault(private val context: Context) {
     suspend fun bytes(path: String): ByteArray? = withContext(Dispatchers.IO) {
         File(path).takeIf { it.isFile }?.readBytes()
     }
+
+    /**
+     * Stores a derived bitmap — a crop — as a new file alongside the original.
+     *
+     * Named by the content hash like everything else here, so re-applying the
+     * same crop reuses the file instead of piling up copies. PNG sources stay
+     * PNG; anything else is written as JPEG, which is what Mastodon wants for a
+     * photograph anyway.
+     */
+    suspend fun store(bitmap: Bitmap, sourceMimeType: String?): Result<Stored> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val lossless = sourceMimeType == "image/png" || bitmap.hasAlpha()
+                val format = if (lossless) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+                val mime = if (lossless) "image/png" else "image/jpeg"
+
+                val buffer = ByteArrayOutputStream()
+                check(bitmap.compress(format, 92, buffer)) { "Cannot encode the cropped image" }
+                val encoded = buffer.toByteArray()
+
+                val hash = MessageDigest.getInstance("SHA-256").digest(encoded)
+                    .joinToString("") { "%02x".format(it) }
+                val target = File(dir, hash + extensionFor(mime))
+                if (!target.exists()) target.writeBytes(encoded)
+                Stored(target, hash, mime)
+            }
+        }
 
     /** Drops a media file once no item references it. */
     suspend fun deleteIfUnreferenced(path: String?, stillReferenced: Boolean) =

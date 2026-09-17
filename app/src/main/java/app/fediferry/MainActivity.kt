@@ -39,6 +39,9 @@ class MainActivity : ComponentActivity() {
     /** Item to open the editor on, set by a Compose-mode share. */
     private val editItemId = mutableStateOf<String?>(null)
 
+    /** Item to trim first, when the share brought an untrimmed screenshot. */
+    private val cropItemId = mutableStateOf<String?>(null)
+
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -46,15 +49,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         editItemId.value = intent.editTarget()
+        cropItemId.value = intent.cropTarget()
         requestNotificationPermission()
 
         setContent {
             FediFerryTheme {
-                val target by editItemId
+                val edit by editItemId
+                val crop by cropItemId
                 FediFerryNavHost(
                     navController = rememberNavController(),
-                    editItemId = target,
-                    onEditConsumed = { editItemId.value = null },
+                    editItemId = edit,
+                    cropItemId = crop,
+                    onEditConsumed = {
+                        editItemId.value = null
+                        cropItemId.value = null
+                    },
                 )
             }
         }
@@ -64,10 +73,14 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         intent.editTarget()?.let { editItemId.value = it }
+        intent.cropTarget()?.let { cropItemId.value = it }
     }
 
     private fun Intent.editTarget(): String? =
         takeIf { it.action == ACTION_EDIT }?.getStringExtra(EXTRA_ITEM_ID)
+
+    private fun Intent.cropTarget(): String? =
+        takeIf { it.action == ACTION_CROP }?.getStringExtra(EXTRA_ITEM_ID)
 
     /**
      * Without this the undo notification is silently dropped on 33+, which would
@@ -85,6 +98,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val ACTION_EDIT = "app.fediferry.action.EDIT"
+        const val ACTION_CROP = "app.fediferry.action.CROP"
         const val EXTRA_ITEM_ID = "app.fediferry.extra.ITEM_ID"
     }
 }

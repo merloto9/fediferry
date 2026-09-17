@@ -22,6 +22,7 @@ package app.fediferry.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -39,6 +40,12 @@ data class Settings(
     val visionApiKey: String = "",
     val visionPrompt: String = DEFAULT_VISION_PROMPT,
     val purgePostedAfterDays: Int = 0, // 0 = keep forever
+    /**
+     * Trim a screenshot to the detected picture without asking, in the modes
+     * that do not stop for input. The untouched screenshot is kept either way,
+     * so this is always reversible from the editor.
+     */
+    val autoCrop: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_VISION_PROMPT =
@@ -56,6 +63,7 @@ class SettingsStore(private val context: Context) {
         val visionApiKey = stringPreferencesKey("vision_api_key")
         val visionPrompt = stringPreferencesKey("vision_prompt")
         val purgeAfterDays = intPreferencesKey("purge_posted_after_days")
+        val autoCrop = booleanPreferencesKey("auto_crop")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -66,6 +74,7 @@ class SettingsStore(private val context: Context) {
             visionApiKey = p[Keys.visionApiKey].orEmpty(),
             visionPrompt = p[Keys.visionPrompt] ?: Settings.DEFAULT_VISION_PROMPT,
             purgePostedAfterDays = p[Keys.purgeAfterDays] ?: 0,
+            autoCrop = p[Keys.autoCrop] ?: true,
         )
     }
 
@@ -76,6 +85,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setVisionModel(v: String) = edit { it[Keys.visionModel] = v }
     suspend fun setVisionApiKey(v: String) = edit { it[Keys.visionApiKey] = v }
     suspend fun setVisionPrompt(v: String) = edit { it[Keys.visionPrompt] = v }
+    suspend fun setAutoCrop(enabled: Boolean) = edit { it[Keys.autoCrop] = enabled }
     suspend fun setPurgeAfterDays(days: Int) = edit { it[Keys.purgeAfterDays] = days.coerceAtLeast(0) }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {

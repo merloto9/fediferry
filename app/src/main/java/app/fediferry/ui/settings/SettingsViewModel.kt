@@ -111,6 +111,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setVisionModel(v: String) = viewModelScope.launch { settingsStore.setVisionModel(v) }
     fun setVisionApiKey(v: String) = viewModelScope.launch { settingsStore.setVisionApiKey(v) }
     fun setVisionPrompt(v: String) = viewModelScope.launch { settingsStore.setVisionPrompt(v) }
+    fun setAutoCrop(enabled: Boolean) = viewModelScope.launch { settingsStore.setAutoCrop(enabled) }
     fun setPurgeAfterDays(days: Int) = viewModelScope.launch { settingsStore.setPurgeAfterDays(days) }
 
     fun clearMessage() = _state.update { it.copy(message = null) }

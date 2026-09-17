@@ -25,6 +25,8 @@ import app.fediferry.data.db.TemplateDao
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.Template
+import app.fediferry.media.ScreenshotAnalyzer
+import app.fediferry.media.ScreenshotCropper
 import app.fediferry.share.SharePayload
 import app.fediferry.template.TemplateEngine
 import kotlinx.coroutines.flow.Flow
@@ -186,6 +188,46 @@ class ItemRepository(
     }
 
     suspend fun update(item: Item) = items.update(item)
+
+    /**
+     * What the cropper thinks should be trimmed off this item's screenshot, or
+     * null when there is nothing worth proposing. Always runs against the
+     * original, so asking twice does not compound earlier crops.
+     */
+    suspend fun suggestCrop(item: Item): ScreenshotAnalyzer.Suggestion? {
+        val source = item.originalMediaPath ?: item.mediaPath ?: return null
+        return ScreenshotAnalyzer.suggest(source)?.takeIf { it.trimsAnything }
+    }
+
+    /**
+     * Applies a crop, keeping the untouched screenshot so it can be redone or
+     * undone later. Cropping an already-cropped item re-crops the original
+     * rather than cutting into the previous result.
+     */
+    suspend fun applyCrop(item: Item, crop: ScreenshotCropper.Crop): Result<Item> = runCatching {
+        val source = item.originalMediaPath ?: item.mediaPath
+            ?: error("This item has no image to crop")
+        val bitmap = ScreenshotAnalyzer.crop(source, crop) ?: error("Could not read the image")
+        val stored = media.store(bitmap, item.mimeType).getOrThrow()
+        bitmap.recycle()
+
+        val cropped = item.copy(
+            mediaPath = stored.file.absolutePath,
+            mediaHash = stored.sha256,
+            mimeType = stored.mimeType,
+            originalMediaPath = source,
+        )
+        items.update(cropped)
+        cropped
+    }
+
+    /** Puts the untouched screenshot back. */
+    suspend fun revertCrop(item: Item): Item {
+        val original = item.originalMediaPath ?: return item
+        val restored = item.copy(mediaPath = original, originalMediaPath = null)
+        items.update(restored)
+        return restored
+    }
 
     suspend fun markQueued(id: String) = items.setStatus(id, Status.QUEUED)
 

@@ -99,6 +99,10 @@ android {
         buildConfig = true
     }
 
+    sourceSets.getByName("androidTest") {
+        assets.srcDirs("$projectDir/schemas")
+    }
+
     lint {
         // minSdk is already 26, so lint calls the `-v26` qualifier redundant —
         // but aapt2 does not resolve the adaptive icon from a bare
@@ -159,4 +163,5 @@ dependencies {
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.room.testing)
 }

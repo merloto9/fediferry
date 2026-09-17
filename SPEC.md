@@ -47,6 +47,29 @@ The image therefore comes from a **user-taken screenshot**, shared as `image/*`.
 Android 13+ offers crop directly from the screenshot notification, so this is two
 taps. The permalink can optionally be shared alongside for attribution.
 
+### Trimming the screenshot
+
+A screenshot is the whole screen, and the post wants only the picture. Rather
+than sending the user out to a photo editor, `ScreenshotCropper` finds the
+picture itself: a feed screenshot is a stack of horizontal bands, and every band
+that is not the picture is mostly flat app background with sparse text on it, so
+the picture is the tallest run of rows that are largely *not* the background
+colour.
+
+It is a heuristic, so it is never trusted blindly. It reports a confidence and
+returns nothing rather than guessing. Compose mode shows the proposal with
+draggable corners for approval; the two modes that do not stop for input apply it
+only above a confidence threshold, and only when `Settings.autoCrop` is on. The
+untouched screenshot is kept in `Item.originalMediaPath` either way, so the
+editor can always put it back, and re-cropping works from the original rather
+than cutting into a previous crop.
+
+Detection runs on a downscaled copy — the band layout does not depend on
+resolution — and the result is scaled back up, so the crop itself is lossless.
+The crop rectangle is held as fractions of the image, never as view pixels: the
+displayed bitmap is whatever size the image loader decided on, and measuring
+against that silently shifts the crop.
+
 ### Pairing the two halves
 
 Attribution needs two shares — the permalink from Instagram, then the

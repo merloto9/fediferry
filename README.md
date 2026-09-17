@@ -58,6 +58,21 @@ that is missing gets joined, and only within ten minutes; a share carrying both
 an image and a link stands on its own. If you have already edited a draft's text
 by hand, pairing leaves your wording alone.
 
+### Trimming
+
+A screenshot includes the whole screen; the post wants the picture. FediFerry
+detects the picture and offers the crop itself, so there is no trip through a
+photo editor.
+
+- **Compose** shows the proposed crop with draggable corners — approve, adjust,
+  take the whole image, or skip.
+- **Post now** and **Save for later** apply it silently when the detection is
+  confident. Turn that off with *Settings → Trim screenshots automatically*.
+
+The original screenshot is always kept, so **Undo trim** in the editor puts it
+back, and re-trimming works from the original rather than cutting into a
+previous crop.
+
 ### Alt text
 
 Each template picks a mode: `NONE`, `STATIC` (a fixed string on the template) or

@@ -24,6 +24,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import app.fediferry.data.model.Account
 import app.fediferry.data.model.InstanceApp
 import app.fediferry.data.model.Item
@@ -31,7 +33,7 @@ import app.fediferry.data.model.Template
 
 @Database(
     entities = [Item::class, Account::class, InstanceApp::class, Template::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -41,8 +43,20 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun templates(): TemplateDao
 
     companion object {
+        /**
+         * Adds [app.fediferry.data.model.Item.originalMediaPath]. Additive and
+         * nullable, so existing drafts survive untouched — destructive migration
+         * would throw away saved memes on an app update.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE items ADD COLUMN originalMediaPath TEXT")
+            }
+        }
+
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
+                .addMigrations(MIGRATION_1_2)
                 .build()
     }
 }

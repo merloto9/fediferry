@@ -116,6 +116,13 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Puts the untouched screenshot back after a crop. */
+    fun revertCrop() = viewModelScope.launch {
+        val item = _state.value.item ?: return@launch
+        val restored = repo.revertCrop(item)
+        _state.update { it.copy(item = restored, message = "Original screenshot restored") }
+    }
+
     fun saveDraft(onDone: () -> Unit) = viewModelScope.launch {
         _state.value.item?.let { repo.update(it) }
         onDone()

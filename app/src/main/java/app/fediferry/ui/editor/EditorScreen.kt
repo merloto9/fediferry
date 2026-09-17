@@ -74,6 +74,7 @@ import java.io.File
 fun EditorScreen(
     itemId: String,
     onDone: () -> Unit,
+    onTrim: (String) -> Unit = {},
     viewModel: EditorViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -132,6 +133,15 @@ fun EditorScreen(
                         .heightIn(max = 280.dp)
                         .clip(RoundedCornerShape(12.dp)),
                 )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = { onTrim(item.id) }) { Text("Trim") }
+                    if (item.originalMediaPath != null) {
+                        TextButton(onClick = viewModel::revertCrop) { Text("Undo trim") }
+                    }
+                }
             }
 
             TemplatePicker(state, viewModel)

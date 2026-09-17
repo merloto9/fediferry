@@ -42,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -264,6 +265,25 @@ private fun TemplateCard(template: Template, viewModel: SettingsViewModel) {
 @Composable
 private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
     SectionTitle("Posting")
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Trim screenshots automatically")
+            Text(
+                "Post now and Save for later cut a screenshot down to the picture " +
+                    "when the detection is confident. The original is kept either way, " +
+                    "so the editor can undo it.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Switch(
+            checked = state.settings.autoCrop,
+            onCheckedChange = viewModel::setAutoCrop,
+        )
+    }
 
     Text("Undo window: ${state.settings.undoDelaySeconds}s")
     Text(

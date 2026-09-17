@@ -28,6 +28,7 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.lifecycleScope
 import app.fediferry.MainActivity
 import app.fediferry.data.ItemRepository
+import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
 import app.fediferry.work.Notifications
@@ -86,6 +87,7 @@ class ShareReceiverActivity : ComponentActivity() {
         val itemId = ingested.item.id
         when (mode) {
             ShareMode.POST_NOW -> {
+                autoCrop(ingested.item)
                 val delay = ServiceLocator.settings(this).current().undoDelaySeconds
                 if (delay > 0) Notifications.showUndo(this, itemId, delay)
                 PostScheduler.enqueue(this, itemId, delay * 1000L)
@@ -94,9 +96,13 @@ class ShareReceiverActivity : ComponentActivity() {
             }
 
             ShareMode.COMPOSE -> {
+                // Offer the trim step only when there is something to trim; an
+                // already-cropped image should go straight to the editor.
+                val trim = ingested.item.mediaPath != null &&
+                    ServiceLocator.items(this).suggestCrop(ingested.item) != null
                 startActivity(
                     Intent(this, MainActivity::class.java)
-                        .setAction(MainActivity.ACTION_EDIT)
+                        .setAction(if (trim) MainActivity.ACTION_CROP else MainActivity.ACTION_EDIT)
                         .putExtra(MainActivity.EXTRA_ITEM_ID, itemId)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
                 )
@@ -104,7 +110,8 @@ class ShareReceiverActivity : ComponentActivity() {
             }
 
             ShareMode.SAVE_FOR_LATER -> {
-                toast(ingested.describe())
+                val trimmed = autoCrop(ingested.item)
+                toast(if (trimmed) ingested.describe() + ", trimmed" else ingested.describe())
                 finish()
             }
         }
@@ -119,6 +126,26 @@ class ShareReceiverActivity : ComponentActivity() {
         ShareMode.fromName(intent.getStringExtra(ShareMode.EXTRA))
             ?: ShareMode.fromShortcutId(intent.getStringExtra(EXTRA_SHORTCUT_ID))
             ?: ShareMode.COMPOSE
+
+    /**
+     * Trims a screenshot without asking, for the modes that do not stop for
+     * input. Only a confident suggestion is applied, and the untouched
+     * screenshot is kept, so the editor can always put it back.
+     *
+     * @return whether anything was actually trimmed.
+     */
+    private suspend fun autoCrop(item: Item): Boolean {
+        if (item.mediaPath == null) return false
+        if (!ServiceLocator.settings(this).current().autoCrop) return false
+
+        val repo = ServiceLocator.items(this)
+        val suggestion = repo.suggestCrop(item) ?: return false
+        if (suggestion.confidence < AUTO_CROP_MIN_CONFIDENCE) return false
+
+        return repo.applyCrop(item, suggestion.crop)
+            .onFailure { Log.e(TAG, "Auto-crop failed", it) }
+            .isSuccess
+    }
 
     /**
      * Says what actually happened. A permalink on its own is the common
@@ -148,6 +175,12 @@ class ShareReceiverActivity : ComponentActivity() {
 
     private companion object {
         const val TAG = "ShareReceiver"
+
+        /**
+         * Below this the suggestion is not trustworthy enough to apply behind
+         * the user's back; the image is left whole instead.
+         */
+        const val AUTO_CROP_MIN_CONFIDENCE = 0.72f
 
         /** Set by the launcher when a Sharing Shortcut is tapped. */
         const val EXTRA_SHORTCUT_ID = "android.intent.extra.shortcut.ID"

@@ -26,6 +26,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import app.fediferry.ui.crop.CropScreen
 import app.fediferry.ui.editor.EditorScreen
 import app.fediferry.ui.inbox.InboxScreen
 import app.fediferry.ui.settings.SettingsScreen
@@ -34,21 +35,30 @@ object Routes {
     const val INBOX = "inbox"
     const val SETTINGS = "settings"
     const val EDITOR = "editor/{itemId}"
+    const val CROP = "crop/{itemId}"
 
     fun editor(itemId: String) = "editor/$itemId"
+    fun crop(itemId: String) = "crop/$itemId"
 }
 
 @Composable
 fun FediFerryNavHost(
     navController: NavHostController,
     editItemId: String?,
+    cropItemId: String?,
     onEditConsumed: () -> Unit,
 ) {
     // A Compose-mode share lands here: jump straight to the editor for the item
-    // the share receiver already persisted.
-    LaunchedEffect(editItemId) {
-        val id = editItemId ?: return@LaunchedEffect
-        navController.navigate(Routes.editor(id))
+    // the share receiver already persisted — or to the trim step first, when the
+    // share brought an image that still looks like a full screenshot.
+    LaunchedEffect(editItemId, cropItemId) {
+        val crop = cropItemId
+        val edit = editItemId
+        when {
+            crop != null -> navController.navigate(Routes.crop(crop))
+            edit != null -> navController.navigate(Routes.editor(edit))
+            else -> return@LaunchedEffect
+        }
         onEditConsumed()
     }
 
@@ -65,9 +75,24 @@ fun FediFerryNavHost(
         ) { entry ->
             EditorScreen(
                 itemId = entry.arguments?.getString("itemId").orEmpty(),
+                onTrim = { navController.navigate(Routes.crop(it)) },
                 onDone = {
                     if (!navController.popBackStack()) {
                         navController.navigate(Routes.INBOX)
+                    }
+                },
+            )
+        }
+        composable(
+            route = Routes.CROP,
+            arguments = listOf(navArgument("itemId") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("itemId").orEmpty()
+            CropScreen(
+                itemId = id,
+                onDone = { croppedId ->
+                    navController.navigate(Routes.editor(croppedId)) {
+                        popUpTo(Routes.CROP) { inclusive = true }
                     }
                 },
             )

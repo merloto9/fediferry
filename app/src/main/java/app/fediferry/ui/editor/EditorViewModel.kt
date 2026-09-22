@@ -24,6 +24,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.data.model.Account
 import app.fediferry.data.model.Item
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.data.model.Visibility
@@ -40,6 +41,8 @@ data class EditorState(
     val item: Item? = null,
     val templates: List<Template> = emptyList(),
     val placeholderKeys: List<PlaceholderKey> = emptyList(),
+    /** The hashtag list from Settings, in its order. */
+    val hashtagList: List<String> = emptyList(),
     val accounts: List<Account> = emptyList(),
     val altTextBusy: Boolean = false,
     val message: String? = null,
@@ -60,6 +63,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                 item = repo.byId(itemId),
                 templates = repo.templates(),
                 placeholderKeys = db.placeholderKeys().all(),
+                hashtagList = db.hashtags().all().map { it.tag },
                 accounts = db.accounts().all(),
                 loaded = true,
             )
@@ -77,19 +81,68 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun setVisibility(visibility: Visibility) = edit { it.copy(visibility = visibility) }
     fun setAccount(accountId: String) = edit { it.copy(accountId = accountId) }
 
+    /** Picks or drops one hashtag for this post. */
+    fun toggleHashtag(tag: String) = edit { item ->
+        val current = item.hashtagList
+        val next = if (Hashtags.contains(current, tag)) {
+            current.filterNot { it.equals(tag, ignoreCase = true) }
+        } else {
+            current + tag
+        }
+        item.copy(hashtags = Hashtags.format(next))
+    }
+
+    /** The hashtags this post's source offers, whether or not they are ticked. */
+    fun sourceHashtags(): List<String> {
+        val s = _state.value
+        val item = s.item ?: return emptyList()
+        val template = s.templates.firstOrNull { it.id == item.templateId } ?: return emptyList()
+        return TemplateEngine.sourceHashtags(template, s.placeholderKeys, TemplateEngine.inputsOf(item))
+    }
+
     /**
-     * Re-renders the body from another template, discarding manual edits. The
-     * item keeps the data its source sent, so the new template's placeholders
-     * fill from it too.
+     * Adds or takes away the source's own hashtags. Taking them away keeps
+     * any the template picked too, and everything else the user ticked.
+     */
+    fun setAddSourceHashtags(on: Boolean) {
+        val fromSource = sourceHashtags()
+        val template = _state.value.templates.firstOrNull { it.id == _state.value.item?.templateId }
+        edit { item ->
+            val current = item.hashtagList
+            val next = if (on) {
+                Hashtags.union(current, fromSource)
+            } else {
+                current.filterNot { tag ->
+                    Hashtags.contains(fromSource, tag) && !Hashtags.contains(template?.hashtagList.orEmpty(), tag)
+                }
+            }
+            item.copy(addSourceHashtags = on, hashtags = Hashtags.format(next))
+        }
+    }
+
+    /**
+     * Adds a hashtag typed for this post alone and picks it. It does not join
+     * the list in Settings; that list is edited there.
+     */
+    fun addHashtag(raw: String): Boolean {
+        val tag = Hashtags.normalize(raw) ?: return false
+        edit { item -> item.copy(hashtags = Hashtags.format(Hashtags.union(item.hashtagList, listOf(tag)))) }
+        return true
+    }
+
+    /**
+     * Re-renders the body and resets the hashtags from another template,
+     * discarding manual edits. The item keeps the data its source sent, so the
+     * new template's placeholders — and the source's hashtags — fill from it too.
      */
     fun applyTemplate(template: Template) = edit { item ->
+        val keys = _state.value.placeholderKeys
+        val inputs = TemplateEngine.inputsOf(item)
         item.copy(
             templateId = template.id,
-            bodyText = TemplateEngine.render(
-                template,
-                _state.value.placeholderKeys,
-                TemplateEngine.inputsOf(item),
-            ),
+            bodyText = TemplateEngine.render(template, keys, inputs),
+            hashtags = Hashtags.format(TemplateEngine.hashtagsFor(template, keys, inputs)),
+            addSourceHashtags = template.addSourceHashtags,
             visibility = template.visibility,
             contentWarning = template.contentWarning,
             accountId = template.accountId ?: item.accountId,

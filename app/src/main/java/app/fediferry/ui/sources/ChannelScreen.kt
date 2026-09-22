@@ -63,7 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.fediferry.source.SourcePost
+import app.fediferry.module.youtube.SourcePost
 import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.LoadingScreen
 import coil3.compose.SubcomposeAsyncImage

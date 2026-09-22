@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.editor
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,10 +33,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -43,6 +45,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -65,6 +68,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.data.model.Item
 import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.PlaceholderHelpDialog
 import app.fediferry.ui.StableTextField
@@ -157,7 +161,27 @@ fun EditorScreen(
                 }
             }
 
-            TemplatePicker(state, viewModel)
+            var showHashtags by remember { mutableStateOf(false) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TemplatePicker(state, viewModel)
+                IconButton(onClick = { showHashtags = !showHashtags }) {
+                    Icon(
+                        Icons.Default.Tag,
+                        contentDescription = if (showHashtags) "Hide hashtags" else "Edit hashtags",
+                        tint = if (showHashtags) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                    )
+                }
+            }
+            AnimatedVisibility(visible = showHashtags) {
+                HashtagPanel(
+                    item = item,
+                    hashtagList = state.hashtagList,
+                    onToggle = viewModel::toggleHashtag,
+                    onAdd = viewModel::addHashtag,
+                    sourceHashtags = viewModel.sourceHashtags(),
+                    onAddSourceHashtags = viewModel::setAddSourceHashtags,
+                )
+            }
 
             StableTextField(
                 key = item.id,
@@ -165,6 +189,7 @@ fun EditorScreen(
                 onValueChange = viewModel::setBody,
                 label = "Post text",
                 minLines = 3,
+                supportingText = { TagsHint(item) },
                 trailingIcon = {
                     IconButton(onClick = { showPlaceholderHelp = true }) {
                         Icon(
@@ -245,6 +270,25 @@ fun EditorScreen(
             }
         }
     }
+}
+
+/**
+ * Says what `{tags}` will become, since the text shows the placeholder itself
+ * until the post is sent — and says so when the hashtags would go nowhere.
+ */
+@Composable
+private fun TagsHint(item: Item) {
+    if (item.hashtags == null) return
+    val hasToken = "{tags}" in item.bodyText
+    val tags = item.hashtagList
+    Text(
+        when {
+            hasToken && tags.isEmpty() -> "{tags} is empty — no hashtags are picked, so its line is left out."
+            hasToken -> "{tags} becomes ${tags.joinToString(" ")} when the post is sent."
+            tags.isNotEmpty() -> "The text has no {tags}, so the hashtags you picked are not posted."
+            else -> ""
+        },
+    )
 }
 
 @Composable

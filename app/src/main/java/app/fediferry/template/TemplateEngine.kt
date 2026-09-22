@@ -20,6 +20,7 @@
 package app.fediferry.template
 
 import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
@@ -38,10 +39,15 @@ import java.time.format.DateTimeFormatter
  * An unknown placeholder is left verbatim: that is an authoring mistake, and
  * silently swallowing it would hide it.
  *
- * Two layers feed it. `{link}`, `{tags}` and `{date}` are built in. Every other
+ * Two layers feed it. `{link}` and `{date}` are built in. Every other
  * placeholder is a [PlaceholderKey] the user defined, filled from the raw
  * fields of the source the item came from through that key's recipe for the
  * source — and only when the template reads that source at all.
+ *
+ * `{tags}` is the exception, and resolves in two steps. Rendering a draft leaves
+ * it in the text as written; [finish] fills it with the post's hashtags when the
+ * post is sent. Hashtags therefore stay editable after the draft is written,
+ * and a hand-written `{tags}` in the editor works like the template's own.
  */
 object TemplateEngine {
 
@@ -60,15 +66,48 @@ object TemplateEngine {
     fun inputsOf(item: Item) = Inputs(link = item.sourceUrl, source = item.origin, fields = item.sourceFields)
 
     fun render(template: Template, keys: List<PlaceholderKey>, inputs: Inputs): String {
-        val values = keys.associate { it.name to valueOf(it, template, inputs) } + mapOf(
+        val values = keys.filterNot { it.isTags }.associate { it.name to valueOf(it, template, inputs) } + mapOf(
             // After the keys, so a built-in always wins. Settings refuses the
             // clash anyway; this only keeps an old row from shadowing {link}.
             "link" to inputs.link.orEmpty(),
-            "tags" to template.tags.trim(),
             "date" to dateFormat.format(inputs.now.atZone(ZoneId.systemDefault())),
+            // Left for [finish]. Standing in for itself also counts as filled,
+            // so its line survives until the hashtags are known.
+            PlaceholderKey.TAGS to TAGS_TOKEN,
         )
         return renderText(template.body, values)
     }
+
+    /**
+     * The text that is actually posted: [body] with `{tags}` replaced by
+     * [hashtags]. Nothing else is touched — every other placeholder was filled
+     * when the draft was written, and whatever the user typed since is theirs.
+     * A line that held only `{tags}` disappears when there are none.
+     */
+    fun finish(body: String, hashtags: List<String>): String =
+        renderText(body, mapOf(PlaceholderKey.TAGS to Hashtags.format(hashtags)))
+
+    /** What [item] will actually post. */
+    fun postTextOf(item: Item): String = finish(item.bodyText, item.hashtagList)
+
+    /**
+     * The hashtags a post starts with: the template's picks, then — when
+     * [withSource] — whatever the source's `{tags}` recipe adds, the source's
+     * own tags, say. A tag in both is kept once, spelled as the template has it.
+     */
+    fun hashtagsFor(
+        template: Template,
+        keys: List<PlaceholderKey>,
+        inputs: Inputs,
+        withSource: Boolean = template.addSourceHashtags,
+    ): List<String> {
+        val fromSource = if (withSource) sourceHashtags(template, keys, inputs) else emptyList()
+        return Hashtags.union(template.hashtagList, fromSource)
+    }
+
+    /** What the source's `{tags}` recipe yields for this post, as hashtags. */
+    fun sourceHashtags(template: Template, keys: List<PlaceholderKey>, inputs: Inputs): List<String> =
+        keys.firstOrNull { it.isTags }?.let { Hashtags.parse(valueOf(it, template, inputs)) }.orEmpty()
 
     /**
      * What [key] comes to for this item. Best-effort only: no downstream code
@@ -115,6 +154,8 @@ object TemplateEngine {
     // rejects an unmatched `}` outright, where the OpenJDK engine the unit tests
     // run on accepts it — so an unescaped brace compiles on the host and throws
     // PatternSyntaxException on a device.
+    private const val TAGS_TOKEN = "{${PlaceholderKey.TAGS}}"
+
     private val PLACEHOLDER = Regex("""\{(\w+)\}""")
     private val BLANK_RUN = Regex("""\n{3,}""")
 }

@@ -17,7 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package app.fediferry.source
+package app.fediferry.module.youtube
+
 
 /**
  * One post from a followed source, as shown in the Sources space.

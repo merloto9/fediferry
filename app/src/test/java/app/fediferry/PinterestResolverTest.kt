@@ -20,7 +20,7 @@
 package app.fediferry
 
 import app.fediferry.data.model.ContentSource
-import app.fediferry.link.PinterestResolver
+import app.fediferry.module.pinterest.PinterestResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

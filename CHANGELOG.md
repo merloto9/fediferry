@@ -8,6 +8,42 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.12.0] — 2026-09-23
+
+### Added
+
+- **Hashtags are picked per post.** The **#** button beside the template in the
+  editor opens the hashtag list inline, on its own background, with the
+  template's picks ticked: tick more, untick some, or type one just for this
+  post. *Settings → Hashtags* keeps the list; each template ticks its subset
+  instead of a free-text field.
+- **`{tags}` is filled when the post is sent**, not when the draft is written.
+  The editor shows `{tags}` and says underneath what it will become, so the
+  hashtags stay editable to the end, and a `{tags}` typed by hand works too.
+- **`{tags}` is reserved**: it cannot be renamed or deleted, only given a
+  recipe per source — set 9GAG's to `{hashtags}` and a post's 9GAG tags arrive
+  ticked beside the template's. Every source starts with none.
+- **Choose whether a source's hashtags join.** *Add the source's hashtags* on a
+  template sets the default; the same checkbox in the editor's hashtag panel
+  decides for one post, listing what the source offers. Unticking takes the
+  source's hashtags away but keeps any the template picked as well.
+- **Source modules.** Each source — 9GAG, Pinterest, Reddit, YouTube — is now a
+  module of its own, and *Settings → Source modules* lists them: what each does,
+  the links it recognises, the fields it sends, and what every placeholder
+  takes from it, edited in one place per source.
+
+### Changed
+
+- *Settings → Placeholders* now holds only the names; each source's recipes
+  moved to its module.
+- Updating collects every hashtag the templates used into the new list, so no
+  template loses its tags. Drafts saved before keep their text as written.
+
+### Fixed
+
+- A share the app could not read left an empty temporary file behind in its
+  cache every time. The copy is now removed when reading fails.
+
 ## [0.11.0] — 2026-09-22
 
 ### Added

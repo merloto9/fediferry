@@ -25,7 +25,7 @@ import androidx.lifecycle.viewModelScope
 import app.fediferry.data.model.Source
 import app.fediferry.di.ServiceLocator
 import app.fediferry.link.fieldsOf
-import app.fediferry.source.SourcePost
+import app.fediferry.module.youtube.SourcePost
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

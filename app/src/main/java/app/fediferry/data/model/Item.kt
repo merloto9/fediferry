@@ -74,4 +74,14 @@ data class Item(
      * without fetching the post a second time.
      */
     @ColumnInfo(defaultValue = "{}") val sourceFields: Map<String, String> = emptyMap(),
-)
+    /**
+     * The hashtags picked for this post, space-separated, that `{tags}` becomes
+     * when it is sent. Null for a draft written before hashtags were picked
+     * per post: its text already carries them.
+     */
+    val hashtags: String? = null,
+    /** Copied from the template, then the editor's to change: see [Template.addSourceHashtags]. */
+    @ColumnInfo(defaultValue = "1") val addSourceHashtags: Boolean = true,
+) {
+    val hashtagList: List<String> get() = Hashtags.parse(hashtags)
+}

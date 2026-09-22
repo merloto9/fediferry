@@ -28,9 +28,9 @@ offers each later release as an in-place update.
 1. **Settings → Accounts**: enter your instance host (`mastodon.social`) and
    tap Connect. A Custom Tab opens the instance's OAuth page; approving it
    returns to the app. The app registers itself per instance on first connect.
-2. **Settings → Templates**: edit the seeded `Meme` template. `{link}`, `{tags}`
-   and `{date}` are built in, and any placeholder defined under *Settings →
-   Placeholders* works too. A placeholder with nothing to fill it resolves to
+2. **Settings → Templates**: edit the seeded `Meme` template. `{link}` and
+   `{date}` are built in, `{tags}` becomes the post's hashtags, and any
+   placeholder defined under *Settings → Placeholders* works too. A placeholder with nothing to fill it resolves to
    an empty string and its whole line is dropped, so `{tags}\n\nvia {link}`
    does not post a dangling "via".
 3. Screenshot something, share it, and pick one of the three targets.
@@ -110,23 +110,40 @@ The post's title fills `{caption}`, and its subreddit is available to map.
 
 ### Placeholders
 
-Two things are kept apart. A **template** is a topic: its hashtags, visibility
-and alt-text setting, and a body that says how a post is laid out. A
-**placeholder** such as `{caption}` says what text goes into that layout, and
-it is defined once, under *Settings → Placeholders*, for every source at once.
+Two things are kept apart. A **template** is a topic: the hashtags it ticks,
+its visibility and alt-text setting, and a body that says how a post is laid
+out. A **placeholder** such as `{caption}` says what text goes into that layout.
 
-Each placeholder has one small recipe per source, written with that source's own
-fields: `{title}` for 9GAG, `r/{subreddit}: {title}` for Reddit, nothing at all
-for Pinterest. A source with no recipe leaves the placeholder empty, and an
-empty placeholder drops its line from the post. *What does each source send?*
-lists every field.
+*Settings → Placeholders* holds the names. What each one says is set per source
+under *Settings → Source modules*, where every source the app can fetch from has
+a card of its own: what it recognises, the fields it sends, and one small recipe
+per placeholder written with those fields — `{title}` for 9GAG,
+`r/{subreddit}: {title}` for Reddit, nothing at all for Pinterest. A source
+with no recipe leaves the placeholder empty, and an empty placeholder drops its
+line from the post.
 
 A template can also untick sources under *Fill placeholders from*: for posts
-from those, its placeholders stay empty while its tags and link still apply.
+from those, its placeholders stay empty while its hashtags and link still apply.
 
 `{caption}` comes predefined with what it has always meant — the title on 9GAG
 and Reddit, the post text on YouTube — and nothing on Pinterest. Change it,
 delete it, or add others.
+
+### Hashtags
+
+*Settings → Hashtags* keeps one list for everything; each template ticks the
+ones its topic uses. In the editor, the **#** button beside the template opens
+the whole list with the template's picks ticked — tick more, untick some, or
+type one just for this post.
+
+`{tags}` is reserved: it cannot be renamed or deleted, and it is filled only
+when the post is sent. Until then the editor shows `{tags}` itself, with a line
+underneath saying what it will become, so the hashtags stay changeable to the
+last moment — and a `{tags}` typed anywhere in the text works too. Its recipe
+under each source module adds that source's own hashtags: set 9GAG's to
+`{hashtags}` and a post's 9GAG tags arrive ticked beside the template's.
+*Add the source's hashtags* decides whether they join: on the template for its
+posts by default, and in the editor's panel for one post.
 
 ### Sources
 
@@ -255,6 +272,8 @@ The debug build uses application ID `app.fediferry.debug` and OAuth scheme
 data/        Room entities, DAOs, the media vault, the token store
 share/       Share receiver, payload parsing, Sharing Shortcuts
 template/    Placeholder rendering
+module/      One package per source: resolver or client, fields, default recipes
+link/        What every module shares: the resolver contract, the media fetcher
 alt/         AltTextProvider and its implementations
 mastodon/    OAuth, media upload with readiness polling, status creation
 work/        PostWorker, scheduling, the undo notification

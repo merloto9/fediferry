@@ -68,6 +68,7 @@ import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
+import app.fediferry.template.TemplateEngine
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -200,7 +201,7 @@ private fun ItemCard(
                 StatusChip(item.status)
             }
             Text(
-                text = item.bodyText.ifBlank { "(no text)" },
+                text = TemplateEngine.postTextOf(item).ifBlank { "(no text)" },
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

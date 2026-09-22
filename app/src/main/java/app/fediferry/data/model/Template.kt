@@ -58,8 +58,17 @@ data class Template(
      * for every template from the start.
      */
     @ColumnInfo(defaultValue = "") val excludedSources: Set<ContentSource> = emptySet(),
+    /**
+     * Whether a post starts with its source's own hashtags — whatever the
+     * source's `{tags}` recipe yields — ticked beside [tags]. Each post can
+     * still change it in the editor.
+     */
+    @ColumnInfo(defaultValue = "1") val addSourceHashtags: Boolean = true,
 ) {
     fun usesSource(source: ContentSource): Boolean = source !in excludedSources
+
+    /** [tags] holds the template's picks from the hashtag list, space-separated. */
+    val hashtagList: List<String> get() = Hashtags.parse(tags)
 
     companion object {
         const val DEFAULT_ID = "default"

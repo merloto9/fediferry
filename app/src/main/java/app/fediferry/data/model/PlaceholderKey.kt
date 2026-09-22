@@ -21,6 +21,7 @@ package app.fediferry.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import app.fediferry.module.Modules
 
 /**
  * A placeholder the user defines, such as `{caption}`, and how to fill it for
@@ -42,31 +43,51 @@ data class PlaceholderKey(
 ) {
     fun recipeFor(source: ContentSource): String = mappings[source.name].orEmpty()
 
+    val isTags: Boolean get() = id == TAGS_ID
+
     companion object {
         const val CAPTION_ID = "caption"
 
-        /** Placeholders the engine fills itself; a user key cannot take these names. */
-        val BUILT_IN = setOf("link", "tags", "date")
+        const val TAGS_ID = "tags"
+
+        /**
+         * The post's hashtags. Reserved: it exists on every install, cannot be
+         * renamed or deleted, and is filled when the post is sent rather than
+         * when the draft is written, so hashtags stay editable until then. Its
+         * recipes say which hashtags each source adds.
+         */
+        const val TAGS = "tags"
+
+        /** Placeholders the engine fills itself from the share. */
+        val BUILT_IN = setOf("link", "date")
+
+        /** Names no user-defined placeholder can take. */
+        val RESERVED = BUILT_IN + TAGS
 
         private val NAME = Regex("""\w+""")
 
-        fun isValidName(name: String): Boolean = NAME.matches(name) && name !in BUILT_IN
+        fun isValidName(name: String): Boolean = NAME.matches(name) && name !in RESERVED
 
         /**
-         * What `{caption}` meant before placeholders could be defined: the post's
-         * title on 9GAG and Reddit, and a community post's text on YouTube.
-         *
-         * Pinterest is deliberately left out. Its title is too often generic
-         * filler, which prefilled every post with it.
+         * What `{caption}` meant before placeholders could be defined, as each
+         * module's default recipe says: the title on 9GAG and Reddit, a
+         * community post's text on YouTube, and nothing from Pinterest.
          */
         fun seed() = PlaceholderKey(
             id = CAPTION_ID,
             name = "caption",
-            mappings = mapOf(
-                ContentSource.NINEGAG.name to "{title}",
-                ContentSource.REDDIT.name to "{title}",
-                ContentSource.YOUTUBE.name to "{text}",
-            ),
+            mappings = defaultMappings("caption"),
         )
+
+        /** The reserved `{tags}`: every source's hashtags recipe, empty to start. */
+        fun tagsSeed() = PlaceholderKey(
+            id = TAGS_ID,
+            name = TAGS,
+            mappings = defaultMappings(TAGS),
+            sortOrder = -1,
+        )
+
+        private fun defaultMappings(name: String): Map<String, String> =
+            Modules.all.mapNotNull { m -> m.defaultRecipes[name]?.let { m.source.name to it } }.toMap()
     }
 }

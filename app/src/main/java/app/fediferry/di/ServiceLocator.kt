@@ -34,16 +34,14 @@ import app.fediferry.data.SettingsStore
 import app.fediferry.data.TokenStore
 import app.fediferry.data.db.AppDatabase
 import app.fediferry.link.LinkResolver
-import app.fediferry.link.NineGagResolver
-import app.fediferry.link.PinterestResolver
-import app.fediferry.link.RedditResolver
+import app.fediferry.module.Modules
 import app.fediferry.link.OkHttpMediaFetcher
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.HttpImageEditProvider
 import app.fediferry.media.cleanup.ImageEditProvider
 import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.media.cleanup.NoImageEditProvider
-import app.fediferry.source.YouTubeSourceClient
+import app.fediferry.module.youtube.YouTubeSourceClient
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.mastodon.AuthManager
@@ -122,7 +120,7 @@ object ServiceLocator {
     }
 
     fun linkResolvers(): List<LinkResolver> =
-        listOf(NineGagResolver(linkHttp()), PinterestResolver(linkHttp()), RedditResolver(linkHttp()))
+        Modules.resolvers(linkHttp())
 
     /**
      * A tighter-deadline client for link resolution. A share must not sit

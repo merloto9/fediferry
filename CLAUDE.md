@@ -55,3 +55,6 @@ Do not build 1 before 3. The store is the dependency, not the other way round.
   Never hardcode a vision vendor into the posting path.
 - Anything that can fail remotely degrades to empty rather than aborting the post.
 - Never log access tokens or post bodies.
+- Each source is a module under `module/<name>/` (resolver or client, fields,
+  default recipes). Source-specific code goes there, never in the pipeline.
+- `{tags}` is resolved at send time only. Never write hashtags into a draft body.

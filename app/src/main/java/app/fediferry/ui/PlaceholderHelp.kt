@@ -46,8 +46,10 @@ private data class Placeholder(
 private val PLACEHOLDERS = listOf(
     Placeholder(
         "{tags}",
-        "The tag list set on the template.",
-        "Empty when the template has no tags.",
+        "The post's hashtags: the template's picks, plus any a source adds. Filled when " +
+            "the post is sent, so it stays {tags} in the editor — change the hashtags with # " +
+            "next to the template.",
+        "Empty when no hashtags are picked.",
     ),
     Placeholder(
         "{link}",
@@ -69,7 +71,7 @@ private fun PlaceholderKey.asPlaceholder(): Placeholder {
     return Placeholder(
         token = "{$name}",
         what = if (mapped.isEmpty()) {
-            "Defined under Settings → Placeholders, but no source fills it yet."
+            "Defined under Settings → Placeholders, but no source module fills it yet."
         } else {
             mapped.joinToString("; ") { "${it.label}: ${recipeFor(it)}" }
         },
@@ -97,7 +99,7 @@ fun PlaceholderHelpDialog(keys: List<PlaceholderKey>, onDismiss: () -> Unit) {
                     "Anything in braces is replaced when the post is written.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                (PLACEHOLDERS + keys.map { it.asPlaceholder() }).forEach { p ->
+                (PLACEHOLDERS + keys.filterNot { it.isTags }.map { it.asPlaceholder() }).forEach { p ->
                     Column {
                         Text(
                             p.token,

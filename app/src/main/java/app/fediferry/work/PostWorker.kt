@@ -29,6 +29,7 @@ import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
 import app.fediferry.mastodon.MastodonException
+import app.fediferry.template.TemplateEngine
 
 /**
  * Sends one item to Mastodon.
@@ -119,14 +120,16 @@ class PostWorker(
             mediaIds += attachment.id
         }
 
-        if (item.bodyText.isBlank() && mediaIds.isEmpty()) {
+        // {tags} is filled only now, so the hashtags picked last are the ones posted.
+        val text = TemplateEngine.postTextOf(item)
+        if (text.isBlank() && mediaIds.isEmpty()) {
             throw MastodonException("Nothing to post — no text and no image")
         }
 
         val status = client.postStatus(
             instance = account.instance,
             token = token,
-            text = item.bodyText,
+            text = text,
             mediaIds = mediaIds,
             visibility = item.visibility,
             contentWarning = item.contentWarning,

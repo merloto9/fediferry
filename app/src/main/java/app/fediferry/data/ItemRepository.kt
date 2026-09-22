@@ -25,6 +25,7 @@ import app.fediferry.data.db.ItemDao
 import app.fediferry.data.db.PlaceholderKeyDao
 import app.fediferry.data.db.TemplateDao
 import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.Template
@@ -63,19 +64,41 @@ class ItemRepository(
     private val placeholderKeys: PlaceholderKeyDao? = null,
 ) {
 
+    private suspend fun keys() = placeholderKeys?.all().orEmpty()
+
     /** Renders with the user's own placeholders as well as the built-in ones. */
     private suspend fun render(template: Template, inputs: TemplateEngine.Inputs): String =
-        TemplateEngine.render(template, placeholderKeys?.all().orEmpty(), inputs)
+        TemplateEngine.render(template, keys(), inputs)
+
+    /** The hashtags a post starts with, stored the way [Item.hashtags] keeps them. */
+    private suspend fun hashtagsFor(
+        template: Template,
+        inputs: TemplateEngine.Inputs,
+        withSource: Boolean = template.addSourceHashtags,
+    ): String = Hashtags.format(TemplateEngine.hashtagsFor(template, keys(), inputs, withSource))
 
     /**
-     * The body [after] should have, given the one [before] had. Only a body that
-     * is still exactly what its template produced is rewritten: anything else
-     * means the user edited it, and their text is not ours to overwrite.
+     * [after], with the body and hashtags it should have now that it knows
+     * more than [before] did — a link, or its source's data. Each is only
+     * rewritten while it is still exactly what the template produced: anything
+     * else means the user edited it, and their choice is not ours to overwrite.
      */
-    private suspend fun rerender(before: Item, after: Item): String {
+    private suspend fun refreshed(before: Item, after: Item): Item {
         val template = resolveTemplate(before.templateId)
-        if (before.bodyText != render(template, inputsOf(before))) return before.bodyText
-        return render(template, inputsOf(after))
+        val body = if (before.bodyText == render(template, inputsOf(before))) {
+            render(template, inputsOf(after))
+        } else {
+            before.bodyText
+        }
+        val hashtags = when (before.hashtags) {
+            // A draft from before per-post hashtags: its text already has them.
+            null -> null
+            // The post's own choice decides whether the source's tags join now.
+            hashtagsFor(template, inputsOf(before), before.addSourceHashtags) ->
+                hashtagsFor(template, inputsOf(after), before.addSourceHashtags)
+            else -> before.hashtags
+        }
+        return after.copy(bodyText = body, hashtags = hashtags)
     }
 
     fun observeInbox(): Flow<List<Item>> = items.observeInbox()
@@ -139,7 +162,8 @@ class ItemRepository(
 
         pair(payload, stored, status)?.let { return@runCatching it }
 
-        val body = render(template, TemplateEngine.Inputs(link = payload.link))
+        val inputs = TemplateEngine.Inputs(link = payload.link)
+        val body = render(template, inputs)
 
         val item = Item(
             id = UUID.randomUUID().toString(),
@@ -148,6 +172,8 @@ class ItemRepository(
             mimeType = stored?.mimeType,
             sourceUrl = payload.link,
             bodyText = body,
+            hashtags = hashtagsFor(template, inputs),
+            addSourceHashtags = template.addSourceHashtags,
             altText = null,
             contentWarning = template.contentWarning,
             visibility = template.visibility,
@@ -194,8 +220,7 @@ class ItemRepository(
 
         if (stored == null && payload.link != null) {
             val waiting = items.latestAwaitingLink(since) ?: return null
-            val linked = waiting.copy(sourceUrl = payload.link, status = status)
-            val merged = linked.copy(bodyText = rerender(waiting, linked))
+            val merged = refreshed(waiting, waiting.copy(sourceUrl = payload.link, status = status))
             items.update(merged)
             return Ingested(merged, Ingested.Outcome.PAIRED)
         }
@@ -222,6 +247,7 @@ class ItemRepository(
         status: Status = Status.DRAFT,
     ): Result<Item> = runCatching {
         val template = resolveTemplate(templateId)
+        val inputs = TemplateEngine.Inputs(link = permalink, source = ContentSource.YOUTUBE, fields = fields)
         val bytes = fetcher.fetch(imageUrl).getOrThrow()
         val stored = media.store(bytes, mimeOf(imageUrl)).getOrThrow()
 
@@ -233,10 +259,9 @@ class ItemRepository(
             mediaHash = stored.sha256,
             mimeType = stored.mimeType,
             sourceUrl = permalink,
-            bodyText = render(
-                template,
-                TemplateEngine.Inputs(link = permalink, source = ContentSource.YOUTUBE, fields = fields),
-            ),
+            bodyText = render(template, inputs),
+            hashtags = hashtagsFor(template, inputs),
+            addSourceHashtags = template.addSourceHashtags,
             origin = ContentSource.YOUTUBE,
             sourceFields = fields,
             contentWarning = template.contentWarning,
@@ -318,7 +343,7 @@ class ItemRepository(
             sourceFields = post.fields,
         )
         // Now the post's own data is known, the placeholders mapped to it fill in.
-        val resolved = fetched.copy(bodyText = rerender(item, fetched))
+        val resolved = refreshed(item, fetched)
         items.update(resolved)
         return resolved
     }

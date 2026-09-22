@@ -20,7 +20,7 @@
 package app.fediferry
 
 import app.fediferry.data.model.ContentSource
-import app.fediferry.link.RedditResolver
+import app.fediferry.module.reddit.RedditResolver
 import kotlinx.coroutines.test.runTest
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType

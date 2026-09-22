@@ -211,4 +211,82 @@ class MigrationTest {
             assertEquals(1, c.getInt(0))
         }
     }
+
+    /**
+     * 5 → 6 adds the hashtag list and the reserved {tags}. Every hashtag a
+     * template used must land in the list, the template must keep its picks,
+     * and an existing draft keeps a null selection — its text has its tags.
+     */
+    @Test
+    fun migrate5To6CollectsTemplateHashtagsAndSeedsTags() {
+        helper.createDatabase(database, 5).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO templates
+                  (id, name, body, tags, visibility, contentWarning, altTextMode,
+                   staticAltText, accountId, isDefault, sortOrder, excludedSources)
+                VALUES ('default', 'Meme', '{tags}', '#meme #cats', 'PUBLIC', NULL, 'NONE',
+                        NULL, NULL, 1, 0, ''),
+                       ('politics', 'Politics', '{tags}', '#politics #Meme', 'PUBLIC', NULL, 'NONE',
+                        NULL, NULL, 0, 1, '')
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT INTO items
+                  (id, mediaPath, originalMediaPath, mediaHash, mimeType, sourceUrl,
+                   bodyText, altText, altTextFailed, contentWarning, visibility,
+                   templateId, accountId, status, failureReason, createdAt, postedAt,
+                   statusUrl, scheduledAt, origin, sourceFields)
+                VALUES ('draft', NULL, NULL, NULL, NULL, NULL, '#meme #cats', NULL, 0, NULL,
+                        'PUBLIC', 'default', NULL, 'DRAFT', NULL, 1700000000000, NULL, NULL,
+                        NULL, NULL, '{}')
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(database, 6, true, AppDatabase.MIGRATION_5_6)
+
+        db.query("SELECT tag FROM hashtags ORDER BY sortOrder").use { c ->
+            val tags = mutableListOf<String>()
+            while (c.moveToNext()) tags += c.getString(0)
+            // #Meme is #meme again; each tag is listed once.
+            assertEquals(listOf("#meme", "#cats", "#politics"), tags)
+        }
+        db.query("SELECT tags FROM templates WHERE id = 'politics'").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("#politics #Meme", c.getString(0))
+        }
+        db.query("SELECT bodyText, hashtags, addSourceHashtags FROM items WHERE id = 'draft'").use { c ->
+            assertTrue("the draft was lost", c.moveToFirst())
+            assertEquals("#meme #cats", c.getString(0))
+            assertNull(c.getString(1))
+            assertEquals(1, c.getInt(2))
+        }
+        db.query("SELECT addSourceHashtags FROM templates").use { c ->
+            while (c.moveToNext()) assertEquals("templates keep taking source hashtags", 1, c.getInt(0))
+        }
+        db.query("SELECT name, sortOrder FROM placeholder_keys WHERE id = 'tags'").use { c ->
+            assertTrue("{tags} was not seeded", c.moveToFirst())
+            assertEquals("tags", c.getString(0))
+        }
+    }
+
+    @Test
+    fun migratingAllTheWayFrom1To6Works() {
+        helper.createDatabase(database, 1).close()
+        helper.runMigrationsAndValidate(
+            database,
+            6,
+            true,
+            AppDatabase.MIGRATION_1_2,
+            AppDatabase.MIGRATION_2_3,
+            AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5,
+            AppDatabase.MIGRATION_5_6,
+        ).query("SELECT COUNT(*) FROM placeholder_keys").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(2, c.getInt(0))
+        }
+    }
 }

@@ -30,6 +30,8 @@ import app.fediferry.data.model.Account
 import app.fediferry.data.model.InstanceApp
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.CleanupProfile
+import app.fediferry.data.model.Hashtag
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.Source
@@ -45,8 +47,9 @@ import app.fediferry.data.model.Template
         ProfileRule::class,
         Source::class,
         PlaceholderKey::class,
+        Hashtag::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -57,6 +60,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun cleanup(): CleanupDao
     abstract fun sources(): SourceDao
     abstract fun placeholderKeys(): PlaceholderKeyDao
+    abstract fun hashtags(): HashtagDao
 
     companion object {
         /**
@@ -154,25 +158,70 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private fun seedPlaceholders(db: SupportSQLiteDatabase) {
-            val key = PlaceholderKey.seed()
+        /**
+         * Adds the hashtag list, the reserved `{tags}` placeholder, the
+         * hashtags each item picked, and whether templates and items take the
+         * source's own hashtags — on, as `{tags}` recipes start empty anyway.
+         *
+         * The list starts with every hashtag the templates already used, so no
+         * template loses its tags. Existing items keep a null selection: their
+         * text was written with the tags already in it.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `hashtags` (
+                        `tag` TEXT NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        PRIMARY KEY(`tag`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("ALTER TABLE items ADD COLUMN hashtags TEXT")
+                db.execSQL("ALTER TABLE items ADD COLUMN addSourceHashtags INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE templates ADD COLUMN addSourceHashtags INTEGER NOT NULL DEFAULT 1")
+
+                val used = mutableListOf<String>()
+                db.query("SELECT tags FROM templates ORDER BY sortOrder, name").use { c ->
+                    while (c.moveToNext()) used += Hashtags.parse(c.getString(0))
+                }
+                seedHashtags(db, Hashtags.union(used, emptyList()))
+                seedPlaceholder(db, PlaceholderKey.tagsSeed())
+            }
+        }
+
+        private fun seedPlaceholder(db: SupportSQLiteDatabase, key: PlaceholderKey) {
             db.execSQL(
                 "INSERT OR IGNORE INTO placeholder_keys (id, name, mappings, sortOrder) VALUES (?, ?, ?, ?)",
                 arrayOf<Any>(key.id, key.name, Converters().stringMapToString(key.mappings), key.sortOrder),
             )
         }
 
+        private fun seedPlaceholders(db: SupportSQLiteDatabase) = seedPlaceholder(db, PlaceholderKey.seed())
+
+        private fun seedHashtags(db: SupportSQLiteDatabase, tags: List<String>) {
+            tags.forEachIndexed { i, tag ->
+                db.execSQL("INSERT OR IGNORE INTO hashtags (tag, sortOrder) VALUES (?, ?)", arrayOf<Any>(tag, i))
+            }
+        }
+
         /**
-         * A fresh install gets `{caption}` too. Seeded here rather than whenever
-         * the table is empty, so deleting every placeholder stays deleted.
+         * A fresh install gets `{caption}`, `{tags}` and the seed template's
+         * hashtag. Seeded here rather than whenever a table is empty, so
+         * deleting them stays deleted — except `{tags}`, which cannot be.
          */
         private val SEED = object : Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) = seedPlaceholders(db)
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                seedPlaceholders(db)
+                seedPlaceholder(db, PlaceholderKey.tagsSeed())
+                seedHashtags(db, Template.seed().hashtagList)
+            }
         }
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .addCallback(SEED)
                 .build()
     }

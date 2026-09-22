@@ -53,17 +53,24 @@ class MediaVault(private val context: Context) {
             val tmp = File.createTempFile("ingest", null, context.cacheDir)
             val digest = MessageDigest.getInstance("SHA-256")
 
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                tmp.outputStream().use { output ->
-                    val buf = ByteArray(DEFAULT_BUFFER_SIZE)
-                    while (true) {
-                        val read = input.read(buf)
-                        if (read <= 0) break
-                        digest.update(buf, 0, read)
-                        output.write(buf, 0, read)
+            // A share the app may not read — a URI granted to someone else —
+            // throws here. The half-written copy must not outlive the attempt.
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tmp.outputStream().use { output ->
+                        val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+                        while (true) {
+                            val read = input.read(buf)
+                            if (read <= 0) break
+                            digest.update(buf, 0, read)
+                            output.write(buf, 0, read)
+                        }
                     }
-                }
-            } ?: error("Cannot open shared media")
+                } ?: error("Cannot open shared media")
+            } catch (e: Throwable) {
+                tmp.delete()
+                throw e
+            }
 
             val hash = digest.digest().joinToString("") { "%02x".format(it) }
             val target = File(dir, hash + extensionFor(mime))

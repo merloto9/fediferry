@@ -19,54 +19,28 @@
  */
 package app.fediferry.data.model
 
+import app.fediferry.module.Modules
+
 /** One raw value a source delivers, as a placeholder mapping refers to it. */
 data class SourceField(val name: String, val description: String)
 
 /**
- * Where an item's picture and text were fetched from.
+ * The stable id of a source module — what items and templates store. Everything
+ * else about a source, its fields included, lives in its module under
+ * [app.fediferry.module]; this only names it.
  *
- * Each source delivers its own raw fields — whatever that service actually
- * publishes about a post — and a [PlaceholderKey] says, per source, how those
- * fields become a placeholder's value. Keeping the two apart is the point: a
- * field that is useful on one service is boilerplate on another, and only the
- * user can say which is which for the way they post.
- *
- * Stored by [name], so the order and labels here can change freely.
+ * Stored by [name], so the order here can change freely.
  */
-enum class ContentSource(val label: String, val fields: List<SourceField>) {
-    NINEGAG(
-        "9GAG",
-        listOf(
-            SourceField("title", "The post's title — usually the joke itself."),
-            SourceField("description", "The text under the title. Most posts leave it empty."),
-            SourceField("hashtags", "The post's tags as hashtags, e.g. #meme #funny."),
-            SourceField("section", "The section or user page the post was made in."),
-            SourceField("author", "The poster's 9GAG username."),
-            SourceField("alt", "9GAG's own description of the picture."),
-        ),
-    ),
-    PINTEREST(
-        "Pinterest",
-        listOf(
-            SourceField("title", "The pin's title, without the keyword tail Pinterest adds for search engines."),
-            SourceField("description", "The pin's description — often Pinterest's own stock sentence rather than the pinner's."),
-        ),
-    ),
-    REDDIT(
-        "Reddit",
-        listOf(
-            SourceField("title", "The post's title."),
-            SourceField("subreddit", "The subreddit it was posted in, without the r/."),
-        ),
-    ),
-    YOUTUBE(
-        "YouTube",
-        listOf(
-            SourceField("text", "The community post's text."),
-            SourceField("channel", "The channel's name."),
-        ),
-    ),
+enum class ContentSource {
+    NINEGAG,
+    PINTEREST,
+    REDDIT,
+    YOUTUBE,
     ;
+
+    val label: String get() = Modules.of(this).name
+
+    val fields: List<SourceField> get() = Modules.of(this).fields
 
     companion object {
         fun fromName(name: String?): ContentSource? = entries.firstOrNull { it.name == name }

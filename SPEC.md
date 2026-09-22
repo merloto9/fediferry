@@ -191,11 +191,26 @@ default content warning, alt-text mode, and tag set.
 Placeholders come in two layers, kept apart because a field that is the post on
 one service is boilerplate on another:
 
-- **Built in:** `{link}`, `{tags}`, `{date}`.
+- **Built in:** `{link}`, `{date}`.
 - **User-defined** (`PlaceholderKey`): a name plus one recipe per
   `ContentSource`, in the same brace syntax, over that source's raw fields. The
   item stores its source and fields, so the body can be re-rendered — on a
   template switch, or once a link resolves — without fetching again.
+- **Reserved `{tags}`:** a `PlaceholderKey` that always exists and cannot be
+  renamed or deleted. It resolves in two steps. Writing a draft leaves `{tags}`
+  in the body; the item stores its own hashtag selection — the template's picks
+  plus whatever the source's `{tags}` recipe yields, split into hashtags — and
+  `PostWorker` substitutes it at send time (`TemplateEngine.finish`), touching
+  nothing else. Drafts from before this have no selection and post their text
+  as written.
+
+Hashtags come from one list (`hashtags` table). A template's `tags` column
+holds its picks from that list.
+
+Each source is a module under `module/<name>/` implementing `SourceModule`:
+its resolver or client, the fields it sends, the links it recognises, and the
+default recipes that seed a fresh install. `Modules` is the registry;
+`ContentSource` is only the stable id items and templates store.
 
 A template lists the sources it does *not* read (`excludedSources`), so a
 source added later is on everywhere by default. For an excluded source, a

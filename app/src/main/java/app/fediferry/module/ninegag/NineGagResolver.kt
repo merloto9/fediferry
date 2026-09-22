@@ -17,9 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package app.fediferry.link
+package app.fediferry.module.ninegag
 
 import app.fediferry.data.model.ContentSource
+import app.fediferry.link.LinkResolver
+import app.fediferry.link.ResolvedPost
+import app.fediferry.link.fieldsOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -73,6 +74,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.media.cleanup.CleanupPipeline
@@ -134,7 +136,11 @@ fun SettingsScreen(
             HorizontalDivider()
             TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
             HorizontalDivider()
+            HashtagsSection(state, viewModel)
+            HorizontalDivider()
             PlaceholdersSection(state, viewModel)
+            HorizontalDivider()
+            ModulesSection(state, viewModel)
             HorizontalDivider()
             PostingSection(state, viewModel)
             HorizontalDivider()
@@ -221,8 +227,8 @@ private fun TemplatesSection(
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            "A template is a topic: its tags, and how its posts are written. Bodies " +
-                "can use {tags}, {link}, {date} and the placeholders defined below.",
+            "A template is a topic: which hashtags it ticks, and how its posts are " +
+                "written. Bodies can use {tags}, {link}, {date} and the placeholders below.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
@@ -234,7 +240,8 @@ private fun TemplatesSection(
             template = template,
             viewModel = viewModel,
             visionConfigured = state.settings.visionEndpoint.isNotBlank(),
-            placeholderNames = PlaceholderKey.BUILT_IN + state.placeholderKeys.map { it.name },
+            placeholderNames = PlaceholderKey.RESERVED + state.placeholderKeys.map { it.name },
+            hashtags = state.hashtags,
         )
     }
 }
@@ -245,6 +252,7 @@ private fun TemplateCard(
     viewModel: SettingsViewModel,
     visionConfigured: Boolean,
     placeholderNames: Set<String>,
+    hashtags: List<String>,
 ) {
     var draft by remember(template.id) { mutableStateOf(template) }
 
@@ -285,13 +293,27 @@ private fun TemplateCard(
                 excluded = draft.excludedSources,
                 onChange = { draft = draft.copy(excludedSources = it) },
             )
-            OutlinedTextField(
-                value = draft.tags,
-                onValueChange = { draft = draft.copy(tags = it) },
-                label = { Text("Tags") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+            TemplateHashtags(
+                picked = draft.hashtagList,
+                list = hashtags,
+                onChange = { draft = draft.copy(tags = Hashtags.format(it)) },
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = draft.addSourceHashtags,
+                    onCheckedChange = { draft = draft.copy(addSourceHashtags = it) },
+                )
+                Column(Modifier.weight(1f)) {
+                    Text("Add the source's hashtags", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Ticks whatever a source's {tags} recipe under Source modules gives — " +
+                            "9GAG's own tags, say — beside the ones above. Each post can still " +
+                            "change it in the editor.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             ContentWarningField(
                 key = template.id,
@@ -726,6 +748,50 @@ private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSou
         Text(
             "For posts from a ticked source, placeholders such as {caption} are filled " +
                 "using the mappings under Placeholders. From an unticked one they stay empty.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * The template's hashtags, picked from the list. One it picked that has since
+ * left the list still shows, marked, so nothing disappears from a template
+ * without the user seeing it.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange: (List<String>) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Hashtags", style = MaterialTheme.typography.labelMedium)
+        val offered = Hashtags.union(list, picked)
+        if (offered.isEmpty()) {
+            Text(
+                "The hashtag list is empty — add some under Hashtags below.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            offered.forEach { tag ->
+                val on = Hashtags.contains(picked, tag)
+                val listed = Hashtags.contains(list, tag)
+                FilterChip(
+                    selected = on,
+                    onClick = {
+                        onChange(if (on) picked.filterNot { it.equals(tag, ignoreCase = true) } else picked + tag)
+                    },
+                    label = { Text(if (listed) tag else "$tag (not on the list)") },
+                    leadingIcon = if (on) {
+                        { Icon(Icons.Default.Check, contentDescription = null) }
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+        Text(
+            "Ticked ones start ticked in the editor and fill {tags}.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -19,7 +19,7 @@
  */
 package app.fediferry
 
-import app.fediferry.source.YouTubePostParser
+import app.fediferry.module.youtube.YouTubePostParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

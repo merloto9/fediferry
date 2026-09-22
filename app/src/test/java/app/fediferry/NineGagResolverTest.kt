@@ -20,7 +20,7 @@
 package app.fediferry
 
 import app.fediferry.data.model.ContentSource
-import app.fediferry.link.NineGagResolver
+import app.fediferry.module.ninegag.NineGagResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

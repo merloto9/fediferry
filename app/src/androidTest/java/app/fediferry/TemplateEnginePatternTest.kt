@@ -43,20 +43,26 @@ class TemplateEnginePatternTest {
     fun templateEngineInitialisesOnDevice() {
         // Touching the object at all is the assertion: a bad pattern surfaces
         // here as ExceptionInInitializerError.
-        val out = TemplateEngine.render(
-            Template.seed().copy(body = "{tags}\n\nvia {link}", tags = "#meme"),
-            emptyList(),
-            TemplateEngine.Inputs(link = "https://instagram.com/p/abc"),
+        val out = TemplateEngine.finish(
+            TemplateEngine.render(
+                Template.seed().copy(body = "{tags}\n\nvia {link}", tags = "#meme"),
+                emptyList(),
+                TemplateEngine.Inputs(link = "https://instagram.com/p/abc"),
+            ),
+            listOf("#meme"),
         )
         assertEquals("#meme\n\nvia https://instagram.com/p/abc", out)
     }
 
     @Test
     fun dropsEmptyPlaceholderLinesOnDevice() {
-        val out = TemplateEngine.render(
-            Template.seed().copy(body = "{tags}\n\nvia {link}", tags = "#meme"),
-            emptyList(),
-            TemplateEngine.Inputs(link = null),
+        val out = TemplateEngine.finish(
+            TemplateEngine.render(
+                Template.seed().copy(body = "{tags}\n\nvia {link}", tags = "#meme"),
+                emptyList(),
+                TemplateEngine.Inputs(link = null),
+            ),
+            listOf("#meme"),
         )
         assertEquals("#meme", out)
     }
@@ -65,10 +71,13 @@ class TemplateEnginePatternTest {
     fun collapsesBlankRunsOnDevice() {
         // Exercises the second pattern, {3,}, which ICU does accept: four
         // newlines collapse to the one blank line the template asked for.
-        val out = TemplateEngine.render(
-            Template.seed().copy(body = "{tags}\n\n\n\n{date}", tags = "#meme"),
-            emptyList(),
-            TemplateEngine.Inputs(now = Instant.parse("2026-01-15T10:00:00Z")),
+        val out = TemplateEngine.finish(
+            TemplateEngine.render(
+                Template.seed().copy(body = "{tags}\n\n\n\n{date}", tags = "#meme"),
+                emptyList(),
+                TemplateEngine.Inputs(now = Instant.parse("2026-01-15T10:00:00Z")),
+            ),
+            listOf("#meme"),
         )
         assertEquals(listOf("#meme", "", "2026-01-15"), out.lines())
     }

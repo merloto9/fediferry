@@ -27,6 +27,9 @@ import app.fediferry.data.model.Account
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.AltTextMode
+import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.Hashtag
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.di.ServiceLocator
@@ -44,6 +47,7 @@ data class SettingsState(
     val accounts: List<Account> = emptyList(),
     val templates: List<Template> = emptyList(),
     val placeholderKeys: List<PlaceholderKey> = emptyList(),
+    val hashtags: List<String> = emptyList(),
     val cleanupProfiles: List<CleanupProfile> = emptyList(),
     val cleanupRules: List<ProfileRule> = emptyList(),
     val settings: Settings = Settings(),
@@ -67,6 +71,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             db.placeholderKeys().observeAll().collect { keys ->
                 _state.update { it.copy(placeholderKeys = keys) }
+            }
+        }
+        viewModelScope.launch {
+            db.hashtags().observeAll().collect { tags ->
+                _state.update { it.copy(hashtags = tags.map { t -> t.tag }) }
             }
         }
         viewModelScope.launch {
@@ -163,17 +172,48 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     // --- placeholders ----------------------------------------------------
 
-    /** Refuses a name that is malformed, built in, or already taken by another key. */
-    fun savePlaceholderKey(key: PlaceholderKey) = viewModelScope.launch {
-        val name = key.name.trim()
+    /** Renames a placeholder. Refuses a name that is malformed, reserved, or taken. */
+    fun renamePlaceholderKey(key: PlaceholderKey, newName: String) = viewModelScope.launch {
+        if (key.isTags) return@launch
+        val name = newName.trim()
         val taken = _state.value.placeholderKeys.any { it.id != key.id && it.name == name }
         if (!PlaceholderKey.isValidName(name) || taken) {
             _state.update { it.copy(message = "{$name} cannot be used as a placeholder name") }
             return@launch
         }
-        db.placeholderKeys().upsert(key.copy(name = name, mappings = key.mappings.filterValues { it.isNotBlank() }))
+        db.placeholderKeys().upsert(key.copy(name = name))
         _state.update { it.copy(message = "{$name} saved") }
     }
+
+    /**
+     * Saves one module's recipes, for every placeholder at once — the Source
+     * modules section edits a source across all placeholders.
+     */
+    fun saveRecipes(source: ContentSource, recipes: Map<String, String>) = viewModelScope.launch {
+        _state.value.placeholderKeys.forEach { key ->
+            val recipe = recipes[key.id]?.trim() ?: return@forEach
+            if (recipe == key.recipeFor(source)) return@forEach
+            val mappings = if (recipe.isEmpty()) key.mappings - source.name else key.mappings + (source.name to recipe)
+            db.placeholderKeys().upsert(key.copy(mappings = mappings))
+        }
+        _state.update { it.copy(message = "${source.label} saved") }
+    }
+
+    // --- hashtags -----------------------------------------------------------
+
+    /** Adds to the list in Settings; the editor and every template offer it from then on. */
+    fun addHashtag(raw: String): Boolean {
+        val tag = Hashtags.normalize(raw) ?: return false
+        if (Hashtags.contains(_state.value.hashtags, tag)) return false
+        viewModelScope.launch { db.hashtags().insert(Hashtag(tag, sortOrder = db.hashtags().count())) }
+        return true
+    }
+
+    /**
+     * Takes a hashtag off the list. Templates that picked it keep it, and show
+     * it as not on the list, so nothing is removed from a template silently.
+     */
+    fun deleteHashtag(tag: String) = viewModelScope.launch { db.hashtags().delete(tag) }
 
     fun newPlaceholderKey() = viewModelScope.launch {
         val taken = _state.value.placeholderKeys.map { it.name }.toSet()
@@ -183,7 +223,9 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun deletePlaceholderKey(id: String) = viewModelScope.launch { db.placeholderKeys().delete(id) }
+    fun deletePlaceholderKey(id: String) = viewModelScope.launch {
+        if (id != PlaceholderKey.TAGS_ID) db.placeholderKeys().delete(id)
+    }
 
     fun makeDefaultTemplate(id: String) =
         viewModelScope.launch { db.templates().setDefault(id) }

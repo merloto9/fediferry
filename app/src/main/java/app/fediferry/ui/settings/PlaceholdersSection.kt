@@ -26,17 +26,20 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -49,22 +52,69 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
+import app.fediferry.module.Modules
+import app.fediferry.module.SourceModule
 import app.fediferry.template.TemplateEngine
 
+// --- hashtags -------------------------------------------------------------------
+
+/** The hashtags every template picks from and the editor offers. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel) {
+    Text("Hashtags", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "The hashtags you post with, one list for everything. Each template ticks the ones " +
+            "its topic uses; the editor shows the whole list, so any post can take more.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        state.hashtags.forEach { tag ->
+            InputChip(
+                selected = false,
+                onClick = {},
+                label = { Text(tag) },
+                trailingIcon = {
+                    IconButton(onClick = { viewModel.deleteHashtag(tag) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Remove $tag")
+                    }
+                },
+            )
+        }
+    }
+    var typed by remember { mutableStateOf("") }
+    fun add() {
+        if (viewModel.addHashtag(typed)) typed = ""
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = typed,
+            onValueChange = { typed = it },
+            label = { Text("New hashtag") },
+            placeholder = { Text("#politics") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { add() }),
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = ::add, enabled = Hashtags.normalize(typed) != null) {
+            Icon(Icons.Default.Add, contentDescription = "Add hashtag")
+        }
+    }
+}
+
+// --- placeholders ---------------------------------------------------------------
+
 /**
- * The placeholders the user defines, and for each one how every source fills
- * it. This is the layer between what a service sends and what a template body
- * says: a template writes `{caption}`, and this decides that `{caption}` is the
- * title on Reddit and nothing at all on Pinterest.
+ * The placeholders themselves: their names. What fills them is per source, and
+ * lives with each source under Source modules.
  */
 @Composable
 internal fun PlaceholdersSection(state: SettingsState, viewModel: SettingsViewModel) {
-    var showFields by remember { mutableStateOf(false) }
-    if (showFields) SourceFieldsDialog(onDismiss = { showFields = false })
-
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("Placeholders", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         IconButton(onClick = viewModel::newPlaceholderKey) {
@@ -72,149 +122,186 @@ internal fun PlaceholdersSection(state: SettingsState, viewModel: SettingsViewMo
         }
     }
     Text(
-        "Define your own placeholders for template bodies, and say for each source what " +
-            "fills them — using the fields that source sends. A source left empty leaves " +
-            "the placeholder empty, and its line drops out of the post. {link}, {tags} and " +
-            "{date} are built in.",
+        "Names a template body can use. What each one says is set per source under Source " +
+            "modules. {link} and {date} are built in and always filled from the share.",
         style = MaterialTheme.typography.bodySmall,
     )
-    TextButton(onClick = { showFields = true }) { Text("What does each source send?") }
 
-    if (state.placeholderKeys.isEmpty()) {
-        Text(
-            "No placeholders yet. Templates can still use {link}, {tags} and {date}.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-
-    state.placeholderKeys.forEach { key ->
-        PlaceholderCard(
-            key = key,
-            takenNames = state.placeholderKeys.filter { it.id != key.id }.map { it.name }.toSet(),
-            viewModel = viewModel,
-        )
+    state.placeholderKeys.sortedByDescending { it.isTags }.forEach { key ->
+        if (key.isTags) {
+            ReservedTagsCard()
+        } else {
+            PlaceholderNameCard(
+                key = key,
+                takenNames = state.placeholderKeys.filter { it.id != key.id }.map { it.name }.toSet(),
+                viewModel = viewModel,
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PlaceholderCard(key: PlaceholderKey, takenNames: Set<String>, viewModel: SettingsViewModel) {
-    var draft by remember(key) { mutableStateOf(key) }
-    val name = draft.name.trim()
-    val nameProblem = when {
-        name.isEmpty() -> "Give it a name"
-        name in PlaceholderKey.BUILT_IN -> "{$name} is built in"
-        !PlaceholderKey.isValidName(name) -> "Letters, digits and _ only"
-        name in takenNames -> "Another placeholder is already called that"
+private fun ReservedTagsCard() {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("{tags}", style = MaterialTheme.typography.titleSmall, fontFamily = FontFamily.Monospace)
+            Text(
+                "Reserved. Becomes the post's hashtags when it is sent — the template's picks " +
+                    "plus any a source adds — and stays as {tags} in the editor until then, so " +
+                    "the hashtags can still change. It cannot be renamed or deleted; each " +
+                    "source's hashtags are set under Source modules.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaceholderNameCard(key: PlaceholderKey, takenNames: Set<String>, viewModel: SettingsViewModel) {
+    var name by remember(key) { mutableStateOf(key.name) }
+    val trimmed = name.trim()
+    val problem = when {
+        trimmed.isEmpty() -> "Give it a name"
+        trimmed in PlaceholderKey.RESERVED -> "{$trimmed} is reserved"
+        !PlaceholderKey.isValidName(trimmed) -> "Letters, digits and _ only"
+        trimmed in takenNames -> "Another placeholder is already called that"
         else -> null
     }
+    val filledBy = Modules.all.filter { key.recipeFor(it.source).isNotBlank() }.map { it.name }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
-                value = draft.name,
-                onValueChange = { draft = draft.copy(name = it) },
+                value = name,
+                onValueChange = { name = it },
                 label = { Text("Name") },
-                isError = nameProblem != null,
-                supportingText = { Text(nameProblem ?: "Write {$name} in a template body") },
+                isError = problem != null,
+                supportingText = { Text(problem ?: "Write {$trimmed} in a template body") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-
-            ContentSource.entries.forEach { source ->
-                val recipe = draft.recipeFor(source)
-                val unknown = TemplateEngine.unknownIn(recipe, source.fields.map { it.name })
-                OutlinedTextField(
-                    value = recipe,
-                    onValueChange = { draft = draft.withRecipe(source, it) },
-                    label = { Text("From ${source.label}") },
-                    placeholder = { Text("Empty — nothing from ${source.label}") },
-                    isError = unknown.isNotEmpty(),
-                    supportingText = if (unknown.isNotEmpty()) {
-                        {
-                            Text(
-                                unknown.joinToString { "{$it}" } +
-                                    " ${if (unknown.size == 1) "is not a field" else "are not fields"} " +
-                                    "${source.label} sends",
-                            )
-                        }
-                    } else {
-                        null
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    source.fields.forEach { field ->
-                        AssistChip(
-                            onClick = { draft = draft.withRecipe(source, recipe.append("{${field.name}}")) },
-                            label = { Text("{${field.name}}", fontFamily = FontFamily.Monospace) },
-                        )
-                    }
-                }
-            }
-
+            Text(
+                if (filledBy.isEmpty()) "No source fills it yet." else "Filled from " + filledBy.joinToString(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(
-                    onClick = { viewModel.savePlaceholderKey(draft) },
-                    enabled = nameProblem == null && draft != key,
-                ) { Text("Save") }
+                    onClick = { viewModel.renamePlaceholderKey(key, name) },
+                    enabled = problem == null && trimmed != key.name,
+                ) { Text("Rename") }
                 TextButton(onClick = { viewModel.deletePlaceholderKey(key.id) }) { Text("Delete") }
             }
         }
     }
 }
 
-private fun PlaceholderKey.withRecipe(source: ContentSource, recipe: String) =
-    copy(mappings = mappings + (source.name to recipe))
+// --- source modules -------------------------------------------------------------
+
+/**
+ * One card per loaded module, carrying everything about that source: what it
+ * does, what it recognises, what it sends, and what each placeholder takes
+ * from it.
+ */
+@Composable
+internal fun ModulesSection(state: SettingsState, viewModel: SettingsViewModel) {
+    Text("Source modules", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "Each source the app can fetch from is a module of its own. Open one to see what it " +
+            "sends and to say what each placeholder takes from it.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Modules.all.forEach { module -> ModuleCard(module, state.placeholderKeys, viewModel) }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ModuleCard(module: SourceModule, keys: List<PlaceholderKey>, viewModel: SettingsViewModel) {
+    var open by remember { mutableStateOf(false) }
+    val saved = keys.associate { it.id to it.recipeFor(module.source) }
+    var draft by remember(saved) { mutableStateOf(saved) }
+    val ordered = keys.sortedByDescending { it.isTags }
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(module.name, style = MaterialTheme.typography.titleSmall)
+                    Text(module.summary, style = MaterialTheme.typography.bodySmall)
+                }
+                IconButton(onClick = { open = !open }) {
+                    Icon(
+                        if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (open) "Close ${module.name}" else "Open ${module.name}",
+                    )
+                }
+            }
+            if (!open) return@Column
+
+            Text("Recognises", style = MaterialTheme.typography.labelMedium)
+            Text(module.recognises.joinToString("\n"), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+
+            Text("Sends", style = MaterialTheme.typography.labelMedium)
+            module.fields.forEach { field ->
+                Row {
+                    Text(
+                        "{${field.name}}  ",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    Text(
+                        field.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            HorizontalDivider()
+            Text("What each placeholder takes from ${module.name}", style = MaterialTheme.typography.labelMedium)
+            Text(
+                "Written with the fields above. Empty means the placeholder is empty for " +
+                    "${module.name} posts. For {tags}, whatever this comes to is split into " +
+                    "hashtags and ticked in the editor, next to the template's.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ordered.forEach { key ->
+                val recipe = draft[key.id].orEmpty()
+                val unknown = TemplateEngine.unknownIn(recipe, module.fields.map { it.name })
+                OutlinedTextField(
+                    value = recipe,
+                    onValueChange = { draft = draft + (key.id to it) },
+                    label = { Text("{${key.name}}", fontFamily = FontFamily.Monospace) },
+                    placeholder = { Text(if (key.isTags) "No hashtags from ${module.name}" else "Empty") },
+                    isError = unknown.isNotEmpty(),
+                    supportingText = if (unknown.isNotEmpty()) {
+                        { Text(unknown.joinToString { "{$it}" } + " — not something ${module.name} sends") }
+                    } else {
+                        null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    module.fields.forEach { field ->
+                        AssistChip(
+                            onClick = { draft = draft + (key.id to recipe.append("{${field.name}}")) },
+                            label = { Text("{${field.name}}", fontFamily = FontFamily.Monospace) },
+                        )
+                    }
+                }
+            }
+            if (keys.isEmpty()) {
+                Text("No placeholders defined yet.", style = MaterialTheme.typography.bodySmall)
+            }
+            Button(
+                onClick = { viewModel.saveRecipes(module.source, draft) },
+                enabled = draft != saved,
+            ) { Text("Save ${module.name}") }
+        }
+    }
+}
 
 /** Adds a field at the end, with a space when the recipe already has text. */
 private fun String.append(token: String): String =
     if (isEmpty() || last().isWhitespace()) this + token else "$this $token"
-
-/** Every source's fields, and what is actually in them. */
-@Composable
-private fun SourceFieldsDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("What each source sends") },
-        text = {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    "These are the fields a placeholder's recipe can use. A field the source " +
-                        "left empty for a particular post comes out empty, and so does any " +
-                        "recipe line built only from empty fields.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                ContentSource.entries.forEach { source ->
-                    HorizontalDivider()
-                    Text(source.label, style = MaterialTheme.typography.titleSmall)
-                    source.fields.forEach { field ->
-                        Column {
-                            Text(
-                                "{${field.name}}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontFamily = FontFamily.Monospace,
-                            )
-                            Text(
-                                field.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-                HorizontalDivider()
-                Text(
-                    "Screenshots, and links from Instagram or anywhere else FediFerry cannot " +
-                        "fetch, send nothing — every placeholder is empty for them.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
-}

@@ -8,6 +8,23 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.7.0] — 2026-09-22
+
+### Added
+
+- **Content warning presets, German first and English second.** 33 warnings in
+  seven groups — violence and death, mental health, sexuality and body, hate and
+  discrimination, substances and food, stimuli and phobias, animals, tone and
+  context — reachable from a sheet next to the content-warning field in the
+  editor. Picking one fills the field, which stays editable, so a preset can be
+  reworded or replaced by something hand-written. Picking a second appends it,
+  because posts warn for violence and blood at once far more often than for
+  either alone; picking an applied one takes it back out again.
+- **A template's default content warning is finally reachable.** The field
+  existed in the data model and was copied onto every item the template made,
+  but no screen ever showed it. The template card in Settings now has it, with
+  the same preset sheet.
+
 ## [0.6.0] — 2026-09-18
 
 ### Added
@@ -245,6 +262,7 @@ Initial release. **Superseded — this build cannot ingest any share**; see 0.1.
 - `AltTextProvider` with none, static and vision implementations.
 - GitHub Actions release pipeline producing an Obtainium-installable APK.
 
+[0.7.0]: https://github.com/merloto9/fediferry/releases/tag/v0.7.0
 [0.6.0]: https://github.com/merloto9/fediferry/releases/tag/v0.6.0
 [0.5.1]: https://github.com/merloto9/fediferry/releases/tag/v0.5.1
 [0.5.0]: https://github.com/merloto9/fediferry/releases/tag/v0.5.0

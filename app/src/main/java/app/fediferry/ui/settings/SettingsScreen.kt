@@ -67,6 +67,7 @@ import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.ui.PlaceholderHelpDialog
+import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.StableTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -229,6 +230,14 @@ private fun TemplateCard(template: Template, viewModel: SettingsViewModel) {
                 onValueChange = { draft = draft.copy(tags = it) },
                 label = { Text("Tags") },
                 singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            ContentWarningField(
+                key = template.id,
+                value = draft.contentWarning.orEmpty(),
+                onValueChange = { draft = draft.copy(contentWarning = it.ifBlank { null }) },
+                label = "Default content warning",
                 modifier = Modifier.fillMaxWidth(),
             )
 

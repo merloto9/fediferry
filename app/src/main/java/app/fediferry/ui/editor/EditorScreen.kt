@@ -67,6 +67,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.Visibility
+import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.PlaceholderHelpDialog
 import app.fediferry.ui.StableTextField
 import coil3.compose.AsyncImage
@@ -204,12 +205,10 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            StableTextField(
+            ContentWarningField(
                 key = item.id,
                 value = item.contentWarning.orEmpty(),
                 onValueChange = viewModel::setContentWarning,
-                label = "Content warning",
-                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
 

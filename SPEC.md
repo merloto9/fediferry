@@ -67,6 +67,16 @@ wrong request. Video pins are declined rather than resolved, for the same reason
 the 9GAG resolver reaches past `og:image`: a cover frame posted as if it were
 the post is a silent loss.
 
+`RedditResolver` reads the post's embed page on `embed.reddit.com`, the surface
+Reddit publishes for showing posts on other sites. Its JSON API answers
+anonymous requests with a 403 and its ordinary pages with a JavaScript challenge
+meant to keep programs out; neither is worked around. A `/s/` share link is
+followed only as far as its redirect. The embed page renders only at the post's
+own subreddit, so a link without one is looked up at a placeholder first, whose
+error page names the real address. Galleries show previews only; the original
+shares their media id and is used once a HEAD request confirms it. Videos use
+the packaged mp4, because the bare `v.redd.it` stream has no sound.
+
 Resolution runs after the item is persisted, never before — the store is still
 written first — and every failure is a no-op that leaves the item with its link.
 No resolver for the host, the service declining, the download failing: all of

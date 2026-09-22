@@ -88,6 +88,22 @@ the share falls back to the screenshot path.
 Bear in mind a pin is usually itself someone's repost, so `via {link}` credits
 whoever pinned it rather than whoever made it.
 
+### Sharing from Reddit
+
+Share a post from the Reddit app — its `/s/` share link, a full post URL or a
+`redd.it` link — and what it carries is fetched instead of waiting for a
+screenshot. No Reddit account is involved.
+
+- A picture arrives as the original upload.
+- A gallery attaches its first picture; a post holds one.
+- A GIF arrives as the video Reddit converts it to, still animated and a
+  fraction of the size.
+- A video arrives with its sound, as the copy Reddit packages for downloading.
+  One without such a copy is left for a screenshot rather than posted silent.
+- Text and link posts have nothing to attach and take the screenshot path.
+
+The post's title fills `{caption}`.
+
 ### Sources
 
 Beside the Inbox is a **Sources** space. Add a YouTube channel by handle or URL,

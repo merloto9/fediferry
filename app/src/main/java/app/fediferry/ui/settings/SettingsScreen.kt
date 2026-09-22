@@ -326,7 +326,7 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
             Text("Fetch images from shared links")
             Text(
                 "When a link is shared on its own, get the image from the service " +
-                    "instead of waiting for a screenshot. Works for 9GAG and Pinterest; " +
+                    "instead of waiting for a screenshot. Works for 9GAG, Pinterest and Reddit; " +
                     "Instagram publishes nothing to fetch.",
                 style = MaterialTheme.typography.bodySmall,
             )

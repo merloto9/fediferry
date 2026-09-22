@@ -36,6 +36,7 @@ import app.fediferry.data.db.AppDatabase
 import app.fediferry.link.LinkResolver
 import app.fediferry.link.NineGagResolver
 import app.fediferry.link.PinterestResolver
+import app.fediferry.link.RedditResolver
 import app.fediferry.link.OkHttpMediaFetcher
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.HttpImageEditProvider
@@ -120,7 +121,7 @@ object ServiceLocator {
     }
 
     fun linkResolvers(): List<LinkResolver> =
-        listOf(NineGagResolver(linkHttp()), PinterestResolver(linkHttp()))
+        listOf(NineGagResolver(linkHttp()), PinterestResolver(linkHttp()), RedditResolver(linkHttp()))
 
     /**
      * A tighter-deadline client for link resolution. A share must not sit

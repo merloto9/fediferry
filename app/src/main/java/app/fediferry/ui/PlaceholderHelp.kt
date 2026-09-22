@@ -60,7 +60,7 @@ private val PLACEHOLDERS = listOf(
     ),
     Placeholder(
         "{caption}",
-        "The original post's own title, when the service publishes one. 9GAG does.",
+        "The original post's own title, when the service publishes one. 9GAG, Pinterest and Reddit do.",
         "Empty for a screenshot, and for Instagram, which publishes nothing readable.",
     ),
 )

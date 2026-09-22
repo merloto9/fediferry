@@ -8,6 +8,18 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.10.0] — 2026-09-22
+
+### Added
+
+- **Sharing from Reddit.** Share a post from the Reddit app and what it carries
+  is fetched instead of waiting for a screenshot: the original picture, a
+  gallery's first picture, a GIF as its much smaller video, or a video with its
+  sound. The post's title fills `{caption}`. The app's `/s/` share links, full
+  post URLs and `redd.it` links all work, and no Reddit account is needed.
+- Videos without a download that carries their sound are declined rather than
+  posted silent, and text posts fall back to the screenshot path as before.
+
 ## [0.9.0] — 2026-09-22
 
 ### Changed

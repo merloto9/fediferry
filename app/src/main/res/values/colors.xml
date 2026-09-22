@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window shown before Compose draws: the light surface of the app's own palette. -->
+    <color name="window_background">#FFF6FBF7</color>
+</resources>

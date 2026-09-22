@@ -52,4 +52,34 @@ class HashtagsTest {
     fun `a union keeps the first list's order and spelling`() {
         assertEquals(listOf("#a", "#B", "#c"), Hashtags.union(listOf("#a", "#B"), listOf("#b", "#c")))
     }
+
+    // --- hashtags in a sent post -------------------------------------------
+
+    @Test
+    fun `finds the hashtags a post carries, wherever they are written`() {
+        val text = "Monday again #meme\n\n#politics, #Überraschung and (#dark_humor)\nvia https://9gag.com/gag/x"
+
+        assertEquals(listOf("#meme", "#politics", "#Überraschung", "#dark_humor"), Hashtags.inText(text))
+    }
+
+    @Test
+    fun `a link's fragment, a number and a doubled tag are not hashtags`() {
+        val text = "https://example.com/page#section #1 #2024 #meme #Meme ##x mail#me"
+
+        assertEquals(listOf("#meme"), Hashtags.inText(text))
+    }
+
+    @Test
+    fun `no hashtags in a post means none to remember`() {
+        assertEquals(emptyList<String>(), Hashtags.inText("Just a joke, no tags"))
+    }
+
+    @Test
+    fun `only hashtags the list lacks are new, whatever their case`() {
+        assertEquals(
+            listOf("#cats"),
+            Hashtags.newIn("#Meme #cats #politics", known = listOf("#meme", "#politics")),
+        )
+    }
 }
+

@@ -27,6 +27,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import app.fediferry.ui.theme.ColorSource
+import app.fediferry.ui.theme.ContrastLevel
+import app.fediferry.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -60,6 +63,21 @@ data class Settings(
      * Events only — never tokens, never post text.
      */
     val debugLogging: Boolean = false,
+    /**
+     * After a post goes out, add any hashtag it carried that is not on the
+     * hashtag list yet. Off by default: the list is the user's to curate, and a
+     * source's tags would otherwise pile up in it.
+     */
+    val rememberSentHashtags: Boolean = false,
+
+    // --- appearance ------------------------------------------------------
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /**
+     * The app's own colours by default. Wallpaper colours are opt-in: on some
+     * phones they come out red, or too close together to read.
+     */
+    val colorSource: ColorSource = ColorSource.APP,
+    val contrastLevel: ContrastLevel = ContrastLevel.SYSTEM,
 
     // --- the image model used by the "Erase with AI" treatment -----------
     val imageEndpoint: String = "",
@@ -91,6 +109,10 @@ class SettingsStore(private val context: Context) {
         val resolveLinks = booleanPreferencesKey("resolve_links")
         val lastCleanupProfile = stringPreferencesKey("last_cleanup_profile")
         val debugLogging = booleanPreferencesKey("debug_logging")
+        val rememberSentHashtags = booleanPreferencesKey("remember_sent_hashtags")
+        val themeMode = stringPreferencesKey("theme_mode")
+        val colorSource = stringPreferencesKey("color_source")
+        val contrastLevel = stringPreferencesKey("contrast_level")
         val imageEndpoint = stringPreferencesKey("image_endpoint")
         val imageModel = stringPreferencesKey("image_model")
         val imageApiKey = stringPreferencesKey("image_api_key")
@@ -111,6 +133,10 @@ class SettingsStore(private val context: Context) {
             resolveLinks = p[Keys.resolveLinks] ?: true,
             lastCleanupProfileId = p[Keys.lastCleanupProfile].orEmpty(),
             debugLogging = p[Keys.debugLogging] ?: false,
+            rememberSentHashtags = p[Keys.rememberSentHashtags] ?: false,
+            themeMode = enumOr(p[Keys.themeMode], ThemeMode.SYSTEM),
+            colorSource = enumOr(p[Keys.colorSource], ColorSource.APP),
+            contrastLevel = enumOr(p[Keys.contrastLevel], ContrastLevel.SYSTEM),
             imageEndpoint = p[Keys.imageEndpoint].orEmpty(),
             imageModel = p[Keys.imageModel].orEmpty(),
             imageApiKey = p[Keys.imageApiKey].orEmpty(),
@@ -138,9 +164,17 @@ class SettingsStore(private val context: Context) {
     suspend fun setResolveLinks(enabled: Boolean) = edit { it[Keys.resolveLinks] = enabled }
     suspend fun setAutoCrop(enabled: Boolean) = edit { it[Keys.autoCrop] = enabled }
     suspend fun setDebugLogging(enabled: Boolean) = edit { it[Keys.debugLogging] = enabled }
+    suspend fun setRememberSentHashtags(enabled: Boolean) = edit { it[Keys.rememberSentHashtags] = enabled }
+    suspend fun setThemeMode(v: ThemeMode) = edit { it[Keys.themeMode] = v.name }
+    suspend fun setColorSource(v: ColorSource) = edit { it[Keys.colorSource] = v.name }
+    suspend fun setContrastLevel(v: ContrastLevel) = edit { it[Keys.contrastLevel] = v.name }
     suspend fun setPurgeAfterDays(days: Int) = edit { it[Keys.purgeAfterDays] = days.coerceAtLeast(0) }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         context.dataStore.edit(block)
     }
 }
+
+/** A stored enum name back to the enum; a name that no longer exists falls back. */
+private inline fun <reified E : Enum<E>> enumOr(name: String?, fallback: E): E =
+    enumValues<E>().firstOrNull { it.name == name } ?: fallback

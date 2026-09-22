@@ -35,12 +35,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -59,16 +59,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
+import app.fediferry.template.TemplateEngine
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
-import app.fediferry.template.TemplateEngine
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -182,7 +181,8 @@ private fun ItemCard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                .background(Color.Black.copy(alpha = 0.06f)),
+                // A theme colour, not 6 % black: that vanished on a dark background.
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             if (item.mediaPath != null) {
@@ -230,7 +230,17 @@ private fun StatusChip(status: Status) {
         Status.POSTED -> "Posted"
         Status.FAILED -> "Failed"
     }
-    AssistChip(onClick = {}, enabled = false, label = { Text(label) })
+    // A label, not a disabled chip: disabled content is drawn at 38 % opacity
+    // by design, which is exactly what made these hard to read. Failed is the
+    // one warning, and so the one in the error colours.
+    val (container, content) = when (status) {
+        Status.FAILED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        Status.POSTED -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+    }
+    Surface(color = container, contentColor = content, shape = MaterialTheme.shapes.small) {
+        Text(label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+    }
 }
 
 @Composable

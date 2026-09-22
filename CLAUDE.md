@@ -58,3 +58,7 @@ Do not build 1 before 3. The store is the dependency, not the other way round.
 - Each source is a module under `module/<name>/` (resolver or client, fields,
   default recipes). Source-specific code goes there, never in the pipeline.
 - `{tags}` is resolved at send time only. Never write hashtags into a draft body.
+- Colours come from `MaterialTheme.colorScheme`, never hardcoded (except over
+  photos, in the crop and cleanup canvases). Red — the error roles — is for
+  warnings and errors only. Every scheme in `ui/theme/Theme.kt` is checked by
+  `ThemeTest`; keep it passing when a colour changes.

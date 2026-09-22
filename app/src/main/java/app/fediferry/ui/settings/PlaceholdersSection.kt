@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -26,6 +27,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -40,8 +43,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +56,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -78,10 +85,17 @@ internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel)
                 selected = false,
                 onClick = {},
                 label = { Text(tag) },
+                // A chip-sized icon, not an IconButton: the button's 48dp touch
+                // box stretches the chip and pushes its label off centre.
                 trailingIcon = {
-                    IconButton(onClick = { viewModel.deleteHashtag(tag) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove $tag")
-                    }
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Remove $tag",
+                        modifier = Modifier
+                            .size(InputChipDefaults.IconSize)
+                            .clip(CircleShape)
+                            .clickable(role = Role.Button) { viewModel.deleteHashtag(tag) },
+                    )
                 },
             )
         }
@@ -104,6 +118,22 @@ internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel)
         IconButton(onClick = ::add, enabled = Hashtags.normalize(typed) != null) {
             Icon(Icons.Default.Add, contentDescription = "Add hashtag")
         }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Add new hashtags when a post is sent")
+            Text(
+                "Every hashtag a sent post carried that is not on the list yet joins it — " +
+                    "typed in the editor, added by a source, or written into the text. Only " +
+                    "posts that actually went out count.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = state.settings.rememberSentHashtags,
+            onCheckedChange = viewModel::setRememberSentHashtags,
+        )
     }
 }
 

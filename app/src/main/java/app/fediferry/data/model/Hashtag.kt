@@ -59,4 +59,22 @@ object Hashtags {
         (first + second).distinctBy { it.lowercase() }
 
     fun contains(tags: List<String>, tag: String): Boolean = tags.any { it.equals(tag, ignoreCase = true) }
+
+    /**
+     * Every hashtag written in [text], as Mastodon would read it: a `#` that
+     * starts a word, followed by letters, digits or `_`, not all of them digits.
+     * A link's `page#section` is not a hashtag, and neither is `#1`.
+     */
+    fun inText(text: String): List<String> =
+        IN_TEXT.findAll(text)
+            .map { it.groupValues[1] }
+            .filter { tag -> tag.any { !it.isDigit() } }
+            .map { "#$it" }
+            .distinctBy { it.lowercase() }
+            .toList()
+
+    /** The hashtags in [text] that [known] does not have yet, in the order written. */
+    fun newIn(text: String, known: List<String>): List<String> = inText(text).filterNot { contains(known, it) }
+
+    private val IN_TEXT = Regex("""(?<![\p{L}\p{N}_/#&])#([\p{L}\p{N}_]+)""")
 }

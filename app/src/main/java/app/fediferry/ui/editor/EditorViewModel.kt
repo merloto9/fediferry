@@ -43,6 +43,8 @@ data class EditorState(
     val placeholderKeys: List<PlaceholderKey> = emptyList(),
     /** The hashtag list from Settings, in its order. */
     val hashtagList: List<String> = emptyList(),
+    /** Whether hashtags new to the list join it once the post is sent. */
+    val rememberSentHashtags: Boolean = false,
     val accounts: List<Account> = emptyList(),
     val altTextBusy: Boolean = false,
     val message: String? = null,
@@ -64,6 +66,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                 templates = repo.templates(),
                 placeholderKeys = db.placeholderKeys().all(),
                 hashtagList = db.hashtags().all().map { it.tag },
+                rememberSentHashtags = ServiceLocator.settings(getApplication()).current().rememberSentHashtags,
                 accounts = db.accounts().all(),
                 loaded = true,
             )
@@ -121,8 +124,8 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Adds a hashtag typed for this post alone and picks it. It does not join
-     * the list in Settings; that list is edited there.
+     * Adds a hashtag typed for this post and picks it. It joins the list in
+     * Settings only once the post is sent, and only when Settings asks for that.
      */
     fun addHashtag(raw: String): Boolean {
         val tag = Hashtags.normalize(raw) ?: return false

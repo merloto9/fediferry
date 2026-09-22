@@ -129,10 +129,19 @@ from those, its placeholders stay empty while its hashtags and link still apply.
 and Reddit, the post text on YouTube — and nothing on Pinterest. Change it,
 delete it, or add others.
 
+### Appearance
+
+*Settings → Appearance* sets the theme (follow the phone, light or dark), the
+colours (FediFerry's own green, or your wallpaper's on Android 12+) and the
+contrast (follow Android 14+'s contrast setting, standard, or high). The app's
+own colours are checked so every text stands out from what it sits on: at least
+4.5:1, or 7:1 in high contrast. Red is used for warnings only — a wallpaper
+colour that comes out red is swapped for the app's own.
+
 ### Hashtags
 
 *Settings → Hashtags* keeps one list for everything; each template ticks the
-ones its topic uses. In the editor, the **#** button beside the template opens
+ones its topic uses. In the editor, *Adjust Hashtags* beside the template opens
 the whole list with the template's picks ticked — tick more, untick some, or
 type one just for this post.
 

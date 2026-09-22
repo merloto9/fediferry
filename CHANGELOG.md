@@ -8,6 +8,47 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.13.0] — 2026-09-23
+
+### Added
+
+- **Appearance settings.** *Settings → Appearance* chooses the theme (system,
+  light or dark), the colours (FediFerry's own, or the wallpaper's on Android
+  12+) and the contrast (system, standard or high). High contrast keeps every
+  text colour at least 7:1 against its background; standard at least 4.5:1.
+  *System* follows Android 14+'s own contrast setting.
+- **Sent hashtags can join the list.** *Settings → Hashtags → Add new hashtags
+  when a post is sent* — off by default — adds every hashtag a post went out
+  with that the list does not have yet: typed in the editor, added by a source,
+  or written straight into the text. Only posts that actually went out count,
+  and a link's `#section` or a bare `#1` is not taken for a hashtag.
+
+### Changed
+
+- The editor's **#** button beside the template is now a text button,
+  *Adjust Hashtags*, with an arrow showing whether the panel is open.
+
+### Fixed
+
+- **Too little contrast on some phones.** On Android 12+ the app always took
+  its colours from the wallpaper, which carry no contrast guarantee and on
+  some phones turned menus red. It now uses its own palette by default — every
+  colour role set, where before most fell back to Material's purple — with the
+  wallpaper's colours an option. Even then, any accent that comes out red is
+  replaced, so red means a warning and nothing else.
+- The hashtag panel in the editor sat on a colour wallpaper palettes often
+  make pink, with ticked chips in nearly the same shade. It is now a neutral
+  raised surface with an outline.
+- The inbox's Draft / Posted / Failed labels were drawn as disabled chips, at
+  38 % opacity; they are now solid labels, Failed in the warning colours.
+- A picture's background in the inbox was near-invisible in dark mode.
+- The status bar's icons followed the phone's dark setting rather than the
+  app's, which could leave white icons on a white bar. Opening the app in dark
+  mode no longer flashes a white window first.
+- The hashtag chips under *Settings → Hashtags* were twice as tall as they
+  should be, with their label pushed off centre, because the remove button
+  inside each was full size. It is now a chip-sized icon.
+
 ## [0.12.0] — 2026-09-23
 
 ### Added

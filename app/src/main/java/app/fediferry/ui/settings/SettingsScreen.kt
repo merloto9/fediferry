@@ -134,6 +134,8 @@ fun SettingsScreen(
         ) {
             AccountsSection(state, viewModel)
             HorizontalDivider()
+            AppearanceSection(state, viewModel)
+            HorizontalDivider()
             TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
             HorizontalDivider()
             HashtagsSection(state, viewModel)

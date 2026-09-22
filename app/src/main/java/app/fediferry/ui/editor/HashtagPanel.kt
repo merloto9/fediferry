@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.editor
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -69,12 +70,17 @@ internal fun HashtagPanel(
     onAdd: (String) -> Boolean,
     sourceHashtags: List<String>,
     onAddSourceHashtags: (Boolean) -> Unit,
+    remembersNewHashtags: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // A neutral raised surface with an outline marks the subsection. Not an
+    // accent container: those are what a wallpaper palette turns pink or red,
+    // and a ticked chip is itself an accent container, so it vanished into one.
     Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -147,6 +153,15 @@ internal fun HashtagPanel(
                     onValueChange = { typed = it },
                     label = { Text("Another hashtag for this post") },
                     placeholder = { Text("#politics") },
+                    supportingText = {
+                        Text(
+                            if (remembersNewHashtags) {
+                                "Joins the list in Settings once the post is sent."
+                            } else {
+                                "For this post only."
+                            },
+                        )
+                    },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { add() }),

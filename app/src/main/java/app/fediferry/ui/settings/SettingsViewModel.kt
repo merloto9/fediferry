@@ -24,24 +24,27 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.data.Settings
 import app.fediferry.data.model.Account
-import app.fediferry.data.model.CleanupProfile
-import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.AltTextMode
+import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtag
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
+import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.Template
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
+import app.fediferry.ui.theme.ColorSource
+import app.fediferry.ui.theme.ContrastLevel
+import app.fediferry.ui.theme.ThemeMode
+import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
-import java.util.UUID
 
 data class SettingsState(
     val accounts: List<Account> = emptyList(),
@@ -238,6 +241,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setResolveLinks(enabled: Boolean) =
         persist { settingsStore.setResolveLinks(enabled) }
     fun setAutoCrop(enabled: Boolean) = persist { settingsStore.setAutoCrop(enabled) }
+    fun setThemeMode(v: ThemeMode) = persist { settingsStore.setThemeMode(v) }
+    fun setColorSource(v: ColorSource) = persist { settingsStore.setColorSource(v) }
+    fun setContrastLevel(v: ContrastLevel) = persist { settingsStore.setContrastLevel(v) }
+    fun setRememberSentHashtags(enabled: Boolean) = persist { settingsStore.setRememberSentHashtags(enabled) }
     fun setPurgeAfterDays(days: Int) = persist { settingsStore.setPurgeAfterDays(days) }
 
     fun setImageEndpoint(v: String) = persist { settingsStore.setImageEndpoint(v) }

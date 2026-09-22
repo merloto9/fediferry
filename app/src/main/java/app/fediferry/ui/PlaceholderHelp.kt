@@ -47,7 +47,7 @@ private val PLACEHOLDERS = listOf(
     Placeholder(
         "{tags}",
         "The post's hashtags: the template's picks, plus any a source adds. Filled when " +
-            "the post is sent, so it stays {tags} in the editor — change the hashtags with # " +
+            "the post is sent, so it stays {tags} in the editor — change the hashtags with Adjust Hashtags " +
             "next to the template.",
         "Empty when no hashtags are picked.",
     ),

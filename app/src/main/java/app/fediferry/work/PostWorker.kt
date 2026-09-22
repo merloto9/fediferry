@@ -24,6 +24,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import app.fediferry.alt.AltTextProvider
 import app.fediferry.data.model.AltTextMode
+import app.fediferry.data.model.Hashtag
+import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
@@ -69,6 +71,7 @@ class PostWorker(
                 ),
             )
             DebugLog.d(LOG, "Posted item $itemId${if (posted.altTextFailed) " (alt text failed)" else ""}")
+            rememberHashtags(posted.text)
             Notifications.showResult(app, itemId, "Posted", posted.url ?: "Sent to Mastodon")
             Result.success()
         } catch (e: MastodonException) {
@@ -82,6 +85,8 @@ class PostWorker(
         val url: String?,
         val altText: String?,
         val altTextFailed: Boolean,
+        /** Exactly what was posted, `{tags}` filled. */
+        val text: String,
     )
 
     private suspend fun send(item: Item): Sent {
@@ -137,7 +142,24 @@ class PostWorker(
             // resolves to the same post rather than a second one.
             idempotencyKey = item.id,
         )
-        return Sent(status.url, altText, altFailed)
+        return Sent(status.url, altText, altFailed, text)
+    }
+
+    /**
+     * Adds the hashtags a post actually went out with to the list, when the
+     * user asked for that. Only after the post succeeded, so a draft that
+     * never sends leaves the list alone — and never at the post's expense: it
+     * is already out, so a failure here is only logged.
+     */
+    private suspend fun rememberHashtags(text: String) {
+        runCatching {
+            if (!ServiceLocator.settings(applicationContext).current().rememberSentHashtags) return
+            val dao = ServiceLocator.database(applicationContext).hashtags()
+            var next = dao.count()
+            Hashtags.newIn(text, dao.all().map { it.tag }).forEach { tag ->
+                dao.insert(Hashtag(tag, sortOrder = next++))
+            }
+        }.onFailure { DebugLog.w(LOG, "Could not add sent hashtags to the list", it) }
     }
 
     private suspend fun altModeOf(item: Item): AltTextMode =

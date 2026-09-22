@@ -35,6 +35,7 @@ import app.fediferry.data.TokenStore
 import app.fediferry.data.db.AppDatabase
 import app.fediferry.link.LinkResolver
 import app.fediferry.link.NineGagResolver
+import app.fediferry.link.PinterestResolver
 import app.fediferry.link.OkHttpMediaFetcher
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.HttpImageEditProvider
@@ -118,7 +119,8 @@ object ServiceLocator {
         youtubeClient ?: YouTubeSourceClient(http()).also { youtubeClient = it }
     }
 
-    fun linkResolvers(): List<LinkResolver> = listOf(NineGagResolver(linkHttp()))
+    fun linkResolvers(): List<LinkResolver> =
+        listOf(NineGagResolver(linkHttp()), PinterestResolver(linkHttp()))
 
     /**
      * A tighter-deadline client for link resolution. A share must not sit

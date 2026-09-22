@@ -71,6 +71,23 @@ degrades to nothing when it cannot be resolved.
 Turn this off with *Settings → Fetch images from shared links*. Instagram
 publishes nothing fetchable, so its shares are unaffected either way.
 
+### Sharing from Pinterest
+
+Share a pin — the share sheet's `pin.it` link or the full pin URL — and the
+picture is fetched the same way, at the size Pinterest keeps rather than the
+preview copy. No Pinterest account is involved: a public pin answers an
+anonymous request, and the app never asks you to sign in to one.
+
+The pin's title fills `{caption}`, minus the keyword tail Pinterest appends for
+search engines.
+
+Video pins are left alone. Their preview image is a cover frame, and posting a
+still of a video without saying so is worse than asking you to screenshot it, so
+the share falls back to the screenshot path.
+
+Bear in mind a pin is usually itself someone's repost, so `via {link}` credits
+whoever pinned it rather than whoever made it.
+
 ### Sources
 
 Beside the Inbox is a **Sources** space. Add a YouTube channel by handle or URL,
@@ -145,6 +162,18 @@ Each template picks a mode: `NONE`, `STATIC` (a fixed string on the template) or
 OpenAI chat-completions shape, so any compatible server works — hosted, a
 gateway, or a local one. A failure never blocks a post: the item goes out
 without a description and is flagged so you can fill it in afterwards.
+
+### When something goes wrong
+
+*Settings → Diagnostics → Keep a log* records what the app does — a share
+arriving, a resolver declining, a post failing and why — to a file inside the
+app. **Send log** hands that file to any messenger through the share sheet, so a
+problem can be passed on as it happened rather than from memory. **Clear** throws
+it away.
+
+It is off by default, holds a quarter of a megabyte before rotating, and records
+events rather than content: no access tokens, no post text, and links reduced to
+their host.
 
 ## Development
 

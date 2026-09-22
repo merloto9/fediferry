@@ -59,11 +59,31 @@ here for one reason: for an animated post it returns a *still frame*, and the
 page carries no `og:video`, so nothing indicates the animation was lost. The
 endpoint reports the post type and links the mp4, so a GIF meme stays a GIF.
 
+`PinterestResolver` reads the pin page's Open Graph tags instead — the surface
+Pinterest publishes for link previews — and needs no account, since a public pin
+answers an anonymous request. `og:image` serves a 736-pixel copy, so the
+`originals/` URL is used when the page names one; guessing at it is not worth a
+wrong request. Video pins are declined rather than resolved, for the same reason
+the 9GAG resolver reaches past `og:image`: a cover frame posted as if it were
+the post is a silent loss.
+
 Resolution runs after the item is persisted, never before — the store is still
 written first — and every failure is a no-op that leaves the item with its link.
 No resolver for the host, the service declining, the download failing: all of
 them simply mean the user screenshots as before. A resolved post's title feeds
 the `{caption}` placeholder, which remains best-effort and empty by default.
+
+### Diagnostics
+
+Anything that fails quietly — a resolver declining, a post retrying, a share
+arriving malformed — is invisible once the moment has passed. An opt-in log
+records those events to app-private storage and can be handed to a messenger
+from Settings.
+
+It records events, never content. Tokens and post bodies are barred by project
+rule, so callers pass neither and the logger scrubs the shapes that leak anyway;
+a link reaches the log as its host alone. Off by default, one rotation kept, a
+quarter of a megabyte each.
 
 ### Trimming the screenshot
 

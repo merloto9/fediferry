@@ -185,7 +185,9 @@ fun EditorScreen(
                 onValueChange = viewModel::setAltText,
                 label = "Alt text",
                 supportingText = {
-                    if (item.altTextFailed) {
+                    if (state.altTextBusy) {
+                        Text("Asking the vision model to describe the picture…")
+                    } else if (item.altTextFailed) {
                         Text(
                             "Automatic description failed — the post will go out without one.",
                             color = MaterialTheme.colorScheme.error,

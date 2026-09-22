@@ -24,6 +24,9 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Link
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.lifecycleScope
 import app.fediferry.MainActivity
@@ -32,6 +35,8 @@ import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
+import app.fediferry.ui.LoadingScrim
+import app.fediferry.ui.theme.FediFerryTheme
 import app.fediferry.work.Notifications
 import app.fediferry.work.PostScheduler
 import kotlinx.coroutines.launch
@@ -41,7 +46,9 @@ import kotlinx.coroutines.launch
  * branches on the mode — that is the only thing the three modes disagree about.
  *
  * Invisible: it has no UI of its own and finishes as soon as the pipeline has
- * been handed off, so the share sheet dismisses immediately.
+ * been handed off, so the share sheet dismisses immediately. The one exception
+ * is fetching the picture behind a link, which can take seconds; that shows a
+ * card saying so over the app the share came from.
  */
 class ShareReceiverActivity : ComponentActivity() {
 
@@ -165,7 +172,19 @@ class ShareReceiverActivity : ComponentActivity() {
     private suspend fun resolveLink(item: Item): Item {
         if (item.mediaPath != null || item.sourceUrl == null) return item
         if (!ServiceLocator.settings(this).current().resolveLinks) return item
-        return ServiceLocator.items(this).resolveLinkMedia(item)
+        val repo = ServiceLocator.items(this)
+        val service = repo.resolvingService(item) ?: return item
+        setContent {
+            FediFerryTheme {
+                LoadingScrim(
+                    title = "Fetching the picture from $service",
+                    detail = "The link you shared points at a $service post. Its picture is " +
+                        "being downloaded, so no screenshot is needed.",
+                    icon = Icons.Outlined.Link,
+                )
+            }
+        }
+        return repo.resolveLinkMedia(item)
     }
 
     /**

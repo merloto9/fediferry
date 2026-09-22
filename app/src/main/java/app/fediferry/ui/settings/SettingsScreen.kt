@@ -33,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -73,6 +74,7 @@ import app.fediferry.data.model.Visibility
 import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.MaskPolarity
+import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.PlaceholderHelpDialog
 import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.StableTextField
@@ -184,6 +186,15 @@ private fun AccountsSection(state: SettingsState, viewModel: SettingsViewModel) 
             onClick = { viewModel.connect(instance) },
             enabled = !state.connecting,
         ) { Text("Connect") }
+    }
+
+    if (state.connecting) {
+        LoadingOverlay(
+            title = "Contacting ${instance.trim().ifBlank { "your instance" }}",
+            detail = "Registering FediFerry with the server. Its sign-in page opens " +
+                "in the browser as soon as it answers.",
+            icon = Icons.AutoMirrored.Outlined.Login,
+        )
     }
 }
 

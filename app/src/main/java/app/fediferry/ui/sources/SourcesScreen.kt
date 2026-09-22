@@ -33,9 +33,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
 
@@ -83,9 +84,17 @@ fun SourcesScreen(
         }
     }
 
+    state.adding?.let { handle ->
+        LoadingOverlay(
+            title = "Checking @$handle",
+            detail = "Fetching the channel from YouTube to make sure it has public " +
+                "community posts, and to learn its name.",
+            icon = Icons.Outlined.Subscriptions,
+        )
+    }
+
     if (adding) {
         AddChannelDialog(
-            busy = state.adding,
             onDismiss = { adding = false },
             onConfirm = {
                 viewModel.add(it)
@@ -164,7 +173,6 @@ fun SourcesScreen(
 
 @Composable
 private fun AddChannelDialog(
-    busy: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
@@ -188,13 +196,7 @@ private fun AddChannelDialog(
                 )
             }
         },
-        confirmButton = {
-            if (busy) {
-                CircularProgressIndicator(Modifier.padding(12.dp))
-            } else {
-                TextButton(onClick = { onConfirm(input) }) { Text("Add") }
-            }
-        },
+        confirmButton = { TextButton(onClick = { onConfirm(input) }) { Text("Add") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

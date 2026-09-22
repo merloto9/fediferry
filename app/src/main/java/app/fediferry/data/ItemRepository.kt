@@ -255,6 +255,16 @@ class ItemRepository(
     }
 
     /**
+     * The service that would fetch this item's media, or null when nothing
+     * would. No I/O, so a caller can decide what to show before waiting.
+     */
+    fun resolvingService(item: Item): String? {
+        if (item.mediaPath != null) return null
+        val url = item.sourceUrl ?: return null
+        return resolvers.firstOrNull { it.handles(url) }?.serviceName
+    }
+
+    /**
      * Fetches the media behind a link-only item, for the services that publish
      * it — 9GAG does, Instagram does not.
      *

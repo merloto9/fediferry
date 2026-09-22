@@ -35,7 +35,8 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 data class SourcesState(
-    val adding: Boolean = false,
+    /** The handle being checked, while its posts are fetched; null otherwise. */
+    val adding: String? = null,
     val message: String? = null,
 )
 
@@ -68,7 +69,7 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
             return@launch
         }
 
-        _state.update { it.copy(adding = true, message = null) }
+        _state.update { it.copy(adding = handle, message = null) }
         youtube.posts(handle).fold(
             onSuccess = { posts ->
                 dao.upsert(
@@ -80,10 +81,10 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
                         sortOrder = dao.count(),
                     ),
                 )
-                _state.update { it.copy(adding = false) }
+                _state.update { it.copy(adding = null) }
             },
             onFailure = { e ->
-                _state.update { it.copy(adding = false, message = e.message ?: "Could not add that channel") }
+                _state.update { it.copy(adding = null, message = e.message ?: "Could not add that channel") }
             },
         )
     }

@@ -30,6 +30,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoFixHigh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -69,6 +71,7 @@ import androidx.compose.foundation.Image
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.Region
+import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.StableTextField
 import app.fediferry.media.cleanup.TreatmentKind
 import kotlin.math.max
@@ -168,6 +171,17 @@ fun CleanupScreen(
                 ) { Text(if (state.applying) "Applying…" else "Use this") }
             }
         }
+    }
+
+    // Only the model round trip is slow enough to need saying; a local fill
+    // is done before an overlay could be read.
+    if (state.applying && state.modelConfigured && viewModel.usesModel()) {
+        LoadingOverlay(
+            title = "Erasing with the image model",
+            detail = "The picture and the areas you marked have been sent to your " +
+                "image model. Waiting for it to send back the cleaned-up version.",
+            icon = Icons.Outlined.AutoFixHigh,
+        )
     }
 }
 

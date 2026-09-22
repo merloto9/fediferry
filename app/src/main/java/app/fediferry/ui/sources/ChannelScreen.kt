@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.sources
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,17 +30,21 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -59,7 +64,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.source.SourcePost
-import coil3.compose.AsyncImage
+import app.fediferry.ui.LoadingOverlay
+import app.fediferry.ui.LoadingScreen
+import coil3.compose.SubcomposeAsyncImage
 
 /**
  * A channel's community posts, at a size worth looking at.
@@ -106,9 +113,14 @@ fun ChannelScreen(
     ) { padding ->
         when {
             state.loading && state.posts.isEmpty() ->
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                LoadingScreen(
+                    title = "Fetching community posts",
+                    detail = "Asking YouTube for the latest posts from " +
+                        (state.source?.let { "@${it.handle}" } ?: "this channel") +
+                        ". Only the ones with pictures are kept.",
+                    icon = Icons.Outlined.Subscriptions,
+                    modifier = Modifier.padding(padding),
+                )
 
             state.error != null ->
                 Box(
@@ -133,19 +145,54 @@ fun ChannelScreen(
                     Text("No posts with pictures here", style = MaterialTheme.typography.bodyMedium)
                 }
 
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(state.posts, key = { it.id }) { post ->
-                    PostCard(
-                        post = post,
-                        picking = state.picking,
-                        onPick = { url -> viewModel.pick(post, url, onPicked) },
-                    )
+            else -> Box(Modifier.fillMaxSize().padding(padding)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.posts, key = { it.id }) { post ->
+                        PostCard(
+                            post = post,
+                            picking = state.picking,
+                            onPick = { url -> viewModel.pick(post, url, onPicked) },
+                        )
+                    }
                 }
+                // A reload keeps the posts already shown, so it only needs a
+                // quiet bar rather than a screen of its own.
+                if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
+        }
+    }
+
+    if (state.picking != null) {
+        LoadingOverlay(
+            title = "Downloading the picture",
+            detail = "Fetching it from YouTube at full size and keeping a copy on this " +
+                "phone, so the editor can open it.",
+            icon = Icons.Outlined.Image,
+        )
+    }
+}
+
+/** Holds a picture's place while it streams in from YouTube. */
+@Composable
+private fun ImagePlaceholder() {
+    Box(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CircularProgressIndicator(Modifier.size(32.dp), strokeWidth = 3.dp)
+            Text(
+                "Loading picture…",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -155,25 +202,18 @@ private fun PostCard(post: SourcePost, picking: String?, onPick: (String) -> Uni
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(bottom = 10.dp)) {
             post.imageUrls.forEach { url ->
-                Box {
-                    AsyncImage(
-                        model = url,
-                        contentDescription = post.text ?: "Post image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            // Square, like the feeds these pictures come from.
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(enabled = picking == null) { onPick(url) },
-                    )
-                    if (picking == url) {
-                        Box(
-                            Modifier.fillMaxSize().aspectRatio(1f),
-                            contentAlignment = Alignment.Center,
-                        ) { CircularProgressIndicator() }
-                    }
-                }
+                SubcomposeAsyncImage(
+                    model = url,
+                    contentDescription = post.text ?: "Post image",
+                    contentScale = ContentScale.Crop,
+                    loading = { ImagePlaceholder() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // Square, like the feeds these pictures come from.
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = picking == null) { onPick(url) },
+                )
             }
 
             post.text?.let {

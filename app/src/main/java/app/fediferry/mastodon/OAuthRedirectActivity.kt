@@ -23,9 +23,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.lifecycle.lifecycleScope
 import app.fediferry.MainActivity
 import app.fediferry.di.ServiceLocator
+import app.fediferry.ui.LoadingScrim
+import app.fediferry.ui.theme.FediFerryTheme
 import kotlinx.coroutines.launch
 
 /**
@@ -47,6 +52,17 @@ class OAuthRedirectActivity : ComponentActivity() {
             toast(error?.let { "Sign-in failed: $it" } ?: "Sign-in was cancelled")
             openApp()
             return
+        }
+
+        setContent {
+            FediFerryTheme {
+                LoadingScrim(
+                    title = "Finishing sign-in",
+                    detail = "Trading the sign-in code for an access token with your " +
+                        "Mastodon instance, then fetching your account.",
+                    icon = Icons.AutoMirrored.Outlined.Login,
+                )
+            }
         }
 
         lifecycleScope.launch {

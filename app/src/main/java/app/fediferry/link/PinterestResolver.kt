@@ -45,6 +45,8 @@ import okhttp3.Request
  */
 class PinterestResolver(private val http: OkHttpClient) : LinkResolver {
 
+    override val serviceName = "Pinterest"
+
     override fun handles(url: String): Boolean = linkOf(url) != null
 
     override suspend fun resolve(url: String): Result<ResolvedPost> =

@@ -8,6 +8,22 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.9.0] — 2026-09-22
+
+### Changed
+
+- **Waiting says what it is waiting for.** Every fetch from a server now shows
+  a loading screen naming what is being fetched and from where: a channel's
+  community posts, a picture being downloaded from YouTube, the picture behind
+  a shared Pinterest or 9GAG link, a channel being checked before it is added,
+  the Mastodon sign-in, and an AI clean-up. Pictures in a channel hold their
+  place while they load, and a fetch that runs long says it is still working.
+- Sharing a link used to wait up to fifteen seconds with nothing on screen
+  while its picture was fetched. It now shows a card over the app the share
+  came from. Screenshot shares stay invisible.
+- Adding a channel closed the dialog and then showed nothing until YouTube
+  answered. It now shows that the channel is being checked.
+
 ## [0.8.0] — 2026-09-22
 
 ### Added

@@ -44,6 +44,9 @@ data class ResolvedPost(
  * exactly as before.
  */
 interface LinkResolver {
+    /** The service's own name, for telling the user where a picture is coming from. */
+    val serviceName: String
+
     /** Whether this resolver recognises the link at all. Must not do any I/O. */
     fun handles(url: String): Boolean
 

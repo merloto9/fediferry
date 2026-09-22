@@ -8,6 +8,42 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.11.0] — 2026-09-22
+
+### Added
+
+- **Placeholders you define, per source.** *Settings → Placeholders* holds
+  placeholders like `{caption}`, and for each source — 9GAG, Pinterest, Reddit,
+  YouTube — a small recipe saying what fills it, written with the fields that
+  source sends: `{title}`, `r/{subreddit}: {title}`, or nothing. Tapping a
+  field inserts it, and *What does each source send?* lists them all. 9GAG now
+  also sends the post's hashtags, section, author and its own image
+  description; Pinterest its description; Reddit the subreddit; YouTube the
+  channel name.
+- **Templates choose their sources.** *Fill placeholders from* on each template
+  says which sources' data it uses. From an unticked source its placeholders
+  stay empty; the tags and link still come through.
+- A template body that uses a placeholder nothing defines says so, instead of
+  posting the braces.
+
+### Changed
+
+- **`{caption}` no longer fills from Pinterest.** It prefilled posts with
+  Pinterest's own stock text. It is now a user-defined placeholder, seeded with
+  what it meant before everywhere else — the title on 9GAG and Reddit, the post
+  text on YouTube — and can be changed or deleted like any other.
+- Switching template in the editor keeps the source's text. The body used to
+  lose `{caption}` on a switch, because the fetched title was never kept.
+- **Visibility and alt text explain themselves.** Each choice now says what it
+  does, under the chips, for the option picked: who can see a post and whether
+  it can be boosted, and where an alt text comes from and what happens when
+  there is none. Visibility uses the names Mastodon's own apps use — *Quiet
+  public*, *Followers only*, *Private mention* — and the chips wrap instead of
+  running off a narrow screen.
+- A *Private mention* that mentions nobody says it would reach nobody, and a
+  template set to *Generated* alt text says so when no model is set up.
+- The editor's alt text field says what to write in it.
+
 ## [0.10.0] — 2026-09-22
 
 ### Added

@@ -97,6 +97,7 @@ object ServiceLocator {
                 editInstruction = { settings(context).current().imageInstruction },
                 resolvers = linkResolvers(),
                 fetcher = OkHttpMediaFetcher(linkHttp()),
+                placeholderKeys = database.placeholderKeys(),
             )
         }.also { repo = it }
     }

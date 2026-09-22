@@ -1,0 +1,48 @@
+{
+ "data": {
+  "post": {
+   "id": "ayNyegr",
+   "url": "http://9gag.com/gag/ayNyegr",
+   "title": "Its somewhat a downer",
+   "description": "",
+   "type": "Photo",
+   "nsfw": 0,
+   "tags": [
+    {
+     "key": "meme",
+     "url": "/tag/meme"
+    },
+    {
+     "key": "random",
+     "url": "/tag/random"
+    },
+    {
+     "key": "funny",
+     "url": "/tag/funny"
+    }
+   ],
+   "altText": "The post features a meme using a screenshot from the movie 'The Lovely Bones' (showing the character Jack Salmon) with the caption comparing the perceived injustice of men being imprisoned for failing to pay child support versus the frustration of seeing fictional or real-world figures (referenced as 'Lindsay') avoid severe legal consequences for violent crimes. The meme uses dark humor to express frustration with perceived inconsistencies in the legal system, reflecting a common sentiment regarding gender bias and judicial outcomes.",
+   "creator": {
+    "username": "someuser"
+   },
+   "postSection": {
+    "name": "Funny",
+    "url": "https://9gag.com/funny"
+   },
+   "images": {
+    "image700": {
+     "width": 379,
+     "height": 372,
+     "url": "https://img-9gag-fun.9cache.com/photo/ayNyegr_700b.jpg",
+     "webpUrl": "https://img-9gag-fun.9cache.com/photo/ayNyegr_700bwp.webp"
+    },
+    "image460": {
+     "width": 379,
+     "height": 372,
+     "url": "https://img-9gag-fun.9cache.com/photo/ayNyegr_460s.jpg",
+     "webpUrl": "https://img-9gag-fun.9cache.com/photo/ayNyegr_460swp.webp"
+    }
+   }
+  }
+ }
+}

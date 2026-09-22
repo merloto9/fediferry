@@ -24,6 +24,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.filled.Share
@@ -69,15 +72,19 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.AltTextMode
+import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
-import app.fediferry.data.model.Visibility
 import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.MaskPolarity
+import app.fediferry.ui.AltTextModePicker
 import app.fediferry.ui.LoadingOverlay
+import app.fediferry.ui.VisibilityPicker
 import app.fediferry.ui.PlaceholderHelpDialog
 import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.StableTextField
+import app.fediferry.template.TemplateEngine
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -92,7 +99,7 @@ fun SettingsScreen(
     var showPlaceholderHelp by remember { mutableStateOf(false) }
 
     if (showPlaceholderHelp) {
-        PlaceholderHelpDialog(onDismiss = { showPlaceholderHelp = false })
+        PlaceholderHelpDialog(keys = state.placeholderKeys, onDismiss = { showPlaceholderHelp = false })
     }
 
     LaunchedEffect(state.message) {
@@ -126,6 +133,8 @@ fun SettingsScreen(
             AccountsSection(state, viewModel)
             HorizontalDivider()
             TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
+            HorizontalDivider()
+            PlaceholdersSection(state, viewModel)
             HorizontalDivider()
             PostingSection(state, viewModel)
             HorizontalDivider()
@@ -212,7 +221,8 @@ private fun TemplatesSection(
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            "Bodies can use placeholders such as {tags} and {link}.",
+            "A template is a topic: its tags, and how its posts are written. Bodies " +
+                "can use {tags}, {link}, {date} and the placeholders defined below.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
@@ -220,12 +230,22 @@ private fun TemplatesSection(
     }
 
     state.templates.forEach { template ->
-        TemplateCard(template, viewModel)
+        TemplateCard(
+            template = template,
+            viewModel = viewModel,
+            visionConfigured = state.settings.visionEndpoint.isNotBlank(),
+            placeholderNames = PlaceholderKey.BUILT_IN + state.placeholderKeys.map { it.name },
+        )
     }
 }
 
 @Composable
-private fun TemplateCard(template: Template, viewModel: SettingsViewModel) {
+private fun TemplateCard(
+    template: Template,
+    viewModel: SettingsViewModel,
+    visionConfigured: Boolean,
+    placeholderNames: Set<String>,
+) {
     var draft by remember(template.id) { mutableStateOf(template) }
 
     Card(Modifier.fillMaxWidth()) {
@@ -240,12 +260,30 @@ private fun TemplateCard(template: Template, viewModel: SettingsViewModel) {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            val unknown = TemplateEngine.unknownIn(draft.body, placeholderNames)
             OutlinedTextField(
                 value = draft.body,
                 onValueChange = { draft = draft.copy(body = it) },
                 label = { Text("Body") },
                 minLines = 2,
+                isError = unknown.isNotEmpty(),
+                supportingText = if (unknown.isNotEmpty()) {
+                    {
+                        Text(
+                            unknown.joinToString { "{$it}" } + " " +
+                                (if (unknown.size == 1) "is" else "are") +
+                                " not defined, and would be posted exactly as typed.",
+                        )
+                    }
+                } else {
+                    null
+                },
                 modifier = Modifier.fillMaxWidth(),
+            )
+
+            SourcePicker(
+                excluded = draft.excludedSources,
+                onChange = { draft = draft.copy(excludedSources = it) },
             )
             OutlinedTextField(
                 value = draft.tags,
@@ -263,33 +301,26 @@ private fun TemplateCard(template: Template, viewModel: SettingsViewModel) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Text("Visibility", style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Visibility.entries.forEach { visibility ->
-                    FilterChip(
-                        selected = draft.visibility == visibility,
-                        onClick = { draft = draft.copy(visibility = visibility) },
-                        label = { Text(visibility.name.lowercase()) },
-                    )
-                }
-            }
+            VisibilityPicker(
+                selected = draft.visibility,
+                onSelect = { draft = draft.copy(visibility = it) },
+                text = draft.body,
+                title = "Default visibility",
+                titleStyle = MaterialTheme.typography.labelMedium,
+            )
 
-            Text("Alt text", style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                AltTextMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = draft.altTextMode == mode,
-                        onClick = { draft = draft.copy(altTextMode = mode) },
-                        label = { Text(mode.name.lowercase()) },
-                    )
-                }
-            }
+            AltTextModePicker(
+                selected = draft.altTextMode,
+                onSelect = { draft = draft.copy(altTextMode = it) },
+                visionConfigured = visionConfigured,
+            )
 
             if (draft.altTextMode == AltTextMode.STATIC) {
                 OutlinedTextField(
                     value = draft.staticAltText.orEmpty(),
                     onValueChange = { draft = draft.copy(staticAltText = it) },
-                    label = { Text("Static description") },
+                    label = { Text("Fixed description") },
+                    placeholder = { Text("A meme") },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -540,8 +571,10 @@ private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel
 private fun VisionSection(state: SettingsState, viewModel: SettingsViewModel) {
     SectionTitle("Alt-text provider")
     Text(
-        "Any OpenAI-compatible chat-completions endpoint. Used only by templates " +
-            "set to VISION; a failure never blocks a post.",
+        "Writes alt text for templates set to Generated. Any OpenAI-compatible " +
+            "chat-completions endpoint whose model can look at images works. The " +
+            "picture is sent there, so pick a service you trust with it. A failure " +
+            "never blocks a post; it goes out without a description instead.",
         style = MaterialTheme.typography.bodySmall,
     )
 
@@ -663,4 +696,38 @@ private fun formatSize(bytes: Long): String = when {
     bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024))
     bytes >= 1024 -> "${bytes / 1024} KB"
     else -> "$bytes bytes"
+}
+
+/**
+ * Which sources a template's placeholders are filled from. Unticking one keeps
+ * the template usable for that source's posts — the tags and link still come
+ * through — but every user-defined placeholder comes out empty for them.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSource>) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Fill placeholders from", style = MaterialTheme.typography.labelMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ContentSource.entries.forEach { source ->
+                val on = source !in excluded
+                FilterChip(
+                    selected = on,
+                    onClick = { onChange(if (on) excluded + source else excluded - source) },
+                    label = { Text(source.label) },
+                    leadingIcon = if (on) {
+                        { Icon(Icons.Default.Check, contentDescription = null) }
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+        Text(
+            "For posts from a ticked source, placeholders such as {caption} are filled " +
+                "using the mappings under Placeholders. From an unticked one they stay empty.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }

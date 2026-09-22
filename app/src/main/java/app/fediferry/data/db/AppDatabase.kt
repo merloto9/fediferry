@@ -30,6 +30,7 @@ import app.fediferry.data.model.Account
 import app.fediferry.data.model.InstanceApp
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.CleanupProfile
+import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.Source
 import app.fediferry.data.model.Template
@@ -43,8 +44,9 @@ import app.fediferry.data.model.Template
         CleanupProfile::class,
         ProfileRule::class,
         Source::class,
+        PlaceholderKey::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -54,6 +56,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun templates(): TemplateDao
     abstract fun cleanup(): CleanupDao
     abstract fun sources(): SourceDao
+    abstract fun placeholderKeys(): PlaceholderKeyDao
 
     companion object {
         /**
@@ -122,9 +125,55 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds user-defined placeholders, the sources a template reads, and the
+         * raw source data an item keeps. Additive: bodies already written are
+         * left exactly as they are.
+         *
+         * `{caption}` becomes the first user-defined placeholder, carrying the
+         * mappings it used to have built in — except Pinterest's, which filled
+         * posts with the service's own filler text.
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `placeholder_keys` (
+                        `id` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `mappings` TEXT NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("ALTER TABLE templates ADD COLUMN excludedSources TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE items ADD COLUMN origin TEXT")
+                db.execSQL("ALTER TABLE items ADD COLUMN sourceFields TEXT NOT NULL DEFAULT '{}'")
+                seedPlaceholders(db)
+            }
+        }
+
+        private fun seedPlaceholders(db: SupportSQLiteDatabase) {
+            val key = PlaceholderKey.seed()
+            db.execSQL(
+                "INSERT OR IGNORE INTO placeholder_keys (id, name, mappings, sortOrder) VALUES (?, ?, ?, ?)",
+                arrayOf<Any>(key.id, key.name, Converters().stringMapToString(key.mappings), key.sortOrder),
+            )
+        }
+
+        /**
+         * A fresh install gets `{caption}` too. Seeded here rather than whenever
+         * the table is empty, so deleting every placeholder stays deleted.
+         */
+        private val SEED = object : Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) = seedPlaceholders(db)
+        }
+
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addCallback(SEED)
                 .build()
     }
 }

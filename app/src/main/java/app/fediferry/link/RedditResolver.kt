@@ -20,6 +20,7 @@
 package app.fediferry.link
 
 import app.fediferry.BuildConfig
+import app.fediferry.data.model.ContentSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -62,7 +63,7 @@ import okhttp3.Request
  */
 class RedditResolver(private val http: OkHttpClient) : LinkResolver {
 
-    override val serviceName = "Reddit"
+    override val source = ContentSource.REDDIT
 
     /** For the share link's redirect, which is wanted as an address, not a page. */
     private val noRedirects: OkHttpClient by lazy {
@@ -216,28 +217,32 @@ class RedditResolver(private val http: OkHttpClient) : LinkResolver {
          * rather than by hitting the network.
          */
         fun parse(html: String): Result<ResolvedPost> = runCatching {
-            val post = screenviewOf(html)?.get("post")?.jsonObject
+            val screenview = screenviewOf(html)
+            val post = screenview?.get("post")?.jsonObject
                 ?: error("Reddit page has no post")
             val type = post.string("type")
             val url = post.string("url")
-            val caption = captionOf(html)
+            val fields = fieldsOf(
+                "title" to captionOf(html),
+                "subreddit" to runCatching { screenview["subreddit"]?.jsonObject?.string("name") }.getOrNull(),
+            )
 
             val media = when (type) {
                 "video" -> packagedVideoOf(html)
-                    ?.let { ResolvedPost(it, "video/mp4", caption) }
+                    ?.let { ResolvedPost(it, "video/mp4", fields) }
                     ?: error("Reddit video has no copy with its sound")
 
-                "gif" -> gifVideoOf(html)?.let { ResolvedPost(it, "video/mp4", caption) }
-                    ?: url?.takeIf { DIRECT.matches(it) }?.let { ResolvedPost(it, "image/gif", caption) }
+                "gif" -> gifVideoOf(html)?.let { ResolvedPost(it, "video/mp4", fields) }
+                    ?: url?.takeIf { DIRECT.matches(it) }?.let { ResolvedPost(it, "image/gif", fields) }
 
-                "gallery" -> firstGalleryImageOf(html)?.let { ResolvedPost(it, mimeOf(it), caption) }
+                "gallery" -> firstGalleryImageOf(html)?.let { ResolvedPost(it, mimeOf(it), fields) }
 
                 else -> null
             }
             media
                 // Whatever the type is called, a directly linked picture is the post.
                 ?: url?.takeIf { type != "video" && IMAGE_URL.containsMatchIn(it) }
-                    ?.let { ResolvedPost(it, mimeOf(it), caption) }
+                    ?.let { ResolvedPost(it, mimeOf(it), fields) }
                 ?: error("Reddit ${type ?: "unknown"} post has no picture to attach")
         }
 

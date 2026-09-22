@@ -45,6 +45,7 @@ class TemplateEnginePatternTest {
         // here as ExceptionInInitializerError.
         val out = TemplateEngine.render(
             Template.seed().copy(body = "{tags}\n\nvia {link}", tags = "#meme"),
+            emptyList(),
             TemplateEngine.Inputs(link = "https://instagram.com/p/abc"),
         )
         assertEquals("#meme\n\nvia https://instagram.com/p/abc", out)
@@ -54,6 +55,7 @@ class TemplateEnginePatternTest {
     fun dropsEmptyPlaceholderLinesOnDevice() {
         val out = TemplateEngine.render(
             Template.seed().copy(body = "{tags}\n\nvia {link}", tags = "#meme"),
+            emptyList(),
             TemplateEngine.Inputs(link = null),
         )
         assertEquals("#meme", out)
@@ -65,6 +67,7 @@ class TemplateEnginePatternTest {
         // newlines collapse to the one blank line the template asked for.
         val out = TemplateEngine.render(
             Template.seed().copy(body = "{tags}\n\n\n\n{date}", tags = "#meme"),
+            emptyList(),
             TemplateEngine.Inputs(now = Instant.parse("2026-01-15T10:00:00Z")),
         )
         assertEquals(listOf("#meme", "", "2026-01-15"), out.lines())

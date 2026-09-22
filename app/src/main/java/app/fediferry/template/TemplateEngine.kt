@@ -19,6 +19,9 @@
  */
 package app.fediferry.template
 
+import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.Item
+import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import java.time.Instant
 import java.time.ZoneId
@@ -34,6 +37,11 @@ import java.time.format.DateTimeFormatter
  *
  * An unknown placeholder is left verbatim: that is an authoring mistake, and
  * silently swallowing it would hide it.
+ *
+ * Two layers feed it. `{link}`, `{tags}` and `{date}` are built in. Every other
+ * placeholder is a [PlaceholderKey] the user defined, filled from the raw
+ * fields of the source the item came from through that key's recipe for the
+ * source — and only when the template reads that source at all.
  */
 object TemplateEngine {
 
@@ -41,24 +49,52 @@ object TemplateEngine {
 
     data class Inputs(
         val link: String? = null,
-        val caption: String? = null,
+        /** Where the item's data came from; null leaves every user-defined placeholder empty. */
+        val source: ContentSource? = null,
+        /** The source's raw fields, by [app.fediferry.data.model.SourceField.name]. */
+        val fields: Map<String, String> = emptyMap(),
         val now: Instant = Instant.now(),
     )
 
-    fun render(template: Template, inputs: Inputs): String {
-        val values = mapOf(
+    /** Everything an existing item can tell the engine about itself. */
+    fun inputsOf(item: Item) = Inputs(link = item.sourceUrl, source = item.origin, fields = item.sourceFields)
+
+    fun render(template: Template, keys: List<PlaceholderKey>, inputs: Inputs): String {
+        val values = keys.associate { it.name to valueOf(it, template, inputs) } + mapOf(
+            // After the keys, so a built-in always wins. Settings refuses the
+            // clash anyway; this only keeps an old row from shadowing {link}.
             "link" to inputs.link.orEmpty(),
             "tags" to template.tags.trim(),
             "date" to dateFormat.format(inputs.now.atZone(ZoneId.systemDefault())),
-            // Best-effort only. No downstream code may assume this resolved.
-            "caption" to inputs.caption.orEmpty(),
         )
+        return renderText(template.body, values)
+    }
 
-        val rendered = template.body.lines().mapNotNull { line -> renderLine(line, values) }
-        return rendered.joinToString("\n")
+    /**
+     * What [key] comes to for this item. Best-effort only: no downstream code
+     * may assume it resolved.
+     */
+    fun valueOf(key: PlaceholderKey, template: Template, inputs: Inputs): String {
+        val source = inputs.source ?: return ""
+        if (!template.usesSource(source)) return ""
+        val recipe = key.recipeFor(source)
+        if (recipe.isBlank()) return ""
+        // Every field the source declares is known, so a missing one empties
+        // its line instead of leaking "{title}" into a post.
+        val fields = source.fields.associate { it.name to "" } + inputs.fields
+        return renderText(recipe, fields)
+    }
+
+    /** Placeholders in [text] that nothing fills, in order of first use. */
+    fun unknownIn(text: String, known: Collection<String>): List<String> =
+        PLACEHOLDER.findAll(text).map { it.groupValues[1] }.filter { it !in known }.distinct().toList()
+
+    private fun renderText(text: String, values: Map<String, String>): String =
+        text.lines()
+            .mapNotNull { line -> renderLine(line, values) }
+            .joinToString("\n")
             .replace(BLANK_RUN, "\n\n")
             .trim()
-    }
 
     /** Returns null when the line existed only to carry placeholders that are empty. */
     private fun renderLine(line: String, values: Map<String, String>): String? {

@@ -33,6 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.PlaceholderKey
 
 /** One placeholder, and the honest story about when it is empty. */
 private data class Placeholder(
@@ -58,19 +60,31 @@ private val PLACEHOLDERS = listOf(
         "Today's date, as yyyy-MM-dd.",
         "Never empty.",
     ),
-    Placeholder(
-        "{caption}",
-        "The original post's own title, when the service publishes one. 9GAG, Pinterest and Reddit do.",
-        "Empty for a screenshot, and for Instagram, which publishes nothing readable.",
-    ),
 )
+
+/** A user-defined placeholder, described by what each source fills it with. */
+private fun PlaceholderKey.asPlaceholder(): Placeholder {
+    val mapped = ContentSource.entries.filter { recipeFor(it).isNotBlank() }
+    val unmapped = ContentSource.entries - mapped.toSet()
+    return Placeholder(
+        token = "{$name}",
+        what = if (mapped.isEmpty()) {
+            "Defined under Settings → Placeholders, but no source fills it yet."
+        } else {
+            mapped.joinToString("; ") { "${it.label}: ${recipeFor(it)}" }
+        },
+        whenEmpty = "Empty for screenshots and unfetched links" +
+            (if (unmapped.isEmpty()) "" else ", and for " + unmapped.joinToString { it.label }) +
+            ", and for any source a template has unticked.",
+    )
+}
 
 /**
  * The rule that surprises people: a line whose placeholders all came back empty
  * is dropped whole, so `via {link}` does not post a dangling "via".
  */
 @Composable
-fun PlaceholderHelpDialog(onDismiss: () -> Unit) {
+fun PlaceholderHelpDialog(keys: List<PlaceholderKey>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Placeholders") },
@@ -83,7 +97,7 @@ fun PlaceholderHelpDialog(onDismiss: () -> Unit) {
                     "Anything in braces is replaced when the post is written.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                PLACEHOLDERS.forEach { p ->
+                (PLACEHOLDERS + keys.map { it.asPlaceholder() }).forEach { p ->
                     Column {
                         Text(
                             p.token,

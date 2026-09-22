@@ -28,10 +28,11 @@ offers each later release as an in-place update.
 1. **Settings → Accounts**: enter your instance host (`mastodon.social`) and
    tap Connect. A Custom Tab opens the instance's OAuth page; approving it
    returns to the app. The app registers itself per instance on first connect.
-2. **Settings → Templates**: edit the seeded `Meme` template. Placeholders are
-   `{link}`, `{tags}` and `{date}`. A placeholder with nothing to fill it
-   resolves to an empty string and its whole line is dropped, so
-   `{tags}\n\nvia {link}` does not post a dangling "via".
+2. **Settings → Templates**: edit the seeded `Meme` template. `{link}`, `{tags}`
+   and `{date}` are built in, and any placeholder defined under *Settings →
+   Placeholders* works too. A placeholder with nothing to fill it resolves to
+   an empty string and its whole line is dropped, so `{tags}\n\nvia {link}`
+   does not post a dangling "via".
 3. Screenshot something, share it, and pick one of the three targets.
 
 | Target         | What it does                                       |
@@ -64,9 +65,11 @@ Share a 9GAG link on its own and the image is fetched for you — no screenshot,
 no trimming, and at the original quality rather than a re-encoded screen grab.
 Animated posts come across as the video, not a still frame.
 
-The post's title is available to templates as `{caption}`, so a template like
+The post's title fills `{caption}`, so a template like
 `{caption}\n\n{tags}\n\nvia {link}` carries it over. As always the placeholder
-degrades to nothing when it cannot be resolved.
+degrades to nothing when it cannot be resolved. 9GAG also sends the post's
+hashtags, section, author and its own image description, for placeholders of
+your own — see [Placeholders](#placeholders).
 
 Turn this off with *Settings → Fetch images from shared links*. Instagram
 publishes nothing fetchable, so its shares are unaffected either way.
@@ -78,8 +81,9 @@ picture is fetched the same way, at the size Pinterest keeps rather than the
 preview copy. No Pinterest account is involved: a public pin answers an
 anonymous request, and the app never asks you to sign in to one.
 
-The pin's title fills `{caption}`, minus the keyword tail Pinterest appends for
-search engines.
+`{caption}` stays empty for pins: a pin's title and description are too often
+Pinterest's own stock text. Both are still available — minus the keyword tail
+Pinterest appends for search engines — to map into a placeholder yourself.
 
 Video pins are left alone. Their preview image is a cover frame, and posting a
 still of a video without saying so is worse than asking you to screenshot it, so
@@ -102,14 +106,34 @@ screenshot. No Reddit account is involved.
   One without such a copy is left for a screenshot rather than posted silent.
 - Text and link posts have nothing to attach and take the screenshot path.
 
-The post's title fills `{caption}`.
+The post's title fills `{caption}`, and its subreddit is available to map.
+
+### Placeholders
+
+Two things are kept apart. A **template** is a topic: its hashtags, visibility
+and alt-text setting, and a body that says how a post is laid out. A
+**placeholder** such as `{caption}` says what text goes into that layout, and
+it is defined once, under *Settings → Placeholders*, for every source at once.
+
+Each placeholder has one small recipe per source, written with that source's own
+fields: `{title}` for 9GAG, `r/{subreddit}: {title}` for Reddit, nothing at all
+for Pinterest. A source with no recipe leaves the placeholder empty, and an
+empty placeholder drops its line from the post. *What does each source send?*
+lists every field.
+
+A template can also untick sources under *Fill placeholders from*: for posts
+from those, its placeholders stay empty while its tags and link still apply.
+
+`{caption}` comes predefined with what it has always meant — the title on 9GAG
+and Reddit, the post text on YouTube — and nothing on Pinterest. Change it,
+delete it, or add others.
 
 ### Sources
 
 Beside the Inbox is a **Sources** space. Add a YouTube channel by handle or URL,
 browse its community posts, and tap a picture to go straight to the editor — the
-same one a share or a screenshot reaches. The post's text fills `{caption}` and
-its link fills `{link}`.
+same one a share or a screenshot reaches. The post's text fills `{caption}`, the
+channel's name is available to map, and its link fills `{link}`.
 
 Only the subscription is stored; posts are fetched fresh each time. YouTube has
 no API for community posts, so this reads the channel page's embedded data — the

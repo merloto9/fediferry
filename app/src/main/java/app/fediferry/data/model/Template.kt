@@ -19,6 +19,7 @@
  */
 package app.fediferry.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -34,8 +35,9 @@ enum class AltTextMode {
 }
 
 /**
- * A named bundle of posting defaults. Body text carries `{link}`, `{tags}` and
- * `{date}` placeholders; see [app.fediferry.template.TemplateEngine].
+ * A named bundle of posting defaults — in practice a topic, with its hashtags.
+ * Body text carries the built-in `{link}`, `{tags}` and `{date}` placeholders
+ * and any the user defined; see [app.fediferry.template.TemplateEngine].
  */
 @Entity(tableName = "templates")
 data class Template(
@@ -50,7 +52,15 @@ data class Template(
     val accountId: String? = null,
     val isDefault: Boolean = false,
     val sortOrder: Int = 0,
+    /**
+     * Sources whose data this template ignores: their user-defined placeholders
+     * come out empty. Stored as the excluded ones so a source added later is on
+     * for every template from the start.
+     */
+    @ColumnInfo(defaultValue = "") val excludedSources: Set<ContentSource> = emptySet(),
 ) {
+    fun usesSource(source: ContentSource): Boolean = source !in excludedSources
+
     companion object {
         const val DEFAULT_ID = "default"
 

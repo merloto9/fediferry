@@ -66,4 +66,12 @@ data class Item(
     val statusUrl: String? = null,
     /** Epoch millis; when set the worker is delayed until then. */
     val scheduledAt: Long? = null,
+    /** Where the picture was fetched from; null for a screenshot or an unresolved link. */
+    val origin: ContentSource? = null,
+    /**
+     * What [origin] said about the post, by [SourceField.name]. Kept so the body
+     * can be rendered again — on a template switch, or once a link resolves —
+     * without fetching the post a second time.
+     */
+    @ColumnInfo(defaultValue = "{}") val sourceFields: Map<String, String> = emptyMap(),
 )

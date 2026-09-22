@@ -19,6 +19,7 @@
  */
 package app.fediferry
 
+import app.fediferry.data.model.ContentSource
 import app.fediferry.link.NineGagResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -73,7 +74,7 @@ class NineGagResolverTest {
         val post = NineGagResolver.parse(fixture("ninegag_photo.json")).getOrThrow()
         assertEquals("https://img-9gag-fun.9cache.com/photo/ayNyegr_700b.jpg", post.mediaUrl)
         assertEquals("image/jpeg", post.mimeType)
-        assertEquals("Its somewhat a downer", post.caption)
+        assertEquals("Its somewhat a downer", post.fields["title"])
     }
 
     @Test
@@ -106,7 +107,29 @@ class NineGagResolverTest {
             {"image700":{"url":"https://img.example/x_700b.jpg"}}}}}
         """.trimIndent()
         val post = NineGagResolver.parse(untitled).getOrThrow()
-        assertNull(post.caption)
+        assertNull(post.fields["title"])
         assertEquals("https://img.example/x_700b.jpg", post.mediaUrl)
     }
+    // --- source fields ---------------------------------------------------
+
+    @Test
+    fun `sends every field 9GAG publishes about the post`() {
+        val fields = NineGagResolver.parse(fixture("ninegag_fields.json")).getOrThrow().fields
+
+        assertEquals("Its somewhat a downer", fields["title"])
+        assertEquals("#meme #random #funny", fields["hashtags"])
+        assertEquals("Funny", fields["section"])
+        assertEquals("someuser", fields["author"])
+        assertTrue(fields["alt"]!!.startsWith("The post features a meme"))
+        assertNull("an empty description is no description", fields["description"])
+    }
+
+    @Test
+    fun `only declares fields the 9GAG source lists`() {
+        val declared = ContentSource.NINEGAG.fields.map { it.name }.toSet()
+        val sent = NineGagResolver.parse(fixture("ninegag_fields.json")).getOrThrow().fields.keys
+
+        assertTrue("undeclared: ${sent - declared}", declared.containsAll(sent))
+    }
+
 }

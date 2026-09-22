@@ -80,8 +80,9 @@ the packaged mp4, because the bare `v.redd.it` stream has no sound.
 Resolution runs after the item is persisted, never before — the store is still
 written first — and every failure is a no-op that leaves the item with its link.
 No resolver for the host, the service declining, the download failing: all of
-them simply mean the user screenshots as before. A resolved post's title feeds
-the `{caption}` placeholder, which remains best-effort and empty by default.
+them simply mean the user screenshots as before. A resolver returns the post's
+raw fields, named as its `ContentSource` declares them; what they mean for a
+post is the user's placeholder mappings' business, never the resolver's.
 
 ### Diagnostics
 
@@ -187,9 +188,22 @@ recoverable instead of silently lossy.
 A template is a named bundle of: body text with placeholders, default visibility,
 default content warning, alt-text mode, and tag set.
 
-Placeholders: `{link}`, `{tags}`, `{date}`. A `{caption}` placeholder may exist
-behind a best-effort resolver, but it must degrade to empty string on any failure
-and no downstream code may assume it resolved.
+Placeholders come in two layers, kept apart because a field that is the post on
+one service is boilerplate on another:
+
+- **Built in:** `{link}`, `{tags}`, `{date}`.
+- **User-defined** (`PlaceholderKey`): a name plus one recipe per
+  `ContentSource`, in the same brace syntax, over that source's raw fields. The
+  item stores its source and fields, so the body can be re-rendered — on a
+  template switch, or once a link resolves — without fetching again.
+
+A template lists the sources it does *not* read (`excludedSources`), so a
+source added later is on everywhere by default. For an excluded source, a
+screenshot, or a source with no recipe, a user-defined placeholder is empty.
+Every user-defined placeholder is best-effort: it must degrade to the empty
+string, and no downstream code may assume it resolved. `{caption}` is seeded
+with the old built-in behaviour, except for Pinterest, whose fields are too
+often stock text to prefill a post with.
 
 Example:
 

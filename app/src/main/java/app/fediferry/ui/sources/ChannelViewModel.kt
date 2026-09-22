@@ -24,6 +24,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.data.model.Source
 import app.fediferry.di.ServiceLocator
+import app.fediferry.link.fieldsOf
 import app.fediferry.source.SourcePost
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,7 +85,7 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
         repo.ingestFromSource(
             imageUrl = imageUrl,
             permalink = post.permalink,
-            caption = post.text,
+            fields = fieldsOf("text" to post.text, "channel" to post.author),
         ).fold(
             onSuccess = { item ->
                 _state.update { it.copy(picking = null) }

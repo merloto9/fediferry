@@ -19,6 +19,7 @@
  */
 package app.fediferry.link
 
+import app.fediferry.data.model.ContentSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -45,7 +46,7 @@ import okhttp3.Request
  */
 class PinterestResolver(private val http: OkHttpClient) : LinkResolver {
 
-    override val serviceName = "Pinterest"
+    override val source = ContentSource.PINTEREST
 
     override fun handles(url: String): Boolean = linkOf(url) != null
 
@@ -110,7 +111,11 @@ class PinterestResolver(private val http: OkHttpClient) : LinkResolver {
                 ?: error("Pinterest page has no pin image")
 
             val media = originalOf(preview, html) ?: preview
-            ResolvedPost(media, mimeOf(media), captionOf(html))
+            ResolvedPost(
+                media,
+                mimeOf(media),
+                fieldsOf("title" to captionOf(html), "description" to meta(html, "og:description")),
+            )
         }
 
         /**

@@ -24,6 +24,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.data.model.Account
 import app.fediferry.data.model.Item
+import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.data.model.Visibility
 import app.fediferry.di.ServiceLocator
@@ -38,6 +39,7 @@ import kotlinx.coroutines.launch
 data class EditorState(
     val item: Item? = null,
     val templates: List<Template> = emptyList(),
+    val placeholderKeys: List<PlaceholderKey> = emptyList(),
     val accounts: List<Account> = emptyList(),
     val altTextBusy: Boolean = false,
     val message: String? = null,
@@ -57,6 +59,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 item = repo.byId(itemId),
                 templates = repo.templates(),
+                placeholderKeys = db.placeholderKeys().all(),
                 accounts = db.accounts().all(),
                 loaded = true,
             )
@@ -74,13 +77,18 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun setVisibility(visibility: Visibility) = edit { it.copy(visibility = visibility) }
     fun setAccount(accountId: String) = edit { it.copy(accountId = accountId) }
 
-    /** Re-renders the body from another template, discarding manual edits. */
+    /**
+     * Re-renders the body from another template, discarding manual edits. The
+     * item keeps the data its source sent, so the new template's placeholders
+     * fill from it too.
+     */
     fun applyTemplate(template: Template) = edit { item ->
         item.copy(
             templateId = template.id,
             bodyText = TemplateEngine.render(
                 template,
-                TemplateEngine.Inputs(link = item.sourceUrl),
+                _state.value.placeholderKeys,
+                TemplateEngine.inputsOf(item),
             ),
             visibility = template.visibility,
             contentWarning = template.contentWarning,

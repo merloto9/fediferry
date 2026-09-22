@@ -19,6 +19,7 @@
  */
 package app.fediferry
 
+import app.fediferry.data.model.ContentSource
 import app.fediferry.link.RedditResolver
 import kotlinx.coroutines.test.runTest
 import okhttp3.Interceptor
@@ -119,7 +120,7 @@ class RedditResolverTest {
         assertEquals("image/jpeg", post.mimeType)
         assertEquals(
             "I’ve found a few funny memories during lockdown. This is from my 1st tour in 89, backstage in Vegas.",
-            post.caption,
+            post.fields["title"],
         )
     }
 
@@ -132,7 +133,7 @@ class RedditResolverTest {
             post.mediaUrl,
         )
         assertEquals("image/jpeg", post.mimeType)
-        assertEquals("The Next Episode", post.caption)
+        assertEquals("The Next Episode", post.fields["title"])
     }
 
     @Test
@@ -159,7 +160,7 @@ class RedditResolverTest {
         assertTrue(post.mediaUrl, post.mediaUrl.startsWith("https://packaged-media.redd.it/5tvnzx4871rh1/pb/m2-res_760p.mp4?"))
         assertTrue("entities must be unescaped", "&amp;" !in post.mediaUrl)
         assertEquals("video/mp4", post.mimeType)
-        assertEquals("So how's your new year resolutions going", post.caption)
+        assertEquals("So how's your new year resolutions going", post.fields["title"])
     }
 
     @Test
@@ -234,7 +235,7 @@ class RedditResolverTest {
         val post = RedditResolver(http).resolve("https://www.reddit.com/r/comics/s/Ab3dEf9Hij").getOrThrow()
 
         assertEquals("https://i.redd.it/qlmiuotnsyqh1.jpg", post.mediaUrl)
-        assertEquals("The Next Episode", post.caption)
+        assertEquals("The Next Episode", post.fields["title"])
         assertTrue("the post page itself is never fetched", seen.none { it.contains("www.reddit.com/r/comics/comments") })
     }
 
@@ -263,7 +264,7 @@ class RedditResolverTest {
 
         val post = RedditResolver(http).resolve("https://redd.it/1wmu6f7").getOrThrow()
 
-        assertEquals("The Next Episode", post.caption)
+        assertEquals("The Next Episode", post.fields["title"])
         assertEquals(2, seen.count { it.startsWith("GET https://embed.reddit.com/") })
     }
 
@@ -303,6 +304,16 @@ class RedditResolverTest {
                 .build()
         })
         .build()
+
+    // --- source fields ---------------------------------------------------
+
+    @Test
+    fun `sends the subreddit alongside the title`() {
+        val fields = RedditResolver.parse(fixture("reddit_image.html")).getOrThrow().fields
+
+        assertEquals("pics", fields["subreddit"])
+        assertTrue(ContentSource.REDDIT.fields.map { it.name }.containsAll(fields.keys))
+    }
 
     private companion object {
         val NO_HTTP = OkHttpClient()

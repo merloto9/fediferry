@@ -137,4 +137,78 @@ class MigrationTest {
             assertEquals(0, c.getInt(0))
         }
     }
+
+    /**
+     * 4 → 5 adds the placeholder layer. A draft and a template written before
+     * it must come through untouched, and {caption} must arrive as a
+     * user-defined placeholder carrying its old mappings — minus Pinterest's.
+     */
+    @Test
+    fun migrate4To5SeedsCaptionAndKeepsDraftsAndTemplates() {
+        helper.createDatabase(database, 4).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO items
+                  (id, mediaPath, originalMediaPath, mediaHash, mimeType, sourceUrl,
+                   bodyText, altText, altTextFailed, contentWarning, visibility,
+                   templateId, accountId, status, failureReason, createdAt, postedAt,
+                   statusUrl, scheduledAt)
+                VALUES
+                  ('draft', '/data/media/c.jpg', NULL, 'cde', 'image/jpeg',
+                   'https://9gag.com/gag/abc', 'A joke #meme', NULL, 0, NULL, 'PUBLIC',
+                   'default', NULL, 'DRAFT', NULL, 1700000000000, NULL, NULL, NULL)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT INTO templates
+                  (id, name, body, tags, visibility, contentWarning, altTextMode,
+                   staticAltText, accountId, isDefault, sortOrder)
+                VALUES ('default', 'Meme', '{caption} {tags}', '#meme', 'PUBLIC',
+                        NULL, 'NONE', NULL, NULL, 1, 0)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(database, 5, true, AppDatabase.MIGRATION_4_5)
+
+        db.query("SELECT bodyText, origin, sourceFields FROM items WHERE id = 'draft'").use { c ->
+            assertTrue("the draft was lost", c.moveToFirst())
+            assertEquals("A joke #meme", c.getString(0))
+            assertNull(c.getString(1))
+            assertEquals("{}", c.getString(2))
+        }
+        db.query("SELECT body, excludedSources FROM templates WHERE id = 'default'").use { c ->
+            assertTrue("the template was lost", c.moveToFirst())
+            assertEquals("{caption} {tags}", c.getString(0))
+            assertEquals("", c.getString(1))
+        }
+        db.query("SELECT name, mappings FROM placeholder_keys").use { c ->
+            assertTrue("{caption} was not seeded", c.moveToFirst())
+            assertEquals("caption", c.getString(0))
+            val mappings = c.getString(1)
+            assertTrue(mappings, "\"NINEGAG\":\"{title}\"" in mappings)
+            assertTrue(mappings, "\"REDDIT\":\"{title}\"" in mappings)
+            assertTrue(mappings, "\"YOUTUBE\":\"{text}\"" in mappings)
+            assertTrue("Pinterest must no longer fill {caption}: $mappings", "PINTEREST" !in mappings)
+            assertEquals(1, c.count)
+        }
+    }
+
+    @Test
+    fun migratingAllTheWayFrom1To5Works() {
+        helper.createDatabase(database, 1).close()
+        helper.runMigrationsAndValidate(
+            database,
+            5,
+            true,
+            AppDatabase.MIGRATION_1_2,
+            AppDatabase.MIGRATION_2_3,
+            AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5,
+        ).query("SELECT COUNT(*) FROM placeholder_keys").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(1, c.getInt(0))
+        }
+    }
 }

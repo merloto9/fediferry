@@ -41,7 +41,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,10 +65,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.fediferry.data.model.Visibility
 import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.PlaceholderHelpDialog
 import app.fediferry.ui.StableTextField
+import app.fediferry.ui.VisibilityPicker
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -87,7 +86,7 @@ fun EditorScreen(
     var showPlaceholderHelp by remember { mutableStateOf(false) }
 
     if (showPlaceholderHelp) {
-        PlaceholderHelpDialog(onDismiss = { showPlaceholderHelp = false })
+        PlaceholderHelpDialog(keys = state.placeholderKeys, onDismiss = { showPlaceholderHelp = false })
     }
 
     LaunchedEffect(itemId) { viewModel.load(itemId) }
@@ -192,6 +191,11 @@ fun EditorScreen(
                             "Automatic description failed — the post will go out without one.",
                             color = MaterialTheme.colorScheme.error,
                         )
+                    } else {
+                        Text(
+                            "For people who cannot see the picture. Say what it shows, " +
+                                "including any text in it. Screen readers read this aloud.",
+                        )
                     }
                 },
                 minLines = 2,
@@ -214,16 +218,11 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Text("Visibility", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Visibility.entries.forEach { visibility ->
-                    FilterChip(
-                        selected = item.visibility == visibility,
-                        onClick = { viewModel.setVisibility(visibility) },
-                        label = { Text(visibility.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                    )
-                }
-            }
+            VisibilityPicker(
+                selected = item.visibility,
+                onSelect = viewModel::setVisibility,
+                text = item.bodyText,
+            )
 
             AccountPicker(state, viewModel)
 

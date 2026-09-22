@@ -27,6 +27,7 @@ import app.fediferry.data.model.Account
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.AltTextMode
+import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
@@ -42,6 +43,7 @@ import java.util.UUID
 data class SettingsState(
     val accounts: List<Account> = emptyList(),
     val templates: List<Template> = emptyList(),
+    val placeholderKeys: List<PlaceholderKey> = emptyList(),
     val cleanupProfiles: List<CleanupProfile> = emptyList(),
     val cleanupRules: List<ProfileRule> = emptyList(),
     val settings: Settings = Settings(),
@@ -62,6 +64,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            db.placeholderKeys().observeAll().collect { keys ->
+                _state.update { it.copy(placeholderKeys = keys) }
+            }
+        }
         viewModelScope.launch {
             combine(
                 cleanupDao.observeProfiles(),
@@ -153,6 +160,30 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteTemplate(id: String) = viewModelScope.launch { db.templates().delete(id) }
+
+    // --- placeholders ----------------------------------------------------
+
+    /** Refuses a name that is malformed, built in, or already taken by another key. */
+    fun savePlaceholderKey(key: PlaceholderKey) = viewModelScope.launch {
+        val name = key.name.trim()
+        val taken = _state.value.placeholderKeys.any { it.id != key.id && it.name == name }
+        if (!PlaceholderKey.isValidName(name) || taken) {
+            _state.update { it.copy(message = "{$name} cannot be used as a placeholder name") }
+            return@launch
+        }
+        db.placeholderKeys().upsert(key.copy(name = name, mappings = key.mappings.filterValues { it.isNotBlank() }))
+        _state.update { it.copy(message = "{$name} saved") }
+    }
+
+    fun newPlaceholderKey() = viewModelScope.launch {
+        val taken = _state.value.placeholderKeys.map { it.name }.toSet()
+        val name = generateSequence(1) { it + 1 }.map { "field$it" }.first { it !in taken }
+        db.placeholderKeys().upsert(
+            PlaceholderKey(id = UUID.randomUUID().toString(), name = name, sortOrder = db.placeholderKeys().count()),
+        )
+    }
+
+    fun deletePlaceholderKey(id: String) = viewModelScope.launch { db.placeholderKeys().delete(id) }
 
     fun makeDefaultTemplate(id: String) =
         viewModelScope.launch { db.templates().setDefault(id) }

@@ -21,10 +21,16 @@ package app.fediferry.data.db
 
 import androidx.room.TypeConverter
 import app.fediferry.data.model.AltTextMode
+import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.SourceKind
 import app.fediferry.data.model.Visibility
 import app.fediferry.media.cleanup.TreatmentKind
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class Converters {
     @TypeConverter fun visibilityToString(v: Visibility): String = v.name
@@ -41,4 +47,22 @@ class Converters {
 
     @TypeConverter fun treatmentToString(v: TreatmentKind): String = v.name
     @TypeConverter fun stringToTreatment(v: String): TreatmentKind = TreatmentKind.valueOf(v)
+
+    @TypeConverter fun contentSourceToString(v: ContentSource?): String? = v?.name
+    @TypeConverter fun stringToContentSource(v: String?): ContentSource? = ContentSource.fromName(v)
+
+    /** A source that no longer exists is dropped rather than failing the whole row. */
+    @TypeConverter fun sourcesToString(v: Set<ContentSource>): String =
+        v.sortedBy { it.ordinal }.joinToString(",") { it.name }
+
+    @TypeConverter fun stringToSources(v: String): Set<ContentSource> =
+        v.split(",").mapNotNull { ContentSource.fromName(it.trim()) }.toSet()
+
+    @TypeConverter fun stringMapToString(v: Map<String, String>): String =
+        JsonObject(v.mapValues { JsonPrimitive(it.value) }).toString()
+
+    /** Unreadable data degrades to no data: it only ever feeds placeholders. */
+    @TypeConverter fun stringToStringMap(v: String): Map<String, String> = runCatching {
+        Json.parseToJsonElement(v).jsonObject.mapValues { it.value.jsonPrimitive.content }
+    }.getOrDefault(emptyMap())
 }

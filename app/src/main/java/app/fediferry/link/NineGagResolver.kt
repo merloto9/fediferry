@@ -19,9 +19,11 @@
  */
 package app.fediferry.link
 
+import app.fediferry.data.model.ContentSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
@@ -38,7 +40,7 @@ import okhttp3.Request
  */
 class NineGagResolver(private val http: OkHttpClient) : LinkResolver {
 
-    override val serviceName = "9GAG"
+    override val source = ContentSource.NINEGAG
 
     override fun handles(url: String): Boolean = idOf(url) != null
 
@@ -91,7 +93,25 @@ class NineGagResolver(private val http: OkHttpClient) : LinkResolver {
                     ?.takeIf { it.isNotBlank() }
 
             val type = post["type"]?.jsonPrimitive?.contentOrNullSafe()
-            val caption = post["title"]?.jsonPrimitive?.contentOrNullSafe()?.takeIf { it.isNotBlank() }
+            fun text(key: String): String? = post[key]?.jsonPrimitive?.contentOrNullSafe()
+            fun nested(key: String, inner: String): String? =
+                runCatching { post[key]?.jsonObject?.get(inner)?.jsonPrimitive?.contentOrNullSafe() }.getOrNull()
+            val hashtags = runCatching {
+                post["tags"]?.jsonArray?.mapNotNull { tag ->
+                    tag.jsonObject["key"]?.jsonPrimitive?.contentOrNullSafe()
+                        ?.replace(Regex("""[^\p{L}\p{N}_]"""), "")
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { "#$it" }
+                }?.joinToString(" ")
+            }.getOrNull()
+            val fields = fieldsOf(
+                "title" to text("title"),
+                "description" to text("description"),
+                "hashtags" to hashtags,
+                "section" to nested("postSection", "name"),
+                "author" to nested("creator", "username"),
+                "alt" to text("altText"),
+            )
 
             // An animated post's still frames are the wrong thing to post, so the
             // mp4 wins when there is one.
@@ -99,8 +119,8 @@ class NineGagResolver(private val http: OkHttpClient) : LinkResolver {
             val still = url("image700") ?: url("image460")
 
             val media = when {
-                video != null -> ResolvedPost(video, "video/mp4", caption)
-                still != null -> ResolvedPost(still, mimeOf(still), caption)
+                video != null -> ResolvedPost(video, "video/mp4", fields)
+                still != null -> ResolvedPost(still, mimeOf(still), fields)
                 else -> error("9GAG post $type has no media to attach")
             }
             media

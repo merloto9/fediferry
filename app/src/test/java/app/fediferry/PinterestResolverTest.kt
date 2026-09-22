@@ -19,6 +19,7 @@
  */
 package app.fediferry
 
+import app.fediferry.data.model.ContentSource
 import app.fediferry.link.PinterestResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -118,7 +119,7 @@ class PinterestResolverTest {
     fun `carries the pin's title without Pinterest's keyword tail`() {
         val post = PinterestResolver.parse(fixture("pinterest_pin_titled.html")).getOrThrow()
 
-        assertEquals("Hydrangeas Art Print", post.caption)
+        assertEquals("Hydrangeas Art Print", post.fields["title"])
     }
 
     @Test
@@ -128,7 +129,7 @@ class PinterestResolverTest {
         val post = PinterestResolver.parse(html).getOrThrow()
 
         assertNotNull(post.mediaUrl)
-        assertNull(post.caption)
+        assertNull(post.fields["title"])
     }
 
     @Test
@@ -138,7 +139,7 @@ class PinterestResolverTest {
         assertEquals(
             "Family Tree Quilt, Personalized Grandkids Names, Birthdates, " +
                 "Custom Embroidered Birthday Gift, for Grandparent, Parent, …",
-            post.caption,
+            post.fields["title"],
         )
     }
 
@@ -147,7 +148,7 @@ class PinterestResolverTest {
         val html = fixture("pinterest_pin_titled.html")
             .replace("Hydrangeas Art Print |", "Salt &amp; Pepper |")
 
-        assertEquals("Salt & Pepper", PinterestResolver.parse(html).getOrThrow().caption)
+        assertEquals("Salt & Pepper", PinterestResolver.parse(html).getOrThrow().fields["title"])
     }
 
     // --- the cases that must not resolve ----------------------------------
@@ -210,6 +211,17 @@ class PinterestResolverTest {
             "https://i.pinimg.com/736x/c1/3a/4c/c13a4cb89ddbbbcc374abc82ed5c2ec6.jpg",
             PinterestResolver.parse(html).getOrThrow().mediaUrl,
         )
+    }
+
+    // --- source fields ---------------------------------------------------
+
+    @Test
+    fun `sends the description as its own field, apart from the title`() {
+        val fields = PinterestResolver.parse(fixture("pinterest_pin_titled.html")).getOrThrow().fields
+
+        assertEquals("Hydrangeas Art Print", fields["title"])
+        assertTrue(fields["description"]!!.startsWith("Find the perfect handmade gift"))
+        assertTrue(ContentSource.PINTEREST.fields.map { it.name }.containsAll(fields.keys))
     }
 
     private companion object {

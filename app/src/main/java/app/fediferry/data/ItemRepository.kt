@@ -22,7 +22,9 @@ package app.fediferry.data
 import app.fediferry.data.db.AccountDao
 import app.fediferry.data.db.CleanupDao
 import app.fediferry.data.db.ItemDao
+import app.fediferry.data.db.PlaceholderKeyDao
 import app.fediferry.data.db.TemplateDao
+import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.Template
@@ -38,6 +40,7 @@ import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.media.cleanup.NoImageEditProvider
 import app.fediferry.share.SharePayload
 import app.fediferry.template.TemplateEngine
+import app.fediferry.template.TemplateEngine.inputsOf
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
@@ -57,7 +60,23 @@ class ItemRepository(
     private val editInstruction: suspend () -> String = { "" },
     private val resolvers: List<LinkResolver> = emptyList(),
     private val fetcher: MediaFetcher = MediaFetcher { Result.failure(UnsupportedOperationException()) },
+    private val placeholderKeys: PlaceholderKeyDao? = null,
 ) {
+
+    /** Renders with the user's own placeholders as well as the built-in ones. */
+    private suspend fun render(template: Template, inputs: TemplateEngine.Inputs): String =
+        TemplateEngine.render(template, placeholderKeys?.all().orEmpty(), inputs)
+
+    /**
+     * The body [after] should have, given the one [before] had. Only a body that
+     * is still exactly what its template produced is rewritten: anything else
+     * means the user edited it, and their text is not ours to overwrite.
+     */
+    private suspend fun rerender(before: Item, after: Item): String {
+        val template = resolveTemplate(before.templateId)
+        if (before.bodyText != render(template, inputsOf(before))) return before.bodyText
+        return render(template, inputsOf(after))
+    }
 
     fun observeInbox(): Flow<List<Item>> = items.observeInbox()
     fun observeHistory(): Flow<List<Item>> = items.observeHistory()
@@ -120,10 +139,7 @@ class ItemRepository(
 
         pair(payload, stored, status)?.let { return@runCatching it }
 
-        val body = TemplateEngine.render(
-            template,
-            TemplateEngine.Inputs(link = payload.link),
-        )
+        val body = render(template, TemplateEngine.Inputs(link = payload.link))
 
         val item = Item(
             id = UUID.randomUUID().toString(),
@@ -178,28 +194,13 @@ class ItemRepository(
 
         if (stored == null && payload.link != null) {
             val waiting = items.latestAwaitingLink(since) ?: return null
-            val merged = waiting.copy(
-                sourceUrl = payload.link,
-                bodyText = relink(waiting, payload.link),
-                status = status,
-            )
+            val linked = waiting.copy(sourceUrl = payload.link, status = status)
+            val merged = linked.copy(bodyText = rerender(waiting, linked))
             items.update(merged)
             return Ingested(merged, Ingested.Outcome.PAIRED)
         }
 
         return null
-    }
-
-    /**
-     * Re-renders a draft's body now that a link is available — but only if the
-     * body is still exactly what the template produced without one. Anything else
-     * means the user has edited it, and their text is not ours to overwrite.
-     */
-    private suspend fun relink(item: Item, link: String): String {
-        val template = resolveTemplate(item.templateId)
-        val unlinked = TemplateEngine.render(template, TemplateEngine.Inputs(link = null))
-        if (item.bodyText != unlinked) return item.bodyText
-        return TemplateEngine.render(template, TemplateEngine.Inputs(link = link))
     }
 
     suspend fun update(item: Item) = items.update(item)
@@ -208,15 +209,15 @@ class ItemRepository(
      * Turns a picture picked in the Sources space into an item, so it lands in
      * the same editor as a share or a screenshot.
      *
-     * The post's own text feeds `{caption}` and its permalink feeds `{link}`,
-     * which is what those placeholders were for. An identical picture already
+     * The post's text and channel become its YouTube fields, for the user's
+     * placeholders to map, and its permalink feeds `{link}`. An identical picture already
      * waiting as a draft is reused rather than duplicated, the same rule a
      * repeated share follows.
      */
     suspend fun ingestFromSource(
         imageUrl: String,
         permalink: String,
-        caption: String?,
+        fields: Map<String, String>,
         templateId: String? = null,
         status: Status = Status.DRAFT,
     ): Result<Item> = runCatching {
@@ -232,10 +233,12 @@ class ItemRepository(
             mediaHash = stored.sha256,
             mimeType = stored.mimeType,
             sourceUrl = permalink,
-            bodyText = TemplateEngine.render(
+            bodyText = render(
                 template,
-                TemplateEngine.Inputs(link = permalink, caption = caption),
+                TemplateEngine.Inputs(link = permalink, source = ContentSource.YOUTUBE, fields = fields),
             ),
+            origin = ContentSource.YOUTUBE,
+            sourceFields = fields,
             contentWarning = template.contentWarning,
             visibility = template.visibility,
             templateId = template.id,
@@ -287,7 +290,8 @@ class ItemRepository(
             DebugLog.w(LOG, "$name declined ${hostOf(url)}", error)
             return item
         }
-        DebugLog.d(LOG, "$name resolved ${hostOf(url)} to ${post.mimeType}, caption ${if (post.caption == null) "none" else "yes"}")
+        // Which fields came back, never what they say.
+        DebugLog.d(LOG, "$name resolved ${hostOf(url)} to ${post.mimeType}, fields ${post.fields.keys.sorted()}")
 
         val bytes = fetcher.fetch(post.mediaUrl).getOrElse { error ->
             DebugLog.w(LOG, "Download failed for the media $name pointed at", error)
@@ -306,12 +310,15 @@ class ItemRepository(
             return existing
         }
 
-        val resolved = item.copy(
+        val fetched = item.copy(
             mediaPath = stored.file.absolutePath,
             mediaHash = stored.sha256,
             mimeType = stored.mimeType,
-            bodyText = recaption(item, post.caption),
+            origin = resolver.source,
+            sourceFields = post.fields,
         )
+        // Now the post's own data is known, the placeholders mapped to it fill in.
+        val resolved = fetched.copy(bodyText = rerender(item, fetched))
         items.update(resolved)
         return resolved
     }
@@ -319,25 +326,6 @@ class ItemRepository(
     /** Only the host reaches the log; the rest of a link can identify a person. */
     private fun hostOf(url: String): String =
         runCatching { java.net.URI(url.trim()).host ?: "an unknown host" }.getOrDefault("an unknown host")
-
-    /**
-     * Re-renders the body now that the post's own title is known, so a template
-     * using `{caption}` fills in. Same guard as [relink]: only a body that is
-     * still exactly the template's output is touched.
-     */
-    private suspend fun recaption(item: Item, caption: String?): String {
-        if (caption.isNullOrBlank()) return item.bodyText
-        val template = resolveTemplate(item.templateId)
-        val withoutCaption = TemplateEngine.render(
-            template,
-            TemplateEngine.Inputs(link = item.sourceUrl),
-        )
-        if (item.bodyText != withoutCaption) return item.bodyText
-        return TemplateEngine.render(
-            template,
-            TemplateEngine.Inputs(link = item.sourceUrl, caption = caption),
-        )
-    }
 
     /**
      * What the cropper thinks should be trimmed off this item's screenshot, or

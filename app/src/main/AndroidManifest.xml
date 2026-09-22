@@ -92,5 +92,20 @@
             android:name="android.app.shortcuts"
             android:resource="@xml/shortcuts" />
 
-    </application>
+    
+        <!--
+          Hands the exported log to whichever messenger the user picks, and
+          nothing else: the path list covers the export directory alone.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.logs"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+</application>
 </manifest>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Only the exported log is reachable. Media lives in app-private storage and is
+  never handed out through this provider.
+-->
+<paths>
+    <cache-path name="logs" path="logs/" />
+</paths>

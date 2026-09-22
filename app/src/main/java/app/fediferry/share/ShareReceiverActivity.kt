@@ -31,6 +31,7 @@ import app.fediferry.data.ItemRepository
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
+import app.fediferry.log.DebugLog
 import app.fediferry.work.Notifications
 import app.fediferry.work.PostScheduler
 import kotlinx.coroutines.launch
@@ -58,6 +59,13 @@ class ShareReceiverActivity : ComponentActivity() {
         }
 
         ShortcutManagerCompat.reportShortcutUsed(this, mode.shortcutId)
+        // Shape only — how many pictures, whether a link came along, from
+        // which app. Never the text, never the link itself.
+        DebugLog.d(
+            LOG,
+            "$mode share from ${callingPackage ?: referrer?.host ?: "an unknown app"}: " +
+                "${payload.imageUris.size} image(s), link ${if (payload.link == null) "no" else "yes"}",
+        )
 
         lifecycleScope.launch {
             val repo = ServiceLocator.items(this@ShareReceiverActivity)
@@ -76,6 +84,7 @@ class ShareReceiverActivity : ComponentActivity() {
                     // NoClassDefFoundError's message is just the mangled class
                     // name). The payload itself is never logged.
                     Log.e(TAG, "Ingest failed for a $mode share", error)
+                    DebugLog.w(LOG, "Ingest failed for a $mode share", error)
                     toast("Could not read the share: ${error.describe()}")
                     finish()
                 },
@@ -207,6 +216,8 @@ class ShareReceiverActivity : ComponentActivity() {
 
     private companion object {
         const val TAG = "ShareReceiver"
+
+        private const val LOG = "share"
 
         /**
          * Below this the suggestion is not trustworthy enough to apply behind

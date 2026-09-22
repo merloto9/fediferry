@@ -29,12 +29,14 @@ import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
 import app.fediferry.di.ServiceLocator
+import app.fediferry.log.DebugLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.UUID
 
 data class SettingsState(
@@ -45,6 +47,8 @@ data class SettingsState(
     val settings: Settings = Settings(),
     val connecting: Boolean = false,
     val message: String? = null,
+    /** Bytes the log currently holds; drives the diagnostics readout. */
+    val logSizeBytes: Long = 0,
 )
 
 class SettingsViewModel(app: Application) : AndroidViewModel(app) {
@@ -76,11 +80,44 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
                 Triple(accounts, templates, settings)
             }.collect { (accounts, templates, settings) ->
                 _state.update {
-                    it.copy(accounts = accounts, templates = templates, settings = settings)
+                    it.copy(
+                        accounts = accounts,
+                        templates = templates,
+                        settings = settings,
+                        logSizeBytes = DebugLog.sizeBytes(),
+                    )
                 }
             }
         }
     }
+
+    // --- diagnostics -----------------------------------------------------
+
+    fun setDebugLogging(enabled: Boolean) = viewModelScope.launch {
+        settingsStore.setDebugLogging(enabled)
+        // The Application's collector flips the logger itself; this only keeps
+        // the readout honest once the first lines have landed.
+        refreshLogSize()
+    }
+
+    fun clearLog() = viewModelScope.launch {
+        DebugLog.clear()
+        refreshLogSize()
+        _state.update { it.copy(message = "Log cleared") }
+    }
+
+    /**
+     * Gathers the log into one file to hand to a messenger. Null when there is
+     * nothing recorded yet, which the screen reports rather than sharing an
+     * empty file.
+     */
+    suspend fun exportLog(): File? {
+        val file = DebugLog.export(File(getApplication<Application>().cacheDir, "logs"))
+        if (file == null) _state.update { it.copy(message = "Nothing logged yet") }
+        return file
+    }
+
+    fun refreshLogSize() = _state.update { it.copy(logSizeBytes = DebugLog.sizeBytes()) }
 
     fun connect(instance: String) = viewModelScope.launch {
         if (instance.isBlank()) {

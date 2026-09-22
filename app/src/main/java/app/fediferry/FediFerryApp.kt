@@ -20,17 +20,21 @@
 package app.fediferry
 
 import android.app.Application
+import java.io.File
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.video.VideoFrameDecoder
 import app.fediferry.di.ServiceLocator
+import app.fediferry.log.DebugLog
 import app.fediferry.share.ShortcutPublisher
 import app.fediferry.work.Notifications
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class FediFerryApp : Application(), SingletonImageLoader.Factory {
@@ -60,6 +64,16 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         Notifications.ensureChannels(this)
         ShortcutPublisher.publish(this)
+
+        // Installed before anything can log, and left off until the setting
+        // says otherwise; the collector outlives the app's other work.
+        DebugLog.install(File(filesDir, "logs"), BuildConfig.VERSION_NAME)
+        scope.launch {
+            ServiceLocator.settings(this@FediFerryApp).settings
+                .map { it.debugLogging }
+                .distinctUntilChanged()
+                .collect { DebugLog.setEnabled(it) }
+        }
 
         scope.launch {
             val repo = ServiceLocator.items(this@FediFerryApp)

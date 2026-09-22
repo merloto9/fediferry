@@ -27,6 +27,7 @@ import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.Template
 import app.fediferry.link.LinkResolver
+import app.fediferry.log.DebugLog
 import app.fediferry.link.MediaFetcher
 import app.fediferry.media.ScreenshotAnalyzer
 import app.fediferry.media.ScreenshotCropper
@@ -265,11 +266,28 @@ class ItemRepository(
     suspend fun resolveLinkMedia(item: Item): Item {
         if (item.mediaPath != null) return item
         val url = item.sourceUrl ?: return item
-        val resolver = resolvers.firstOrNull { it.handles(url) } ?: return item
+        val resolver = resolvers.firstOrNull { it.handles(url) }
+        if (resolver == null) {
+            DebugLog.d(LOG, "No resolver for ${hostOf(url)} — the screenshot path it is")
+            return item
+        }
+        val name = resolver.javaClass.simpleName
 
-        val post = resolver.resolve(url).getOrElse { return item }
-        val bytes = fetcher.fetch(post.mediaUrl).getOrElse { return item }
-        val stored = media.store(bytes, post.mimeType).getOrElse { return item }
+        val post = resolver.resolve(url).getOrElse { error ->
+            DebugLog.w(LOG, "$name declined ${hostOf(url)}", error)
+            return item
+        }
+        DebugLog.d(LOG, "$name resolved ${hostOf(url)} to ${post.mimeType}, caption ${if (post.caption == null) "none" else "yes"}")
+
+        val bytes = fetcher.fetch(post.mediaUrl).getOrElse { error ->
+            DebugLog.w(LOG, "Download failed for the media $name pointed at", error)
+            return item
+        }
+        val stored = media.store(bytes, post.mimeType).getOrElse { error ->
+            DebugLog.w(LOG, "Could not store ${bytes.size} bytes from $name", error)
+            return item
+        }
+        DebugLog.d(LOG, "$name attached ${bytes.size} bytes as ${stored.mimeType}")
 
         // The same post resolved twice while still a draft is the same bytes,
         // so fold into it rather than leaving a duplicate behind.
@@ -287,6 +305,10 @@ class ItemRepository(
         items.update(resolved)
         return resolved
     }
+
+    /** Only the host reaches the log; the rest of a link can identify a person. */
+    private fun hostOf(url: String): String =
+        runCatching { java.net.URI(url.trim()).host ?: "an unknown host" }.getOrDefault("an unknown host")
 
     /**
      * Re-renders the body now that the post's own title is known, so a template
@@ -446,6 +468,8 @@ class ItemRepository(
     }
 
     companion object {
+        private const val LOG = "share"
+
         /**
          * How long a half-finished Instagram share stays open to pairing. Long
          * enough to screenshot and share, short enough that an unrelated share

@@ -27,6 +27,7 @@ import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
+import app.fediferry.log.DebugLog
 import app.fediferry.mastodon.MastodonException
 
 /**
@@ -66,6 +67,7 @@ class PostWorker(
                     failureReason = null,
                 ),
             )
+            DebugLog.d(LOG, "Posted item $itemId${if (posted.altTextFailed) " (alt text failed)" else ""}")
             Notifications.showResult(app, itemId, "Posted", posted.url ?: "Sent to Mastodon")
             Result.success()
         } catch (e: MastodonException) {
@@ -149,6 +151,7 @@ class PostWorker(
     private suspend fun fail(item: Item, reason: String, retry: Boolean): Result {
         val app = applicationContext
         val repo = ServiceLocator.items(app)
+        DebugLog.w(LOG, "Item ${item.id} failed on attempt $runAttemptCount, retryable=$retry: $reason")
         if (retry && runAttemptCount < MAX_ATTEMPTS) {
             repo.update(item.copy(status = Status.QUEUED, failureReason = reason))
             return Result.retry()
@@ -172,6 +175,8 @@ class PostWorker(
     }
 
     companion object {
+        private const val LOG = "post"
+
         const val KEY_ITEM_ID = "item_id"
         private const val MAX_ATTEMPTS = 5
     }

@@ -54,6 +54,12 @@ data class Settings(
     val resolveLinks: Boolean = true,
     /** The cleanup profile used last; the one almost always wanted again. */
     val lastCleanupProfileId: String = "",
+    /**
+     * Record what the app does to a file that can be exported and sent on.
+     * Off by default: it is for chasing a problem, not for everyday running.
+     * Events only — never tokens, never post text.
+     */
+    val debugLogging: Boolean = false,
 
     // --- the image model used by the "Erase with AI" treatment -----------
     val imageEndpoint: String = "",
@@ -84,6 +90,7 @@ class SettingsStore(private val context: Context) {
         val autoCrop = booleanPreferencesKey("auto_crop")
         val resolveLinks = booleanPreferencesKey("resolve_links")
         val lastCleanupProfile = stringPreferencesKey("last_cleanup_profile")
+        val debugLogging = booleanPreferencesKey("debug_logging")
         val imageEndpoint = stringPreferencesKey("image_endpoint")
         val imageModel = stringPreferencesKey("image_model")
         val imageApiKey = stringPreferencesKey("image_api_key")
@@ -103,6 +110,7 @@ class SettingsStore(private val context: Context) {
             autoCrop = p[Keys.autoCrop] ?: true,
             resolveLinks = p[Keys.resolveLinks] ?: true,
             lastCleanupProfileId = p[Keys.lastCleanupProfile].orEmpty(),
+            debugLogging = p[Keys.debugLogging] ?: false,
             imageEndpoint = p[Keys.imageEndpoint].orEmpty(),
             imageModel = p[Keys.imageModel].orEmpty(),
             imageApiKey = p[Keys.imageApiKey].orEmpty(),
@@ -129,6 +137,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setLastCleanupProfile(id: String) = edit { it[Keys.lastCleanupProfile] = id }
     suspend fun setResolveLinks(enabled: Boolean) = edit { it[Keys.resolveLinks] = enabled }
     suspend fun setAutoCrop(enabled: Boolean) = edit { it[Keys.autoCrop] = enabled }
+    suspend fun setDebugLogging(enabled: Boolean) = edit { it[Keys.debugLogging] = enabled }
     suspend fun setPurgeAfterDays(days: Int) = edit { it[Keys.purgeAfterDays] = days.coerceAtLeast(0) }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {

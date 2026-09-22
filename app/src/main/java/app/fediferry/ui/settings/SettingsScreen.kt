@@ -19,6 +19,9 @@
  */
 package app.fediferry.ui.settings
 
+import android.content.ClipData
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -53,12 +57,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Template
@@ -69,6 +76,8 @@ import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.ui.PlaceholderHelpDialog
 import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.StableTextField
+import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,6 +132,8 @@ fun SettingsScreen(
             ImageModelSection(state, viewModel)
             HorizontalDivider()
             VisionSection(state, viewModel)
+            HorizontalDivider()
+            DiagnosticsSection(state, viewModel)
         }
     }
 }
@@ -304,8 +315,8 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
             Text("Fetch images from shared links")
             Text(
                 "When a link is shared on its own, get the image from the service " +
-                    "instead of waiting for a screenshot. Works for 9GAG; Instagram " +
-                    "publishes nothing to fetch.",
+                    "instead of waiting for a screenshot. Works for 9GAG and Pinterest; " +
+                    "Instagram publishes nothing to fetch.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -562,4 +573,83 @@ private fun VisionSection(state: SettingsState, viewModel: SettingsViewModel) {
 @Composable
 private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MaterialTheme.typography.titleMedium, modifier = modifier)
+}
+
+@Composable
+private fun DiagnosticsSection(state: SettingsState, viewModel: SettingsViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    SectionTitle("Diagnostics")
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Keep a log")
+            Text(
+                "Records what the app does — a share arriving, a link resolving, a " +
+                    "post failing — so a problem can be looked at afterwards. Access " +
+                    "tokens and post text are never written down.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Switch(
+            checked = state.settings.debugLogging,
+            onCheckedChange = viewModel::setDebugLogging,
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (state.logSizeBytes == 0L) "Nothing logged yet" else "Log: ${formatSize(state.logSizeBytes)}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+        Button(
+            onClick = {
+                scope.launch {
+                    viewModel.exportLog()?.let { shareLog(context, it) }
+                }
+            },
+            enabled = state.logSizeBytes > 0,
+        ) {
+            Icon(Icons.Default.Share, contentDescription = null)
+            Text("Send log", modifier = Modifier.padding(start = 8.dp))
+        }
+        TextButton(onClick = viewModel::clearLog, enabled = state.logSizeBytes > 0) {
+            Text("Clear")
+        }
+    }
+}
+
+/**
+ * Hands the exported file to whichever messenger the user picks.
+ *
+ * The URI comes from the app's FileProvider and is granted read permission for
+ * this one send; the file itself stays in the app's cache.
+ */
+private fun shareLog(context: Context, file: File) {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.logs", file)
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, file.name)
+        // Some messengers read the ClipData rather than the extra.
+        clipData = ClipData.newRawUri(file.name, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(send, "Send the log"))
+}
+
+/** Bytes as something a person reads at a glance. */
+private fun formatSize(bytes: Long): String = when {
+    bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024))
+    bytes >= 1024 -> "${bytes / 1024} KB"
+    else -> "$bytes bytes"
 }

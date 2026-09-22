@@ -8,6 +8,24 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.8.0] — 2026-09-22
+
+### Added
+
+- **Sharing from Pinterest.** Share a pin, by `pin.it` link or full URL, and the
+  picture is fetched instead of waiting for a screenshot — at the size Pinterest
+  keeps, not the 736-pixel preview. The pin's title fills `{caption}`, without
+  the keyword tail Pinterest appends for search engines. No Pinterest account is
+  needed or asked for.
+- Video pins are declined rather than resolved. Their preview is a cover frame,
+  and posting a still of a video without saying so is the failure the 9GAG
+  resolver was written to avoid; the share falls back to the screenshot path.
+- **An opt-in log, and a button to send it.** *Settings → Diagnostics* records
+  what the app does — a share arriving, a resolver declining, a post failing and
+  why — and hands the file to any messenger through the share sheet. Off by
+  default, one rotation kept, a quarter of a megabyte each. Events only: no
+  access tokens, no post text, and links reduced to their host.
+
 ## [0.7.0] — 2026-09-22
 
 ### Added
@@ -262,6 +280,7 @@ Initial release. **Superseded — this build cannot ingest any share**; see 0.1.
 - `AltTextProvider` with none, static and vision implementations.
 - GitHub Actions release pipeline producing an Obtainium-installable APK.
 
+[0.8.0]: https://github.com/merloto9/fediferry/releases/tag/v0.8.0
 [0.7.0]: https://github.com/merloto9/fediferry/releases/tag/v0.7.0
 [0.6.0]: https://github.com/merloto9/fediferry/releases/tag/v0.6.0
 [0.5.1]: https://github.com/merloto9/fediferry/releases/tag/v0.5.1

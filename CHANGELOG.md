@@ -8,6 +8,15 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.14.1] — 2026-09-23
+
+### Fixed
+
+- **Obtainium did not offer 0.14.0.** Its APK was attached, but GitHub's list
+  of releases — what Obtainium reads — kept showing 0.14.0 without it, so
+  0.13.0 still looked like the newest installable version. The same code,
+  published again, so the file is listed.
+
 ## [0.14.0] — 2026-09-23
 
 ### Changed

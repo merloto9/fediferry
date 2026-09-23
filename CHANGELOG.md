@@ -8,6 +8,23 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.14.2] — 2026-09-23
+
+### Fixed
+
+- **Generated alt text came back cut off** — the first sentence, the last, or
+  a fragment that made no sense. The request allowed the model 300 tokens,
+  and models that think before answering — Gemini 2.5 and 3 among them, and
+  Gemini 3 cannot be told not to — spend part of that limit thinking. What
+  was left ran out mid-sentence, and the app kept the fragment as though it
+  were the whole description. The limit now leaves room for the thinking; an
+  answer that is still cut off is asked for again with more room, and one
+  cut off even then is reported instead of saved.
+- A reply sent as a list of text parts, as some compatible servers do, is now
+  read whole.
+- A description longer than Mastodon's 1500 characters is shortened at a
+  sentence end; before, the upload would have been refused.
+
 ## [0.14.1] — 2026-09-23
 
 ### Fixed

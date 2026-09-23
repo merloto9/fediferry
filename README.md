@@ -241,11 +241,18 @@ before it is applied. **Undo edits** always restores the original.
 
 ### Alt text
 
-Each template picks a mode: `NONE`, `STATIC` (a fixed string on the template) or
-`VISION` (a request to the endpoint configured in Settings). `VISION` speaks the
-OpenAI chat-completions shape, so any compatible server works — hosted, a
-gateway, or a local one. A failure never blocks a post: the item goes out
-without a description and is flagged so you can fill it in afterwards.
+Each template picks a mode: *None*, *Fixed text* (a string on the template) or
+*Generated* (a request to the model set in *Settings → Alt text*). *Generated*
+speaks the OpenAI chat-completions shape, so any compatible server works —
+hosted, a gateway, or a local one; Google's Gemini through its OpenAI-compatible
+endpoint included. A failure never blocks a post: the item goes out without a
+description and is flagged so you can fill it in afterwards.
+
+Reasoning models — Gemini 2.5 and 3, OpenAI's o-series — think before they
+answer, and the thinking counts against the reply's token limit. The request
+leaves room for that, asks once more with more room if the answer was still
+cut off, and never uses a description the model had to stop halfway through.
+Descriptions are kept within Mastodon's 1500 characters.
 
 ### When something goes wrong
 

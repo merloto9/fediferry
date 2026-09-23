@@ -25,12 +25,12 @@ offers each later release as an in-place update.
 
 ## First run
 
-1. **Settings → Accounts**: enter your instance host (`mastodon.social`) and
+1. **Settings → Mastodon account**: enter your instance host (`mastodon.social`) and
    tap Connect. A Custom Tab opens the instance's OAuth page; approving it
    returns to the app. The app registers itself per instance on first connect.
 2. **Settings → Templates**: edit the seeded `Meme` template. `{link}` and
    `{date}` are built in, `{tags}` becomes the post's hashtags, and any
-   placeholder defined under *Settings → Placeholders* works too. A placeholder with nothing to fill it resolves to
+   placeholder defined under *Settings → Placeholders & sources* works too. A placeholder with nothing to fill it resolves to
    an empty string and its whole line is dropped, so `{tags}\n\nvia {link}`
    does not post a dangling "via".
 3. Screenshot something, share it, and pick one of the three targets.
@@ -59,6 +59,23 @@ that is missing gets joined, and only within ten minutes; a share carrying both
 an image and a link stands on its own. If you have already edited a draft's text
 by hand, pairing leaves your wording alone.
 
+### Settings
+
+Settings opens on an overview, grouped by what you are doing. Each entry says
+what it is set to right now and opens a page of its own:
+
+| Group | Page | What is there |
+|---|---|---|
+| Account | Mastodon account | Connect, disconnect, pick the default |
+| Posts | Templates | Topics: body, hashtags, sources, visibility, alt text |
+| | Hashtags | The one list templates pick from |
+| | Placeholders & sources | Your placeholders, and what each source fills them with |
+| | Sharing & posting | Undo window, fetching from links, trimming, clean-up of old posts |
+| Pictures | Image clean-up | Clean-up profiles, and the model behind *Erase with AI* |
+| | Alt text | The model that describes pictures |
+| App | Appearance | Theme, colours, contrast |
+| | Diagnostics | The optional log |
+
 ### Sharing from 9GAG
 
 Share a 9GAG link on its own and the image is fetched for you — no screenshot,
@@ -71,7 +88,7 @@ degrades to nothing when it cannot be resolved. 9GAG also sends the post's
 hashtags, section, author and its own image description, for placeholders of
 your own — see [Placeholders](#placeholders).
 
-Turn this off with *Settings → Fetch images from shared links*. Instagram
+Turn this off with *Settings → Sharing & posting → Fetch images from shared links*. Instagram
 publishes nothing fetchable, so its shares are unaffected either way.
 
 ### Sharing from Pinterest
@@ -114,8 +131,9 @@ Two things are kept apart. A **template** is a topic: the hashtags it ticks,
 its visibility and alt-text setting, and a body that says how a post is laid
 out. A **placeholder** such as `{caption}` says what text goes into that layout.
 
-*Settings → Placeholders* holds the names. What each one says is set per source
-under *Settings → Source modules*, where every source the app can fetch from has
+*Settings → Placeholders & sources* holds the names at the top. What each one
+says is set per source further down that page, under *Source modules*, where
+every source the app can fetch from has
 a card of its own: what it recognises, the fields it sends, and one small recipe
 per placeholder written with those fields — `{title}` for 9GAG,
 `r/{subreddit}: {title}` for Reddit, nothing at all for Pinterest. A source

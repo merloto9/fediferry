@@ -79,7 +79,7 @@ val AltTextMode.explanation: String
                 "the editor when it matters."
         AltTextMode.VISION ->
             "The picture is sent to the image-describing model set up under " +
-                "Alt-text provider further down, and its answer becomes the description. Check it " +
+                "Settings → Alt text, and its answer becomes the description. Check it " +
                 "in the editor before posting; a post-now share sends it unread. If " +
                 "the model fails, the post goes out without one."
     }
@@ -148,7 +148,7 @@ fun AltTextModePicker(
         Explanation(selected.explanation)
         if (selected == AltTextMode.VISION && !visionConfigured) {
             Explanation(
-                "No model is set up yet — fill in Alt-text provider further down, or every " +
+                "No model is set up yet — fill in Settings → Alt text, or every " +
                     "post from this template goes out without a description.",
                 warning = true,
             )

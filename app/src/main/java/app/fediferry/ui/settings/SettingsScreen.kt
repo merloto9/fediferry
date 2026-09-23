@@ -22,6 +22,7 @@ package app.fediferry.ui.settings
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -33,12 +34,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.Login
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Login
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Accessibility
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AutoFixHigh
+import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.DataObject
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -47,13 +58,14 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -62,11 +74,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -80,19 +93,148 @@ import app.fediferry.data.model.Template
 import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.MaskPolarity
-import app.fediferry.ui.AltTextModePicker
-import app.fediferry.ui.LoadingOverlay
-import app.fediferry.ui.VisibilityPicker
-import app.fediferry.ui.PlaceholderHelpDialog
-import app.fediferry.ui.ContentWarningField
-import app.fediferry.ui.StableTextField
+import app.fediferry.module.Modules
 import app.fediferry.template.TemplateEngine
-import kotlinx.coroutines.launch
+import app.fediferry.ui.AltTextModePicker
+import app.fediferry.ui.ContentWarningField
+import app.fediferry.ui.LoadingOverlay
+import app.fediferry.ui.PlaceholderHelpDialog
+import app.fediferry.ui.StableTextField
+import app.fediferry.ui.VisibilityPicker
+import app.fediferry.ui.theme.ColorSource
+import app.fediferry.ui.theme.ContrastLevel
+import app.fediferry.ui.theme.ThemeMode
 import java.io.File
+import kotlinx.coroutines.launch
 
+/**
+ * The pages Settings is divided into, grouped by what the user is doing
+ * rather than by how the app is built. Each is one screen of its own.
+ */
+enum class SettingsPage(val route: String, val title: String, val group: String, val icon: ImageVector) {
+    ACCOUNT("account", "Mastodon account", "Account", Icons.Outlined.AccountCircle),
+    TEMPLATES("templates", "Templates", "Posts", Icons.Outlined.Description),
+    HASHTAGS("hashtags", "Hashtags", "Posts", Icons.Outlined.Tag),
+    PLACEHOLDERS("placeholders", "Placeholders & sources", "Posts", Icons.Outlined.DataObject),
+    SHARING("sharing", "Sharing & posting", "Posts", Icons.AutoMirrored.Outlined.Send),
+    CLEANUP("cleanup", "Image clean-up", "Pictures", Icons.Outlined.AutoFixHigh),
+    ALT_TEXT("alt_text", "Alt text", "Pictures", Icons.Outlined.Accessibility),
+    APPEARANCE("appearance", "Appearance", "App", Icons.Outlined.Palette),
+    DIAGNOSTICS("diagnostics", "Diagnostics", "App", Icons.Outlined.BugReport),
+    ;
+
+    companion object {
+        fun fromRoute(route: String?): SettingsPage? = entries.firstOrNull { it.route == route }
+    }
+}
+
+/** What each page is set to right now, so the overview says it without opening anything. */
+private fun SettingsPage.summary(state: SettingsState): String {
+    val s = state.settings
+    fun count(n: Int, one: String, many: String = one + "s") = "$n ${if (n == 1) one else many}"
+    return when (this) {
+        SettingsPage.ACCOUNT -> {
+            val default = state.accounts.firstOrNull { it.isDefault } ?: state.accounts.firstOrNull()
+            when {
+                default == null -> "Not connected — nothing can be posted yet"
+                state.accounts.size == 1 -> "@${default.acct} on ${default.instance}"
+                else -> "@${default.acct} on ${default.instance}, and ${state.accounts.size - 1} more"
+            }
+        }
+        SettingsPage.TEMPLATES -> {
+            val default = state.templates.firstOrNull { it.isDefault }?.name
+            count(state.templates.size, "template") + (default?.let { " · default: $it" } ?: "")
+        }
+        SettingsPage.HASHTAGS ->
+            count(state.hashtags.size, "hashtag") + if (s.rememberSentHashtags) " · new ones from sent posts join" else ""
+        SettingsPage.PLACEHOLDERS ->
+            state.placeholderKeys.sortedByDescending { it.isTags }.joinToString { "{${it.name}}" }
+                .ifEmpty { "No placeholders" } + " · ${count(Modules.all.size, "source")}"
+        SettingsPage.SHARING ->
+            "Undo ${s.undoDelaySeconds}s · " +
+                (if (s.resolveLinks) "fetches from links" else "screenshots only") +
+                (if (s.autoCrop) " · trims screenshots" else "")
+        SettingsPage.CLEANUP ->
+            count(state.cleanupProfiles.size, "profile") + " · " +
+                (if (s.imageEndpoint.isBlank()) "no AI model" else "AI erase set up")
+        SettingsPage.ALT_TEXT ->
+            if (s.visionEndpoint.isBlank()) "No model set up" else "Model: ${s.visionModel.ifBlank { "set up" }}"
+        SettingsPage.APPEARANCE -> {
+            val theme = when (s.themeMode) {
+                ThemeMode.SYSTEM -> "System theme"
+                ThemeMode.LIGHT -> "Light"
+                ThemeMode.DARK -> "Dark"
+            }
+            val colours = if (s.colorSource == ColorSource.WALLPAPER) "wallpaper colours" else "FediFerry colours"
+            val contrast = when (s.contrastLevel) {
+                ContrastLevel.SYSTEM -> "system contrast"
+                ContrastLevel.STANDARD -> "standard contrast"
+                ContrastLevel.HIGH -> "high contrast"
+            }
+            "$theme · $colours · $contrast"
+        }
+        SettingsPage.DIAGNOSTICS ->
+            if (s.debugLogging) "Logging · ${formatSize(state.logSizeBytes)}" else "Log off"
+    }
+}
+
+/** The top of Settings: every page, grouped, each with what it is set to. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onBack: () -> Unit,
+    onOpen: (SettingsPage) -> Unit,
+    viewModel: SettingsViewModel = viewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp),
+        ) {
+            SettingsPage.entries.groupBy { it.group }.forEach { (group, pages) ->
+                Text(
+                    group,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                )
+                pages.forEach { page ->
+                    ListItem(
+                        headlineContent = { Text(page.title) },
+                        supportingContent = { Text(page.summary(state), maxLines = 2) },
+                        leadingContent = { Icon(page.icon, contentDescription = null) },
+                        trailingContent = {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { onOpen(page) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** One page of Settings, with the sections that belong to it. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsPageScreen(
+    page: SettingsPage,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -115,10 +257,17 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(page.title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Settings")
+                    }
+                },
+                actions = {
+                    if (page == SettingsPage.TEMPLATES) {
+                        IconButton(onClick = viewModel::newTemplate) {
+                            Icon(Icons.Default.Add, contentDescription = "New template")
+                        }
                     }
                 },
             )
@@ -132,27 +281,25 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            AccountsSection(state, viewModel)
-            HorizontalDivider()
-            AppearanceSection(state, viewModel)
-            HorizontalDivider()
-            TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
-            HorizontalDivider()
-            HashtagsSection(state, viewModel)
-            HorizontalDivider()
-            PlaceholdersSection(state, viewModel)
-            HorizontalDivider()
-            ModulesSection(state, viewModel)
-            HorizontalDivider()
-            PostingSection(state, viewModel)
-            HorizontalDivider()
-            CleanupSection(state, viewModel)
-            HorizontalDivider()
-            ImageModelSection(state, viewModel)
-            HorizontalDivider()
-            VisionSection(state, viewModel)
-            HorizontalDivider()
-            DiagnosticsSection(state, viewModel)
+            when (page) {
+                SettingsPage.ACCOUNT -> AccountsSection(state, viewModel)
+                SettingsPage.TEMPLATES -> TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
+                SettingsPage.HASHTAGS -> HashtagsSection(state, viewModel)
+                SettingsPage.PLACEHOLDERS -> {
+                    PlaceholdersSection(state, viewModel)
+                    HorizontalDivider()
+                    ModulesSection(state, viewModel)
+                }
+                SettingsPage.SHARING -> PostingSection(state, viewModel)
+                SettingsPage.CLEANUP -> {
+                    CleanupSection(state, viewModel)
+                    HorizontalDivider()
+                    ImageModelSection(state, viewModel)
+                }
+                SettingsPage.ALT_TEXT -> VisionSection(state, viewModel)
+                SettingsPage.APPEARANCE -> AppearanceSection(state, viewModel)
+                SettingsPage.DIAGNOSTICS -> DiagnosticsSection(state, viewModel)
+            }
         }
     }
 }
@@ -160,8 +307,6 @@ fun SettingsScreen(
 @Composable
 private fun AccountsSection(state: SettingsState, viewModel: SettingsViewModel) {
     var instance by remember { mutableStateOf("") }
-
-    SectionTitle("Accounts")
 
     state.accounts.forEach { account ->
         Card(Modifier.fillMaxWidth()) {
@@ -222,15 +367,10 @@ private fun TemplatesSection(
     onShowPlaceholderHelp: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        SectionTitle("Templates", Modifier.weight(1f))
-        IconButton(onClick = viewModel::newTemplate) {
-            Icon(Icons.Default.Add, contentDescription = "New template")
-        }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             "A template is a topic: which hashtags it ticks, and how its posts are " +
-                "written. Bodies can use {tags}, {link}, {date} and the placeholders below.",
+                "written. Bodies can use {tags}, {link}, {date} and the placeholders from " +
+                "Placeholders & sources.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
@@ -308,7 +448,7 @@ private fun TemplateCard(
                 Column(Modifier.weight(1f)) {
                     Text("Add the source's hashtags", style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        "Ticks whatever a source's {tags} recipe under Source modules gives — " +
+                        "Ticks whatever a source's {tags} recipe in Placeholders & sources gives — " +
                             "9GAG's own tags, say — beside the ones above. Each post can still " +
                             "change it in the editor.",
                         style = MaterialTheme.typography.bodySmall,
@@ -371,8 +511,6 @@ private fun TemplateCard(
 
 @Composable
 private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
-    SectionTitle("Posting")
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -593,7 +731,6 @@ private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel
 
 @Composable
 private fun VisionSection(state: SettingsState, viewModel: SettingsViewModel) {
-    SectionTitle("Alt-text provider")
     Text(
         "Writes alt text for templates set to Generated. Any OpenAI-compatible " +
             "chat-completions endpoint whose model can look at images works. The " +
@@ -648,7 +785,6 @@ private fun DiagnosticsSection(state: SettingsState, viewModel: SettingsViewMode
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    SectionTitle("Diagnostics")
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -749,7 +885,7 @@ private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSou
         }
         Text(
             "For posts from a ticked source, placeholders such as {caption} are filled " +
-                "using the mappings under Placeholders. From an unticked one they stay empty.",
+                "using their recipes in Placeholders & sources. From an unticked one they stay empty.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -769,7 +905,7 @@ private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange:
         val offered = Hashtags.union(list, picked)
         if (offered.isEmpty()) {
             Text(
-                "The hashtag list is empty — add some under Hashtags below.",
+                "The hashtag list is empty — add some in Settings → Hashtags.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

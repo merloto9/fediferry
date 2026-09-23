@@ -40,7 +40,6 @@ import app.fediferry.ui.theme.ThemeMode
 @Composable
 internal fun AppearanceSection(state: SettingsState, viewModel: SettingsViewModel) {
     val s = state.settings
-    Text("Appearance", style = MaterialTheme.typography.titleMedium)
 
     Choice(
         title = "Theme",

@@ -8,6 +8,16 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.14.0] — 2026-09-23
+
+### Changed
+
+- **Settings is no longer one long list.** It opens on an overview in four
+  groups — Account, Posts, Pictures, App — and each entry says what it is set
+  to right now ("@you on mastodon.social", "3 templates · default: Meme",
+  "Undo 5s · fetches from links") and opens a page of its own. Hints elsewhere
+  in the app now name the page they mean, instead of "further down".
+
 ## [0.13.0] — 2026-09-23
 
 ### Added

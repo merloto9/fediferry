@@ -73,7 +73,6 @@ import app.fediferry.template.TemplateEngine
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel) {
-    Text("Hashtags", style = MaterialTheme.typography.titleMedium)
     Text(
         "The hashtags you post with, one list for everything. Each template ticks the ones " +
             "its topic uses; the editor shows the whole list, so any post can take more.",
@@ -179,7 +178,7 @@ private fun ReservedTagsCard() {
                 "Reserved. Becomes the post's hashtags when it is sent — the template's picks " +
                     "plus any a source adds — and stays as {tags} in the editor until then, so " +
                     "the hashtags can still change. It cannot be renamed or deleted; each " +
-                    "source's hashtags are set under Source modules.",
+                    "source's hashtags are set below, under Source modules.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

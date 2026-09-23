@@ -30,6 +30,8 @@ import app.fediferry.ui.cleanup.CleanupScreen
 import app.fediferry.ui.crop.CropScreen
 import app.fediferry.ui.editor.EditorScreen
 import app.fediferry.ui.inbox.InboxScreen
+import app.fediferry.ui.settings.SettingsPage
+import app.fediferry.ui.settings.SettingsPageScreen
 import app.fediferry.ui.settings.SettingsScreen
 import app.fediferry.ui.sources.ChannelScreen
 import app.fediferry.ui.sources.SourcesScreen
@@ -40,6 +42,7 @@ object Routes {
     const val SOURCES = "sources"
     const val CHANNEL = "channel/{sourceId}"
     const val SETTINGS = "settings"
+    const val SETTINGS_PAGE = "settings/{page}"
     const val EDITOR = "editor/{itemId}"
     const val CROP = "crop/{itemId}"
     const val CLEANUP = "cleanup/{itemId}"
@@ -48,6 +51,7 @@ object Routes {
     fun crop(itemId: String) = "crop/$itemId"
     fun cleanup(itemId: String) = "cleanup/$itemId"
     fun channel(sourceId: String) = "channel/$sourceId"
+    fun settingsPage(page: SettingsPage) = "settings/${page.route}"
 }
 
 @Composable
@@ -139,7 +143,21 @@ fun FediFerryNavHost(
             )
         }
         composable(Routes.SETTINGS) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpen = { navController.navigate(Routes.settingsPage(it)) },
+            )
+        }
+        composable(
+            Routes.SETTINGS_PAGE,
+            arguments = listOf(navArgument("page") { type = NavType.StringType }),
+        ) { entry ->
+            val page = SettingsPage.fromRoute(entry.arguments?.getString("page"))
+            if (page == null) {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+            } else {
+                SettingsPageScreen(page = page, onBack = { navController.popBackStack() })
+            }
         }
     }
 }

@@ -105,7 +105,7 @@ internal fun HashtagPanel(
             )
             if (offered.isEmpty()) {
                 Text(
-                    "No hashtags yet — add some in Settings, or type one below.",
+                    "No hashtags yet — add some in Settings → Hashtags, or type one below.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -133,7 +133,7 @@ internal fun HashtagPanel(
                         Text("Add ${origin.label}'s hashtags", style = MaterialTheme.typography.bodyMedium)
                         Text(
                             if (sourceHashtags.isEmpty()) {
-                                "None for this post — ${origin.label}'s {tags} recipe under Source modules gives nothing."
+                                "None for this post — ${origin.label}'s {tags} recipe in Settings → Placeholders & sources gives nothing."
                             } else {
                                 sourceHashtags.joinToString(" ")
                             },
@@ -156,7 +156,7 @@ internal fun HashtagPanel(
                     supportingText = {
                         Text(
                             if (remembersNewHashtags) {
-                                "Joins the list in Settings once the post is sent."
+                                "Joins Settings → Hashtags once the post is sent."
                             } else {
                                 "For this post only."
                             },

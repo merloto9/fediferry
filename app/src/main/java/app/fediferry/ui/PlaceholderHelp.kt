@@ -71,7 +71,7 @@ private fun PlaceholderKey.asPlaceholder(): Placeholder {
     return Placeholder(
         token = "{$name}",
         what = if (mapped.isEmpty()) {
-            "Defined under Settings → Placeholders, but no source module fills it yet."
+            "Defined in Settings → Placeholders & sources, but no source fills it yet."
         } else {
             mapped.joinToString("; ") { "${it.label}: ${recipeFor(it)}" }
         },

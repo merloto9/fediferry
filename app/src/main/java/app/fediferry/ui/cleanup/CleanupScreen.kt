@@ -225,7 +225,7 @@ private fun AiPrompt(state: CleanupState, viewModel: CleanupViewModel) {
         if (!state.modelConfigured) {
             Text(
                 "No image model is set up, so these areas will be filled in from " +
-                    "their surroundings instead. Add one under Settings → Image model.",
+                    "their surroundings instead. Add one in Settings → Image clean-up.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -241,7 +241,7 @@ private fun AiPrompt(state: CleanupState, viewModel: CleanupViewModel) {
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            "Applies to this image only. The default lives in Settings.",
+            "Applies to this image only. The default lives in Settings → Image clean-up.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

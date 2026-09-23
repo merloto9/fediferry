@@ -323,7 +323,7 @@ private fun TemplatePicker(state: EditorState, viewModel: EditorViewModel) {
 private fun AccountPicker(state: EditorState, viewModel: EditorViewModel) {
     if (state.accounts.isEmpty()) {
         Text(
-            "No account connected — add one in Settings before posting.",
+            "No account connected — add one in Settings → Mastodon account before posting.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )

@@ -27,6 +27,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import app.fediferry.data.model.Account
+import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.InstanceApp
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.CleanupProfile
@@ -48,8 +49,9 @@ import app.fediferry.data.model.Template
         Source::class,
         PlaceholderKey::class,
         Hashtag::class,
+        AiModel::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -61,6 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sources(): SourceDao
     abstract fun placeholderKeys(): PlaceholderKeyDao
     abstract fun hashtags(): HashtagDao
+    abstract fun aiModels(): AiModelDao
 
     companion object {
         /**
@@ -191,6 +194,33 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the list of AI models. Purely additive: the one model each kind
+         * had lived in settings, which the database cannot read, so it moves
+         * across at first use instead — see [app.fediferry.data.AiModels].
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `ai_models` (
+                        `id` TEXT NOT NULL,
+                        `kind` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `endpoint` TEXT NOT NULL,
+                        `model` TEXT NOT NULL,
+                        `isDefault` INTEGER NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        `wireFormat` TEXT NOT NULL,
+                        `maskPolarity` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ai_models_kind` ON `ai_models` (`kind`)")
+            }
+        }
+
         private fun seedPlaceholder(db: SupportSQLiteDatabase, key: PlaceholderKey) {
             db.execSQL(
                 "INSERT OR IGNORE INTO placeholder_keys (id, name, mappings, sortOrder) VALUES (?, ?, ?, ?)",
@@ -221,7 +251,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .addCallback(SEED)
                 .build()
     }

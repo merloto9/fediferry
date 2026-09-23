@@ -289,4 +289,45 @@ class MigrationTest {
             assertEquals(2, c.getInt(0))
         }
     }
+
+    /** 6 → 7 adds the AI model list; everything else stays as it was. */
+    @Test
+    fun migrate6To7AddsTheModelList() {
+        helper.createDatabase(database, 6).close()
+
+        val db = helper.runMigrationsAndValidate(database, 7, true, AppDatabase.MIGRATION_6_7)
+
+        db.execSQL(
+            """
+            INSERT INTO ai_models (id, kind, name, endpoint, model, isDefault, sortOrder, wireFormat, maskPolarity)
+            VALUES ('m1', 'ALT_TEXT', 'Gemini', 'https://x/v1/chat/completions', 'gemini-3.8-flash', 1, 0,
+                    'MULTIPART', 'TRANSPARENT_HOLE')
+            """.trimIndent(),
+        )
+        db.query("SELECT name, isDefault FROM ai_models WHERE kind = 'ALT_TEXT'").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Gemini", c.getString(0))
+            assertEquals(1, c.getInt(1))
+        }
+    }
+
+    @Test
+    fun migratingAllTheWayFrom1To7Works() {
+        helper.createDatabase(database, 1).close()
+        helper.runMigrationsAndValidate(
+            database,
+            7,
+            true,
+            AppDatabase.MIGRATION_1_2,
+            AppDatabase.MIGRATION_2_3,
+            AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5,
+            AppDatabase.MIGRATION_5_6,
+            AppDatabase.MIGRATION_6_7,
+        ).query("SELECT COUNT(*) FROM ai_models").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+    }
 }
+

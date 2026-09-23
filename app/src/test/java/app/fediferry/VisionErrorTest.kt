@@ -83,4 +83,18 @@ class VisionErrorTest {
         val msg = VisionAltTextProvider.describeFailure(500, body)
         assertTrue("length ${msg.length}", msg.length < 260)
     }
+
+    @Test
+    fun `Gemini's error, wrapped in a list, is quoted back too`() {
+        // Exactly what generativelanguage.googleapis.com sends without a key.
+        val body = """[{
+          "error": {"code": 400, "message": "Missing or invalid Authorization header.", "status": "INVALID_ARGUMENT"}
+        }]"""
+
+        val msg = VisionAltTextProvider.describeFailure(400, body)
+
+        assertTrue(msg, msg.contains("Missing or invalid Authorization header."))
+        assertTrue(msg, msg.contains("check the API key"))
+    }
 }
+

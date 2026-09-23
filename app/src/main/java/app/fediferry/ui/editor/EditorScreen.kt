@@ -23,6 +23,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,7 +36,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -70,8 +73,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.Item
 import app.fediferry.ui.ContentWarningField
+import app.fediferry.ui.ModelPicker
 import app.fediferry.ui.PlaceholderHelpDialog
 import app.fediferry.ui.StableTextField
 import app.fediferry.ui.VisibilityPicker
@@ -240,6 +245,13 @@ fun EditorScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (state.altModels.isNotEmpty()) {
+                ModelPicker(
+                    models = state.altModels,
+                    current = state.altModel,
+                    onPick = viewModel::setAltModel,
+                )
+            }
 
             ContentWarningField(
                 key = item.id,

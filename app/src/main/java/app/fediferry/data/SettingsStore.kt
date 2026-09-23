@@ -148,17 +148,22 @@ class SettingsStore(private val context: Context) {
 
     suspend fun current(): Settings = settings.first()
 
+    /**
+     * Forgets the single model each kind used to be set to, key included,
+     * once [AiModels] has moved them into its list. The key must not stay
+     * behind in plain settings after moving to encrypted storage.
+     */
+    suspend fun clearLegacyModels() = edit {
+        listOf(
+            Keys.visionEndpoint, Keys.visionModel, Keys.visionApiKey,
+            Keys.imageEndpoint, Keys.imageModel, Keys.imageApiKey,
+            Keys.imageWireFormat, Keys.imageMaskPolarity,
+        ).forEach { key -> it.remove(key) }
+    }
+
     suspend fun setUndoDelay(seconds: Int) = edit { it[Keys.undoDelay] = seconds.coerceIn(0, 60) }
-    suspend fun setVisionEndpoint(v: String) = edit { it[Keys.visionEndpoint] = v }
-    suspend fun setVisionModel(v: String) = edit { it[Keys.visionModel] = v }
-    suspend fun setVisionApiKey(v: String) = edit { it[Keys.visionApiKey] = v }
     suspend fun setVisionPrompt(v: String) = edit { it[Keys.visionPrompt] = v }
-    suspend fun setImageEndpoint(v: String) = edit { it[Keys.imageEndpoint] = v }
-    suspend fun setImageModel(v: String) = edit { it[Keys.imageModel] = v }
-    suspend fun setImageApiKey(v: String) = edit { it[Keys.imageApiKey] = v }
     suspend fun setImageInstruction(v: String) = edit { it[Keys.imageInstruction] = v }
-    suspend fun setImageWireFormat(v: String) = edit { it[Keys.imageWireFormat] = v }
-    suspend fun setImageMaskPolarity(v: String) = edit { it[Keys.imageMaskPolarity] = v }
 
     suspend fun setLastCleanupProfile(id: String) = edit { it[Keys.lastCleanupProfile] = id }
     suspend fun setResolveLinks(enabled: Boolean) = edit { it[Keys.resolveLinks] = enabled }

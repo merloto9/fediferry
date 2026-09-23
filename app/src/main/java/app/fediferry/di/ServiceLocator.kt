@@ -21,33 +21,36 @@ package app.fediferry.di
 
 import android.annotation.SuppressLint
 import android.content.Context
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import app.fediferry.alt.AltTextProvider
 import app.fediferry.alt.NoAltTextProvider
 import app.fediferry.alt.StaticAltTextProvider
 import app.fediferry.alt.VisionAltTextProvider
+import app.fediferry.data.AiModels
 import app.fediferry.data.ItemRepository
 import app.fediferry.data.MediaVault
 import app.fediferry.data.SettingsStore
 import app.fediferry.data.TokenStore
 import app.fediferry.data.db.AppDatabase
+import app.fediferry.data.model.AiKind
+import app.fediferry.data.model.AiModel
+import app.fediferry.data.model.AltTextMode
+import app.fediferry.data.model.Template
 import app.fediferry.link.LinkResolver
-import app.fediferry.module.Modules
 import app.fediferry.link.OkHttpMediaFetcher
+import app.fediferry.mastodon.AuthManager
+import app.fediferry.mastodon.MastodonClient
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.HttpImageEditProvider
 import app.fediferry.media.cleanup.ImageEditProvider
 import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.media.cleanup.NoImageEditProvider
+import app.fediferry.module.Modules
 import app.fediferry.module.youtube.YouTubeSourceClient
-import app.fediferry.data.model.AltTextMode
-import app.fediferry.data.model.Template
-import app.fediferry.mastodon.AuthManager
-import app.fediferry.mastodon.MastodonClient
-import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import okhttp3.OkHttpClient
 
 /**
  * Hand-rolled singletons. The app has one graph and no test doubles worth a DI
@@ -61,6 +64,7 @@ object ServiceLocator {
     @Volatile private var http: OkHttpClient? = null
     @Volatile private var api: MastodonClient? = null
     @Volatile private var tokenStore: TokenStore? = null
+    @Volatile private var aiModelStore: AiModels? = null
     @Volatile private var settingsStore: SettingsStore? = null
     @Volatile private var authManager: AuthManager? = null
     @Volatile private var resolverHttp: OkHttpClient? = null
@@ -162,40 +166,66 @@ object ServiceLocator {
      * [NoImageEditProvider] when none is configured. The cleanup pipeline falls
      * back to a local fill either way, so an absent model is not an error.
      */
-    suspend fun imageEditProvider(context: Context): ImageEditProvider {
-        val s = settings(context).current()
-        if (s.imageEndpoint.isBlank()) return NoImageEditProvider
-        return HttpImageEditProvider(
-            client = http(),
-            endpoint = s.imageEndpoint,
-            model = s.imageModel,
-            apiKey = s.imageApiKey,
-            wireFormat = runCatching { EditWireFormat.valueOf(s.imageWireFormat) }
-                .getOrDefault(EditWireFormat.MULTIPART),
-        )
+    suspend fun imageEditProvider(context: Context, modelId: String? = null): ImageEditProvider {
+        val model = aiModels(context).pick(AiKind.IMAGE_EDIT, modelId) ?: return NoImageEditProvider
+        return imageEditProvider(context, model)
     }
 
-    suspend fun maskPolarity(context: Context): MaskPolarity =
-        runCatching { MaskPolarity.valueOf(settings(context).current().imageMaskPolarity) }
-            .getOrDefault(MaskPolarity.TRANSPARENT_HOLE)
+    fun imageEditProvider(context: Context, model: AiModel, client: OkHttpClient = http()): ImageEditProvider =
+        HttpImageEditProvider(
+            client = client,
+            endpoint = model.endpoint,
+            model = model.model,
+            apiKey = aiModels(context).apiKey(model),
+            wireFormat = runCatching { EditWireFormat.valueOf(model.wireFormat) }.getOrDefault(EditWireFormat.MULTIPART),
+        )
+
+    /** The mask style of the image model in use; each server wants its own. */
+    suspend fun maskPolarity(context: Context, modelId: String? = null): MaskPolarity =
+        maskPolarityOf(aiModels(context).pick(AiKind.IMAGE_EDIT, modelId))
+
+    fun maskPolarityOf(model: AiModel?): MaskPolarity =
+        runCatching { MaskPolarity.valueOf(model?.maskPolarity.orEmpty()) }.getOrDefault(MaskPolarity.TRANSPARENT_HOLE)
+
+    /** The configured AI models, for alt text and image clean-up. */
+    fun aiModels(context: Context): AiModels = aiModelStore ?: synchronized(this) {
+        aiModelStore ?: AiModels(
+            dao = database(context).aiModels(),
+            keys = tokens(context),
+            settings = settings(context),
+        ).also { aiModelStore = it }
+    }
 
     /**
      * Resolves the provider a template asks for. The posting path only ever sees
      * the interface — no vision vendor is named anywhere downstream of here.
      */
-    suspend fun altTextProvider(context: Context, template: Template): AltTextProvider =
+    suspend fun altTextProvider(context: Context, template: Template, modelId: String? = null): AltTextProvider =
         when (template.altTextMode) {
             AltTextMode.NONE -> NoAltTextProvider
             AltTextMode.STATIC -> StaticAltTextProvider(template.staticAltText.orEmpty())
-            AltTextMode.VISION -> {
-                val s = settings(context).current()
-                VisionAltTextProvider(
-                    client = http(),
-                    endpoint = s.visionEndpoint,
-                    model = s.visionModel,
-                    apiKey = s.visionApiKey,
-                    prompt = s.visionPrompt,
-                )
-            }
+            AltTextMode.VISION -> visionProvider(context, modelId)
         }
+
+    /**
+     * The alt-text model [modelId] names, or the default. With none set up,
+     * a provider that fails saying so — a missing model never blocks a post.
+     */
+    suspend fun visionProvider(context: Context, modelId: String? = null): AltTextProvider {
+        val model = aiModels(context).pick(AiKind.ALT_TEXT, modelId)
+            ?: return object : AltTextProvider {
+                override suspend fun describe(image: ByteArray, mimeType: String): Result<String> =
+                    Result.failure(IllegalStateException("no alt-text model set up — add one in Settings → Alt text"))
+            }
+        return visionProvider(context, model)
+    }
+
+    suspend fun visionProvider(context: Context, model: AiModel, client: OkHttpClient = http()): VisionAltTextProvider =
+        VisionAltTextProvider(
+            client = client,
+            endpoint = model.endpoint,
+            model = model.model,
+            apiKey = aiModels(context).apiKey(model),
+            prompt = settings(context).current().visionPrompt,
+        )
 }

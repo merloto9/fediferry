@@ -23,8 +23,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.data.model.Account
-import app.fediferry.data.model.Item
+import app.fediferry.data.model.AiKind
+import app.fediferry.data.model.AiModel
+import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Hashtags
+import app.fediferry.data.model.Item
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.data.model.Visibility
@@ -49,7 +52,12 @@ data class EditorState(
     val altTextBusy: Boolean = false,
     val message: String? = null,
     val loaded: Boolean = false,
-)
+    /** Every alt-text model, and the one picked for this picture; null means the default. */
+    val altModels: List<AiModel> = emptyList(),
+    val altModelId: String? = null,
+) {
+    val altModel: AiModel? get() = AiModel.pick(altModels, altModelId)
+}
 
 class EditorViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -67,6 +75,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                 placeholderKeys = db.placeholderKeys().all(),
                 hashtagList = db.hashtags().all().map { it.tag },
                 rememberSentHashtags = ServiceLocator.settings(getApplication()).current().rememberSentHashtags,
+                altModels = ServiceLocator.aiModels(getApplication()).ofKind(AiKind.ALT_TEXT),
                 accounts = db.accounts().all(),
                 loaded = true,
             )
@@ -83,6 +92,9 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         edit { it.copy(contentWarning = text.ifBlank { null }) }
     fun setVisibility(visibility: Visibility) = edit { it.copy(visibility = visibility) }
     fun setAccount(accountId: String) = edit { it.copy(accountId = accountId) }
+
+    /** Picks the model for this picture's alt text; the default stays as it is. */
+    fun setAltModel(id: String) = _state.update { it.copy(altModelId = id) }
 
     /** Picks or drops one hashtag for this post. */
     fun toggleHashtag(tag: String) = edit { item ->
@@ -167,7 +179,14 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         }
 
         val template = repo.resolveTemplate(item.templateId)
-        val provider = ServiceLocator.altTextProvider(getApplication(), template)
+        val picked = _state.value.altModelId
+        // Asking for a description means wanting one: a model is used unless
+        // the template has a fixed text and no model was picked by hand.
+        val provider = if (template.altTextMode == AltTextMode.STATIC && picked == null) {
+            ServiceLocator.altTextProvider(getApplication(), template)
+        } else {
+            ServiceLocator.visionProvider(getApplication(), picked)
+        }
         val result = provider.describe(bytes, item.mimeType ?: "image/jpeg")
 
         _state.update { s ->

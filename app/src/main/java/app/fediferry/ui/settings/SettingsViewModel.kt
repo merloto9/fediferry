@@ -22,8 +22,12 @@ package app.fediferry.ui.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.ai.ModelTestReport
+import app.fediferry.ai.ModelTester
 import app.fediferry.data.Settings
 import app.fediferry.data.model.Account
+import app.fediferry.data.model.AiKind
+import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ContentSource
@@ -58,6 +62,12 @@ data class SettingsState(
     val message: String? = null,
     /** Bytes the log currently holds; drives the diagnostics readout. */
     val logSizeBytes: Long = 0,
+    val aiModels: List<AiModel> = emptyList(),
+    /** Models that have an API key saved; the keys themselves never reach the screen. */
+    val aiModelsWithKey: Set<String> = emptySet(),
+    /** The last test result per model, and which are being tested right now. */
+    val aiTests: Map<String, ModelTestReport> = emptyMap(),
+    val aiTesting: Set<String> = emptySet(),
 )
 
 class SettingsViewModel(app: Application) : AndroidViewModel(app) {
@@ -70,7 +80,17 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
+    private val aiModels = ServiceLocator.aiModels(app)
+
     init {
+        viewModelScope.launch {
+            // Moves an older single-model setup into the list before showing it.
+            aiModels.migrateOnce()
+            aiModels.observeAll().collect { models ->
+                val withKey = models.filter { aiModels.hasApiKey(it) }.map { it.id }.toSet()
+                _state.update { it.copy(aiModels = models, aiModelsWithKey = withKey) }
+            }
+        }
         viewModelScope.launch {
             db.placeholderKeys().observeAll().collect { keys ->
                 _state.update { it.copy(placeholderKeys = keys) }
@@ -234,9 +254,35 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { db.templates().setDefault(id) }
 
     fun setUndoDelay(seconds: Int) = persist { settingsStore.setUndoDelay(seconds) }
-    fun setVisionEndpoint(v: String) = persist { settingsStore.setVisionEndpoint(v) }
-    fun setVisionModel(v: String) = persist { settingsStore.setVisionModel(v) }
-    fun setVisionApiKey(v: String) = persist { settingsStore.setVisionApiKey(v) }
+    // --- AI models ---------------------------------------------------------
+
+    fun addAiModel(kind: AiKind) = viewModelScope.launch { aiModels.add(kind) }
+
+    /** [newApiKey]: null keeps the saved key, empty removes it. */
+    fun saveAiModel(model: AiModel, newApiKey: String?) = viewModelScope.launch {
+        aiModels.save(model, newApiKey)
+        // The key lives outside Room, so the list will not notice a key change.
+        _state.update { s ->
+            val withKey = if (aiModels.hasApiKey(model)) s.aiModelsWithKey + model.id else s.aiModelsWithKey - model.id
+            s.copy(aiModelsWithKey = withKey, aiTests = s.aiTests - model.id, message = "${model.displayName} saved")
+        }
+    }
+
+    fun setDefaultAiModel(model: AiModel) = viewModelScope.launch { aiModels.setDefault(model) }
+
+    fun deleteAiModel(model: AiModel) = viewModelScope.launch {
+        aiModels.delete(model)
+        _state.update { it.copy(aiTests = it.aiTests - model.id) }
+    }
+
+    /** Runs the one tiny real request, and keeps the report for the card. */
+    fun testAiModel(model: AiModel) = viewModelScope.launch {
+        _state.update { it.copy(aiTesting = it.aiTesting + model.id) }
+        val report = runCatching { ModelTester.test(getApplication(), model) }
+            .getOrElse { ModelTestReport(false, it.message ?: "The test could not run", emptyList()) }
+        _state.update { it.copy(aiTesting = it.aiTesting - model.id, aiTests = it.aiTests + (model.id to report)) }
+    }
+
     fun setVisionPrompt(v: String) = persist { settingsStore.setVisionPrompt(v) }
     fun setResolveLinks(enabled: Boolean) =
         persist { settingsStore.setResolveLinks(enabled) }
@@ -247,15 +293,8 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setRememberSentHashtags(enabled: Boolean) = persist { settingsStore.setRememberSentHashtags(enabled) }
     fun setPurgeAfterDays(days: Int) = persist { settingsStore.setPurgeAfterDays(days) }
 
-    fun setImageEndpoint(v: String) = persist { settingsStore.setImageEndpoint(v) }
-    fun setImageModel(v: String) = persist { settingsStore.setImageModel(v) }
-    fun setImageApiKey(v: String) = persist { settingsStore.setImageApiKey(v) }
     fun setImageInstruction(v: String) =
         persist { settingsStore.setImageInstruction(v) }
-    fun setImageWireFormat(v: String) =
-        persist { settingsStore.setImageWireFormat(v) }
-    fun setImageMaskPolarity(v: String) =
-        persist { settingsStore.setImageMaskPolarity(v) }
 
     fun setDefaultCleanupProfile(id: String) =
         persist { cleanupDao.setDefaultProfile(id) }

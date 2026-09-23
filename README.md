@@ -71,8 +71,8 @@ what it is set to right now and opens a page of its own:
 | | Hashtags | The one list templates pick from |
 | | Placeholders & sources | Your placeholders, and what each source fills them with |
 | | Sharing & posting | Undo window, fetching from links, trimming, clean-up of old posts |
-| Pictures | Image clean-up | Clean-up profiles, and the model behind *Erase with AI* |
-| | Alt text | The model that describes pictures |
+| Pictures | Image clean-up | Clean-up profiles, and the models behind *Erase with AI* |
+| | Alt text | The models that describe pictures |
 | App | Appearance | Theme, colours, contrast |
 | | Diagnostics | The optional log |
 
@@ -247,6 +247,16 @@ speaks the OpenAI chat-completions shape, so any compatible server works —
 hosted, a gateway, or a local one; Google's Gemini through its OpenAI-compatible
 endpoint included. A failure never blocks a post: the item goes out without a
 description and is flagged so you can fill it in afterwards.
+
+*Settings → Alt text* and *Settings → Image clean-up* each hold a list of
+models, as many as you like, each with its own endpoint, model name and API key;
+one is the default. **Test** on a model sends one tiny picture and reports what
+came back: whether it works, how long it took, the model the server ran, token
+use (thinking included), the rate limits the server announces, and whether the
+model is in the server's own model list. In the editor, *Model: … ▾* under the
+alt text picks another model for that picture; the Clean up screen has the same
+under its AI instruction. API keys are stored encrypted, and never shown again
+once saved.
 
 Reasoning models — Gemini 2.5 and 3, OpenAI's o-series — think before they
 answer, and the thinking counts against the reply's token limit. The request

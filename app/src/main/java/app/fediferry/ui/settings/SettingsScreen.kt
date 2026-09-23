@@ -81,10 +81,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.BuildConfig
+import app.fediferry.data.model.AiKind
+import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtags
@@ -156,9 +160,9 @@ private fun SettingsPage.summary(state: SettingsState): String {
                 (if (s.autoCrop) " · trims screenshots" else "")
         SettingsPage.CLEANUP ->
             count(state.cleanupProfiles.size, "profile") + " · " +
-                (if (s.imageEndpoint.isBlank()) "no AI model" else "AI erase set up")
+                models(state, AiKind.IMAGE_EDIT, none = "no AI model")
         SettingsPage.ALT_TEXT ->
-            if (s.visionEndpoint.isBlank()) "No model set up" else "Model: ${s.visionModel.ifBlank { "set up" }}"
+            models(state, AiKind.ALT_TEXT, none = "No model set up")
         SettingsPage.APPEARANCE -> {
             val theme = when (s.themeMode) {
                 ThemeMode.SYSTEM -> "System theme"
@@ -176,6 +180,13 @@ private fun SettingsPage.summary(state: SettingsState): String {
         SettingsPage.DIAGNOSTICS ->
             if (s.debugLogging) "Logging · ${formatSize(state.logSizeBytes)}" else "Log off"
     }
+}
+
+/** "2 models · default: Gemini Flash", or [none]. */
+private fun models(state: SettingsState, kind: AiKind, none: String): String {
+    val models = state.aiModels.filter { it.kind == kind }
+    val default = AiModel.pick(models) ?: return none
+    return if (models.size == 1) "Model: ${default.displayName}" else "${models.size} models · default: ${default.displayName}"
 }
 
 /** The top of Settings: every page, grouped, each with what it is set to. */
@@ -226,6 +237,7 @@ fun SettingsScreen(
                     )
                 }
             }
+            AppFooter()
         }
     }
 }
@@ -381,7 +393,7 @@ private fun TemplatesSection(
         TemplateCard(
             template = template,
             viewModel = viewModel,
-            visionConfigured = state.settings.visionEndpoint.isNotBlank(),
+            visionConfigured = state.aiModels.any { it.kind == AiKind.ALT_TEXT },
             placeholderNames = PlaceholderKey.RESERVED + state.placeholderKeys.map { it.name },
             hashtags = state.hashtags,
         )
@@ -666,32 +678,9 @@ private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel
         style = MaterialTheme.typography.bodySmall,
     )
 
-    StableTextField(
-        key = "image-endpoint",
-        value = state.settings.imageEndpoint,
-        onValueChange = viewModel::setImageEndpoint,
-        label = "Endpoint URL",
-        placeholder = "https://api.example.com/v1/images/edits",
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    StableTextField(
-        key = "image-model",
-        value = state.settings.imageModel,
-        onValueChange = viewModel::setImageModel,
-        label = "Model",
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    StableTextField(
-        key = "image-key",
-        value = state.settings.imageApiKey,
-        onValueChange = viewModel::setImageApiKey,
-        label = "API key",
-        singleLine = true,
-        visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth(),
-    )
+    AiModelsSection(AiKind.IMAGE_EDIT, state, viewModel)
+
+    Text("What to ask for", style = MaterialTheme.typography.labelLarge)
     StableTextField(
         key = "image-instruction",
         value = state.settings.imageInstruction,
@@ -701,32 +690,6 @@ private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
     )
-
-    Text("Request format", style = MaterialTheme.typography.labelMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        EditWireFormat.entries.forEach { format ->
-            FilterChip(
-                selected = state.settings.imageWireFormat == format.name,
-                onClick = { viewModel.setImageWireFormat(format.name) },
-                label = { Text(if (format == EditWireFormat.MULTIPART) "Multipart" else "JSON") },
-            )
-        }
-    }
-
-    Text("Mask marks the area to replace as", style = MaterialTheme.typography.labelMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        MaskPolarity.entries.forEach { polarity ->
-            FilterChip(
-                selected = state.settings.imageMaskPolarity == polarity.name,
-                onClick = { viewModel.setImageMaskPolarity(polarity.name) },
-                label = {
-                    Text(
-                        if (polarity == MaskPolarity.TRANSPARENT_HOLE) "Transparent" else "White",
-                    )
-                },
-            )
-        }
-    }
 }
 
 @Composable
@@ -739,32 +702,9 @@ private fun VisionSection(state: SettingsState, viewModel: SettingsViewModel) {
         style = MaterialTheme.typography.bodySmall,
     )
 
-    StableTextField(
-        key = "vision-endpoint",
-        value = state.settings.visionEndpoint,
-        onValueChange = viewModel::setVisionEndpoint,
-        label = "Endpoint URL",
-        placeholder = "https://api.example.com/v1/chat/completions",
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    StableTextField(
-        key = "vision-model",
-        value = state.settings.visionModel,
-        onValueChange = viewModel::setVisionModel,
-        label = "Model",
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    StableTextField(
-        key = "vision-key",
-        value = state.settings.visionApiKey,
-        onValueChange = viewModel::setVisionApiKey,
-        label = "API key",
-        singleLine = true,
-        visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth(),
-    )
+    AiModelsSection(AiKind.ALT_TEXT, state, viewModel)
+
+    Text("What to ask for", style = MaterialTheme.typography.labelLarge)
     StableTextField(
         key = "vision-prompt",
         value = state.settings.visionPrompt,
@@ -935,3 +875,27 @@ private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange:
         )
     }
 }
+
+/** The app's name, the version running, and where its source lives. */
+@Composable
+private fun AppFooter() {
+    val uri = LocalUriHandler.current
+    HorizontalDivider(Modifier.padding(top = 16.dp))
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            "FediFerry ${BuildConfig.VERSION_NAME}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = { uri.openUri(REPOSITORY_URL) }) {
+            Text(REPOSITORY_URL.removePrefix("https://"), style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+private const val REPOSITORY_URL = "https://github.com/merloto9/fediferry"
+

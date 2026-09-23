@@ -8,6 +8,39 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.15.0] — 2026-09-23
+
+### Added
+
+- **More than one AI model.** *Settings → Alt text* and *Settings → Image
+  clean-up* now hold a list of models, each with its own name, endpoint, model
+  and API key, one of them the default. The model you had set up moves into
+  the list as its default on first launch, key included — nothing to redo.
+- **Pick the model per picture.** *Model: … ▾* under the alt text in the
+  editor, and under the AI instruction on the Clean up screen, uses another
+  model for that picture; the default stays as it is.
+- **Test a model.** *Test* on each model sends one tiny picture and reports
+  whether it works, how long it took, the model the server ran, token use —
+  thinking included — the rate limits the server announces, and whether the
+  model is in the server's own list. Errors are put in words.
+- **A footer** at the bottom of Settings with the app's name, its version and a
+  link to its source.
+
+### Changed
+
+- API keys for AI models are stored encrypted, like the Mastodon tokens,
+  instead of in plain settings, and are never shown again once saved.
+- The endpoint, model and key fields no longer autocorrect, and spaces are
+  taken out of addresses: a keyboard's autocorrect could split
+  "generativelanguage" in two.
+
+### Fixed
+
+- **A failing Gemini request said only "returned 400".** Google's
+  OpenAI-compatible endpoint sends its error wrapped in a list, which was not
+  read, so its explanation — "Missing or invalid Authorization header", say —
+  never reached you.
+
 ## [0.14.2] — 2026-09-23
 
 ### Fixed

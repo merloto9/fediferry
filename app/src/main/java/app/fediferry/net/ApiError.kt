@@ -20,6 +20,7 @@
 package app.fediferry.net
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -44,7 +45,10 @@ object ApiError {
 
     fun describe(label: String, code: Int, body: String): String {
         val detail = runCatching {
-            json.parseToJsonElement(body).jsonObject["error"]?.let { err ->
+            // Google's OpenAI-compatible endpoint wraps its error in a list:
+            // [{"error":{...}}]. Reading only the bare object lost the reason.
+            val root = json.parseToJsonElement(body).let { if (it is JsonArray) it.first() else it }
+            root.jsonObject["error"]?.let { err ->
                 runCatching { err.jsonObject["message"]?.jsonPrimitive?.content }.getOrNull()
                     ?: runCatching { err.jsonPrimitive.content }.getOrNull()
             }
@@ -53,6 +57,9 @@ object ApiError {
         val hint = when (code) {
             404 -> " — check the endpoint URL, and that the model exists"
             401, 403 -> " — check the API key"
+            400 -> if (detail?.contains("authoriz", ignoreCase = true) == true ||
+                detail?.contains("api key", ignoreCase = true) == true
+            ) " — check the API key" else ""
             429 -> " — rate limited; a free tier usually has a daily cap"
             else -> ""
         }

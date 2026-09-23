@@ -20,6 +20,7 @@
 package app.fediferry.data.db
 
 import androidx.room.TypeConverter
+import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Status
@@ -47,6 +48,9 @@ class Converters {
 
     @TypeConverter fun treatmentToString(v: TreatmentKind): String = v.name
     @TypeConverter fun stringToTreatment(v: String): TreatmentKind = TreatmentKind.valueOf(v)
+
+    @TypeConverter fun aiKindToString(v: AiKind): String = v.name
+    @TypeConverter fun stringToAiKind(v: String): AiKind = AiKind.valueOf(v)
 
     @TypeConverter fun contentSourceToString(v: ContentSource?): String? = v?.name
     @TypeConverter fun stringToContentSource(v: String?): ContentSource? = ContentSource.fromName(v)

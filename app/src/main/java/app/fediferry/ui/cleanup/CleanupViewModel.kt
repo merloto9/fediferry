@@ -24,6 +24,8 @@ import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.data.model.AiKind
+import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.ProfileRule
@@ -31,13 +33,13 @@ import app.fediferry.di.ServiceLocator
 import app.fediferry.media.cleanup.CleanupRule
 import app.fediferry.media.cleanup.Region
 import app.fediferry.media.cleanup.TreatmentKind
+import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 /** A rule being edited on screen, before it is committed to the image. */
 data class DraftRule(
@@ -58,14 +60,20 @@ data class CleanupState(
     val rememberForProfile: Boolean = false,
     /** Sent with an AI region. Starts from the settings default, edited per image. */
     val instruction: String = "",
-    /** True when an image model is configured at all. */
-    val modelConfigured: Boolean = false,
+    /** Every image model, and the one picked for this picture; null means the default. */
+    val models: List<AiModel> = emptyList(),
+    val modelId: String? = null,
     val preview: Bitmap? = null,
     val previewing: Boolean = false,
     val applying: Boolean = false,
     val loaded: Boolean = false,
     val message: String? = null,
 ) {
+    /** True when an image model is configured at all. */
+    val modelConfigured: Boolean get() = models.isNotEmpty()
+
+    val model: AiModel? get() = AiModel.pick(models, modelId)
+
     val profileName: String?
         get() = profiles.firstOrNull { it.id == profileId }?.name
 }
@@ -107,7 +115,7 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 },
                 instruction = current.imageInstruction,
-                modelConfigured = current.imageEndpoint.isNotBlank(),
+                models = ServiceLocator.aiModels(getApplication()).ofKind(AiKind.IMAGE_EDIT),
                 loaded = true,
             )
         }
@@ -117,6 +125,9 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
     fun setTreatment(treatment: TreatmentKind) = _state.update { it.copy(treatment = treatment) }
 
     fun setInstruction(text: String) = _state.update { it.copy(instruction = text) }
+
+    /** Picks the image model for this picture; the default stays as it is. */
+    fun setModel(id: String) = _state.update { it.copy(modelId = id) }
 
     /** Whether any area is set to go to the model. */
     fun usesModel(): Boolean = _state.value.rules.any { it.treatment == TreatmentKind.AI_ERASE }
@@ -199,8 +210,8 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
         repo.applyCleanup(
             item = item,
             rules = s.rules.map { it.toCleanupRule() },
-            provider = ServiceLocator.imageEditProvider(app),
-            polarity = ServiceLocator.maskPolarity(app),
+            provider = ServiceLocator.imageEditProvider(app, s.modelId),
+            polarity = ServiceLocator.maskPolarity(app, s.modelId),
             instruction = s.instruction,
         ).fold(
             onSuccess = { cleaned ->

@@ -329,5 +329,36 @@ class MigrationTest {
             assertEquals(0, c.getInt(0))
         }
     }
+
+    /**
+     * 7 → 8 counts the hashtags of the posts already sent, so the editor's
+     * order is right at once: picked ones (filled into {tags}) and ones written
+     * straight into the text alike, drafts not at all.
+     */
+    @Test
+    fun migrate7To8CountsHashtagsOfSentPosts() {
+        helper.createDatabase(database, 7).use { db ->
+            fun insert(id: String, status: String, body: String, hashtags: String?) = db.execSQL(
+                """
+                INSERT INTO items
+                  (id, bodyText, altTextFailed, visibility, templateId, status, createdAt,
+                   sourceFields, hashtags, addSourceHashtags)
+                VALUES (?, ?, 0, 'PUBLIC', 'default', ?, 1700000000000, '{}', ?, 1)
+                """.trimIndent(),
+                arrayOf(id, body, status, hashtags),
+            )
+            insert("a", "POSTED", "A joke {tags}", "#meme #Katzen")
+            insert("b", "POSTED", "Another #Meme, written by hand", null)
+            insert("c", "DRAFT", "{tags}", "#meme #politik")
+        }
+
+        val db = helper.runMigrationsAndValidate(database, 8, true, AppDatabase.MIGRATION_7_8)
+
+        val uses = mutableMapOf<String, Int>()
+        db.query("SELECT `key`, uses FROM hashtag_usage").use { c ->
+            while (c.moveToNext()) uses[c.getString(0)] = c.getInt(1)
+        }
+        assertEquals(mapOf("meme" to 2, "katzen" to 1), uses)
+    }
 }
 

@@ -81,5 +81,31 @@ class HashtagsTest {
             Hashtags.newIn("#Meme #cats #politics", known = listOf("#meme", "#politics")),
         )
     }
+
+    // --- order ---------------------------------------------------------------
+
+    @Test
+    fun `Settings lists hashtags alphabetically, ignoring case and the hash`() {
+        assertEquals(
+            listOf("#ärger", "#Katzen", "#meme", "#Politik", "#zeitgeist"),
+            Hashtags.sortedAlphabetically(listOf("#zeitgeist", "#Politik", "#meme", "#ärger", "#Katzen")),
+        )
+    }
+
+    @Test
+    fun `the editor offers the most used first, ties and unused ones alphabetically`() {
+        val uses = mapOf("meme" to 12, "politik" to 3, "katzen" to 3)
+
+        assertEquals(
+            listOf("#meme", "#Katzen", "#politik", "#arbeit", "#zeitgeist"),
+            Hashtags.sortedByUse(listOf("#zeitgeist", "#politik", "#arbeit", "#meme", "#Katzen"), uses),
+        )
+    }
+
+    @Test
+    fun `usage counts a tag however it was spelled`() {
+        assertEquals("meme", Hashtags.key("#Meme"))
+        assertEquals(listOf("#Meme", "#cats"), Hashtags.sortedByUse(listOf("#cats", "#Meme"), mapOf("meme" to 1)))
+    }
 }
 

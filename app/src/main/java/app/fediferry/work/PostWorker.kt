@@ -71,7 +71,7 @@ class PostWorker(
                 ),
             )
             DebugLog.d(LOG, "Posted item $itemId${if (posted.altTextFailed) " (alt text failed)" else ""}")
-            rememberHashtags(posted.text)
+            recordHashtags(posted.text)
             Notifications.showResult(app, itemId, "Posted", posted.url ?: "Sent to Mastodon")
             Result.success()
         } catch (e: MastodonException) {
@@ -146,20 +146,23 @@ class PostWorker(
     }
 
     /**
-     * Adds the hashtags a post actually went out with to the list, when the
-     * user asked for that. Only after the post succeeded, so a draft that
-     * never sends leaves the list alone — and never at the post's expense: it
-     * is already out, so a failure here is only logged.
+     * Counts the hashtags a post actually went out with, and adds new ones to
+     * the list when the user asked for that. Only after the post succeeded,
+     * so a draft that never sends counts for nothing — and never at the post's
+     * expense: it is already out, so a failure here is only logged.
      */
-    private suspend fun rememberHashtags(text: String) {
+    private suspend fun recordHashtags(text: String) {
         runCatching {
+            // Counted always: the editor offers the most used hashtags first.
+            ServiceLocator.database(applicationContext).hashtagUsage()
+                .countUse(Hashtags.inText(text).map(Hashtags::key))
             if (!ServiceLocator.settings(applicationContext).current().rememberSentHashtags) return
             val dao = ServiceLocator.database(applicationContext).hashtags()
             var next = dao.count()
             Hashtags.newIn(text, dao.all().map { it.tag }).forEach { tag ->
                 dao.insert(Hashtag(tag, sortOrder = next++))
             }
-        }.onFailure { DebugLog.w(LOG, "Could not add sent hashtags to the list", it) }
+        }.onFailure { DebugLog.w(LOG, "Could not record the sent hashtags", it) }
     }
 
     private suspend fun altModeOf(item: Item): AltTextMode =

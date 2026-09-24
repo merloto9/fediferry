@@ -32,11 +32,13 @@ import app.fediferry.data.model.InstanceApp
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.Hashtag
+import app.fediferry.data.model.HashtagUsage
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.Source
 import app.fediferry.data.model.Template
+import app.fediferry.template.TemplateEngine
 
 @Database(
     entities = [
@@ -50,8 +52,9 @@ import app.fediferry.data.model.Template
         PlaceholderKey::class,
         Hashtag::class,
         AiModel::class,
+        HashtagUsage::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -64,6 +67,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun placeholderKeys(): PlaceholderKeyDao
     abstract fun hashtags(): HashtagDao
     abstract fun aiModels(): AiModelDao
+    abstract fun hashtagUsage(): HashtagUsageDao
 
     companion object {
         /**
@@ -221,6 +225,31 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the count of how often each hashtag was sent, and fills it from
+         * the posts already sent, so the editor's order is right from the
+         * first launch: every hashtag in the text each one went out with.
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `hashtag_usage` (`key` TEXT NOT NULL, `uses` INTEGER NOT NULL, PRIMARY KEY(`key`))",
+                )
+                val uses = mutableMapOf<String, Int>()
+                db.query("SELECT bodyText, hashtags FROM items WHERE status = 'POSTED'").use { c ->
+                    while (c.moveToNext()) {
+                        val body = c.getString(0).orEmpty()
+                        val picked = if (c.isNull(1)) null else c.getString(1)
+                        val sent = TemplateEngine.finish(body, Hashtags.parse(picked))
+                        Hashtags.inText(sent).map(Hashtags::key).forEach { uses[it] = (uses[it] ?: 0) + 1 }
+                    }
+                }
+                uses.forEach { (key, n) ->
+                    db.execSQL("INSERT INTO hashtag_usage (`key`, uses) VALUES (?, ?)", arrayOf<Any>(key, n))
+                }
+            }
+        }
+
         private fun seedPlaceholder(db: SupportSQLiteDatabase, key: PlaceholderKey) {
             db.execSQL(
                 "INSERT OR IGNORE INTO placeholder_keys (id, name, mappings, sortOrder) VALUES (?, ?, ?, ?)",
@@ -251,7 +280,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .addCallback(SEED)
                 .build()
     }

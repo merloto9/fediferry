@@ -158,8 +158,10 @@ colour that comes out red is swapped for the app's own.
 
 ### Hashtags
 
-*Settings → Hashtags* keeps one list for everything; each template ticks the
-ones its topic uses. In the editor, *Adjust Hashtags* beside the template opens
+*Settings → Hashtags* keeps one list for everything, in alphabetical order;
+each template ticks the ones its topic uses. The editor's list is in order of
+use instead — the hashtag sent most often first, ties alphabetically — counted
+from every post that went out, including the ones sent before this existed. In the editor, *Adjust Hashtags* beside the template opens
 the whole list with the template's picks ticked — tick more, untick some, or
 type one just for this post.
 

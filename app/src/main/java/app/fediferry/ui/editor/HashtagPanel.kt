@@ -71,6 +71,8 @@ internal fun HashtagPanel(
     sourceHashtags: List<String>,
     onAddSourceHashtags: (Boolean) -> Unit,
     remembersNewHashtags: Boolean,
+    /** Sent posts per hashtag, by [Hashtags.key]; the most used are offered first. */
+    uses: Map<String, Int>,
     modifier: Modifier = Modifier,
 ) {
     // A neutral raised surface with an outline marks the subsection. Not an
@@ -97,7 +99,9 @@ internal fun HashtagPanel(
             }
 
             val picked = item.hashtagList
-            val offered = Hashtags.union(hashtagList, picked)
+            // Most used first. The counts only change once a post is sent, so
+            // ticking a chip never moves it away from the finger.
+            val offered = Hashtags.sortedByUse(Hashtags.union(hashtagList, picked), uses)
             Text(
                 "Ticked ones replace {tags} when the post is sent. The template decides " +
                     "which start ticked.",

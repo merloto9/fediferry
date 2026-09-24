@@ -8,6 +8,17 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.16.0] — 2026-09-24
+
+### Changed
+
+- **Hashtags are in an order now.** *Settings → Hashtags* and each template's
+  hashtags are alphabetical — ignoring case, with Ä beside A. The editor's
+  *Adjust Hashtags* list puts the hashtags you have sent most often first,
+  and the rest alphabetically. Every hashtag a post goes out with counts,
+  wherever it came from, and the posts already sent are counted on updating,
+  so the order is right from the start. Removing old posts keeps the counts.
+
 ## [0.15.0] — 2026-09-23
 
 ### Added

@@ -190,6 +190,7 @@ fun EditorScreen(
                     sourceHashtags = viewModel.sourceHashtags(),
                     onAddSourceHashtags = viewModel::setAddSourceHashtags,
                     remembersNewHashtags = state.rememberSentHashtags,
+                    uses = state.hashtagUses,
                 )
             }
 

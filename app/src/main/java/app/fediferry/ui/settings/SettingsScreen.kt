@@ -842,7 +842,7 @@ private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSou
 private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange: (List<String>) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text("Hashtags", style = MaterialTheme.typography.labelMedium)
-        val offered = Hashtags.union(list, picked)
+        val offered = Hashtags.sortedAlphabetically(Hashtags.union(list, picked))
         if (offered.isEmpty()) {
             Text(
                 "The hashtag list is empty — add some in Settings → Hashtags.",

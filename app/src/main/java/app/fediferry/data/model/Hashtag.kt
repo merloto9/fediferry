@@ -33,8 +33,38 @@ data class Hashtag(
     val sortOrder: Int = 0,
 )
 
-/** How hashtags are cleaned up, compared and stored, everywhere in the app. */
+/**
+ * How many sent posts carried a hashtag. Counted for every hashtag a post went
+ * out with, on the list or not, so the editor can offer the ones used most
+ * first. Kept apart from the posts, so removing old posts keeps the counts.
+ */
+@Entity(tableName = "hashtag_usage")
+data class HashtagUsage(
+    /** The tag's [Hashtags.key]: lower case, so #Meme and #meme count together. */
+    @PrimaryKey val key: String,
+    val uses: Int,
+)
+
+/** How hashtags are cleaned up, compared, sorted and stored, everywhere in the app. */
 object Hashtags {
+
+    /** What makes two spellings the same tag: Mastodon ignores case. */
+    fun key(tag: String): String = tag.removePrefix("#").lowercase()
+
+    /**
+     * Sorts by the tag itself, ignoring case and the #, the way a person
+     * would — Ä next to A, not after Z.
+     */
+    val alphabetical: Comparator<String> = run {
+        val collator = java.text.Collator.getInstance().apply { strength = java.text.Collator.SECONDARY }
+        Comparator { a, b -> collator.compare(a.removePrefix("#"), b.removePrefix("#")).takeIf { it != 0 } ?: a.compareTo(b) }
+    }
+
+    fun sortedAlphabetically(tags: List<String>): List<String> = tags.sortedWith(alphabetical)
+
+    /** Most used first; equally used ones — and never used ones — alphabetically. */
+    fun sortedByUse(tags: List<String>, uses: Map<String, Int>): List<String> =
+        tags.sortedWith(compareByDescending<String> { uses[key(it)] ?: 0 }.then(alphabetical))
 
     private val SEPARATORS = Regex("""[\s,;]+""")
 

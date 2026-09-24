@@ -79,7 +79,7 @@ internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel)
         style = MaterialTheme.typography.bodySmall,
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        state.hashtags.forEach { tag ->
+        Hashtags.sortedAlphabetically(state.hashtags).forEach { tag ->
             InputChip(
                 selected = false,
                 onClick = {},

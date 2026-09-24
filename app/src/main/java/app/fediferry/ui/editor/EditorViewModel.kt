@@ -48,6 +48,8 @@ data class EditorState(
     val hashtagList: List<String> = emptyList(),
     /** Whether hashtags new to the list join it once the post is sent. */
     val rememberSentHashtags: Boolean = false,
+    /** Sent posts per hashtag, by [Hashtags.key]. */
+    val hashtagUses: Map<String, Int> = emptyMap(),
     val accounts: List<Account> = emptyList(),
     val altTextBusy: Boolean = false,
     val message: String? = null,
@@ -74,6 +76,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                 templates = repo.templates(),
                 placeholderKeys = db.placeholderKeys().all(),
                 hashtagList = db.hashtags().all().map { it.tag },
+                hashtagUses = db.hashtagUsage().all().associate { it.key to it.uses },
                 rememberSentHashtags = ServiceLocator.settings(getApplication()).current().rememberSentHashtags,
                 altModels = ServiceLocator.aiModels(getApplication()).ofKind(AiKind.ALT_TEXT),
                 accounts = db.accounts().all(),

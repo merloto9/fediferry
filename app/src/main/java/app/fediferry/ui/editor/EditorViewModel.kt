@@ -27,6 +27,7 @@ import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Hashtags
+import app.fediferry.data.model.InboxStack
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
@@ -57,6 +58,8 @@ data class EditorState(
     /** Every alt-text model, and the one picked for this picture; null means the default. */
     val altModels: List<AiModel> = emptyList(),
     val altModelId: String? = null,
+    /** The inbox's stacks, to put this post on one. */
+    val stacks: List<InboxStack> = emptyList(),
 ) {
     val altModel: AiModel? get() = AiModel.pick(altModels, altModelId)
 }
@@ -79,6 +82,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                 hashtagUses = db.hashtagUsage().all().associate { it.key to it.uses },
                 rememberSentHashtags = ServiceLocator.settings(getApplication()).current().rememberSentHashtags,
                 altModels = ServiceLocator.aiModels(getApplication()).ofKind(AiKind.ALT_TEXT),
+                stacks = db.stacks().all(),
                 accounts = db.accounts().all(),
                 loaded = true,
             )
@@ -117,6 +121,9 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         }
         unlinked.copy(bodyText = body)
     }
+
+    /** Puts the post on a stack, or back in New; saved with the post. */
+    fun setStack(stackId: String?) = edit { it.copy(stackId = stackId) }
 
     /** Picks the model for this picture's alt text; the default stays as it is. */
     fun setAltModel(id: String) = _state.update { it.copy(altModelId = id) }

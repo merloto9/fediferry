@@ -8,6 +8,18 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.18.0] — 2026-09-28
+
+### Added
+
+- **Stacks in the inbox.** Posts can be put on stacks you name — "To
+  research", "For the weekend", "Ready to post" — and the inbox shows each as
+  a section that folds open and shut, remembered per stack. Shares arrive in
+  *New*. Move posts from the inbox (long-press, *Move to stack*, or make a
+  stack on the spot) or from the editor (*Stack*). A stack's menu posts all of
+  it, now or spaced out, renames it, or deletes it; deleting sends its posts
+  back to New instead of losing them.
+
 ## [0.17.1] — 2026-09-27
 
 ### Fixed

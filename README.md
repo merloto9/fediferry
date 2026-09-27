@@ -59,6 +59,18 @@ that is missing gets joined, and only within ten minutes; a share carrying both
 an image and a link stands on its own. If you have already edited a draft's text
 by hand, pairing leaves your wording alone.
 
+### Stacks in the inbox
+
+Put posts on stacks while they wait — "To research", "For the weekend",
+"Ready to post". Make one with the folder button at the top of the inbox;
+long-press posts and choose *Move to stack*, or pick the stack in the editor
+under *Stack*. Shares arrive in *New*, on no stack. Each stack folds open and
+shut, and its menu posts everything on it at once or spaced out, renames it,
+or deletes it — its posts go back to New, none is lost.
+
+A way to use them: edit what's in New, move it to *Ready to post* when it's
+done, and post from there without wondering what still needs doing.
+
 ### Settings
 
 Settings opens on an overview, grouped by what you are doing. Each entry says

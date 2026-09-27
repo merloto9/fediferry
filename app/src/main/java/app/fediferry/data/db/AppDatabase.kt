@@ -33,6 +33,7 @@ import app.fediferry.data.model.Item
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.Hashtag
 import app.fediferry.data.model.HashtagUsage
+import app.fediferry.data.model.InboxStack
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.ProfileRule
@@ -53,8 +54,9 @@ import app.fediferry.template.TemplateEngine
         Hashtag::class,
         AiModel::class,
         HashtagUsage::class,
+        InboxStack::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -68,6 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun hashtags(): HashtagDao
     abstract fun aiModels(): AiModelDao
     abstract fun hashtagUsage(): HashtagUsageDao
+    abstract fun stacks(): StackDao
 
     companion object {
         /**
@@ -257,6 +260,27 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the inbox's stacks, and the stack each post sits on. Every
+         * existing post starts in New, on no stack.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `stacks` (
+                        `id` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        `collapsed` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("ALTER TABLE items ADD COLUMN stackId TEXT")
+            }
+        }
+
         private fun seedPlaceholder(db: SupportSQLiteDatabase, key: PlaceholderKey) {
             db.execSQL(
                 "INSERT OR IGNORE INTO placeholder_keys (id, name, mappings, sortOrder) VALUES (?, ?, ?, ?)",
@@ -287,7 +311,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .addCallback(SEED)
                 .build()
     }

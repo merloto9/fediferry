@@ -275,6 +275,7 @@ fun EditorScreen(
             )
 
             AccountPicker(state, viewModel)
+            if (state.stacks.isNotEmpty()) StackPicker(state, viewModel)
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -395,6 +396,40 @@ private fun LinkWarning(onRemoveLink: () -> Unit) {
                 onClick = onRemoveLink,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
             ) { Text("Take the link out of the post", fontWeight = FontWeight.Bold) }
+        }
+    }
+}
+
+/**
+ * Which inbox stack the post sits on — so a post finished here can go onto
+ * "Ready" on its way out of the editor. Saved with the post.
+ */
+@Composable
+private fun StackPicker(state: EditorState, viewModel: EditorViewModel) {
+    var open by remember { mutableStateOf(false) }
+    val current = state.stacks.firstOrNull { it.id == state.item?.stackId }
+    Box {
+        TextButton(onClick = { open = true }) {
+            Text("Stack: ${current?.name ?: "New"}")
+            Icon(Icons.Default.ArrowDropDown, contentDescription = "Change stack", modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("New — on no stack") },
+                onClick = {
+                    viewModel.setStack(null)
+                    open = false
+                },
+            )
+            state.stacks.forEach { stack ->
+                DropdownMenuItem(
+                    text = { Text(stack.name) },
+                    onClick = {
+                        viewModel.setStack(stack.id)
+                        open = false
+                    },
+                )
+            }
         }
     }
 }

@@ -88,6 +88,8 @@ data class Item(
      * confirmed. The editor warns about it.
      */
     @ColumnInfo(defaultValue = "0") val linkMayIdentify: Boolean = false,
+    /** The inbox stack it sits on ([InboxStack.id]); null means New. */
+    val stackId: String? = null,
 ) {
     val hashtagList: List<String> get() = Hashtags.parse(hashtags)
 }

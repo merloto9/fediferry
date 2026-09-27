@@ -384,5 +384,31 @@ class MigrationTest {
             assertEquals(0, c.getInt(1))
         }
     }
+
+    /** 9 → 10 adds the inbox's stacks; every existing post starts in New. */
+    @Test
+    fun migrate9To10PutsEveryPostInNew() {
+        helper.createDatabase(database, 9).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO items
+                  (id, bodyText, altTextFailed, visibility, templateId, status, createdAt,
+                   sourceFields, hashtags, addSourceHashtags, linkMayIdentify)
+                VALUES ('p', 'hi', 0, 'PUBLIC', 'default', 'DRAFT', 1700000000000, '{}', NULL, 1, 0)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(database, 10, true, AppDatabase.MIGRATION_9_10)
+
+        db.query("SELECT stackId FROM items WHERE id = 'p'").use { c ->
+            assertTrue(c.moveToFirst())
+            assertNull(c.getString(0))
+        }
+        db.query("SELECT COUNT(*) FROM stacks").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+    }
 }
 

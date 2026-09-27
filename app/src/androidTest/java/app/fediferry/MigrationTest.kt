@@ -360,5 +360,29 @@ class MigrationTest {
         }
         assertEquals(mapOf("meme" to 2, "katzen" to 1), uses)
     }
+
+    /** 8 → 9 adds the flag for a link that may name its sharer, off for every existing post. */
+    @Test
+    fun migrate8To9FlagsNoExistingLink() {
+        helper.createDatabase(database, 8).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO items
+                  (id, bodyText, altTextFailed, visibility, templateId, status, createdAt,
+                   sourceFields, hashtags, addSourceHashtags, sourceUrl)
+                VALUES ('p', 'via {link}', 0, 'PUBLIC', 'default', 'DRAFT', 1700000000000, '{}', NULL, 1,
+                        'https://www.pinterest.com/pin/1/sent/?sender=2')
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(database, 9, true, AppDatabase.MIGRATION_8_9)
+
+        db.query("SELECT sourceUrl, linkMayIdentify FROM items WHERE id = 'p'").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("https://www.pinterest.com/pin/1/sent/?sender=2", c.getString(0))
+            assertEquals(0, c.getInt(1))
+        }
+    }
 }
 

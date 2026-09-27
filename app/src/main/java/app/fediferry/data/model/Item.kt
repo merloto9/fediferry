@@ -82,6 +82,12 @@ data class Item(
     val hashtags: String? = null,
     /** Copied from the template, then the editor's to change: see [Template.addSourceHashtags]. */
     @ColumnInfo(defaultValue = "1") val addSourceHashtags: Boolean = true,
+    /**
+     * Set when [sourceUrl] may identify the person who shared it — a
+     * Pinterest link with its sender — because a clean one could not be
+     * confirmed. The editor warns about it.
+     */
+    @ColumnInfo(defaultValue = "0") val linkMayIdentify: Boolean = false,
 ) {
     val hashtagList: List<String> get() = Hashtags.parse(hashtags)
 }

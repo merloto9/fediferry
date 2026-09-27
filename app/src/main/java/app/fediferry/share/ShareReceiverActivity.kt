@@ -99,7 +99,10 @@ class ShareReceiverActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun handle(mode: ShareMode, original: ItemRepository.Ingested) {
+    private suspend fun handle(mode: ShareMode, shared: ItemRepository.Ingested) {
+        // First, the link loses whatever says who shared it. Everything after
+        // compares against this item, so "was media fetched?" stays accurate.
+        val original = shared.copy(item = cleanLink(shared.item))
         // A link-only share may carry media we can fetch. This is a no-op for
         // Instagram and for anything already carrying an image.
         val resolved = resolveLink(original.item)
@@ -164,6 +167,38 @@ class ShareReceiverActivity : ComponentActivity() {
         ShareMode.fromName(intent.getStringExtra(ShareMode.EXTRA))
             ?: ShareMode.fromShortcutId(intent.getStringExtra(EXTRA_SHORTCUT_ID))
             ?: ShareMode.COMPOSE
+
+    /**
+     * Takes the sharer out of a link whose service puts them in it — a
+     * Pinterest link names who sent it. Done even with fetching from links
+     * switched off: it protects the person sharing, it fetches no content.
+     * When a clean link cannot be confirmed the shared one is kept, and the
+     * user is told.
+     */
+    private suspend fun cleanLink(item: Item): Item {
+        val repo = ServiceLocator.items(this)
+        val service = repo.linkCleaningService(item) ?: return item
+        setContent {
+            FediFerryTheme {
+                LoadingScrim(
+                    title = "Checking the $service link",
+                    detail = "Taking out the part that says who shared it, and making sure the " +
+                        "link still leads to the same post.",
+                    icon = Icons.Outlined.Link,
+                )
+            }
+        }
+        val cleaned = repo.cleanLink(item)
+        if (cleaned.linkMayIdentify) {
+            Toast.makeText(
+                applicationContext,
+                "This $service link may show who shared it. A clean one couldn't be confirmed, " +
+                    "so the link you shared is kept.",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+        return cleaned
+    }
 
     /**
      * Fetches the media behind a shared link when the service publishes one.

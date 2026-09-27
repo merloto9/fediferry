@@ -29,6 +29,7 @@ import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
 import app.fediferry.data.model.Template
+import app.fediferry.link.CleanedLink
 import app.fediferry.link.LinkResolver
 import app.fediferry.log.DebugLog
 import app.fediferry.link.MediaFetcher
@@ -280,6 +281,38 @@ class ItemRepository(
         url.contains(".gif", ignoreCase = true) -> "image/gif"
         url.contains("webp", ignoreCase = true) -> "image/webp"
         else -> "image/jpeg"
+    }
+
+    /**
+     * Replaces the item's link with one that no longer identifies whoever
+     * shared it, where its service puts that in links (Pinterest's sender).
+     * The clean link is checked before it is used; when it cannot be, the
+     * original is kept and the item is flagged so the user is warned.
+     *
+     * The body is written again only while it is still the template's own
+     * output, like every other late change to an item.
+     */
+    /** The service whose links carry the sharer and get cleaned, for this item; no I/O. */
+    fun linkCleaningService(item: Item): String? {
+        val url = item.sourceUrl ?: return null
+        return resolvers.firstOrNull { it.handles(url) }?.takeIf { it.cleansLinks }?.serviceName
+    }
+
+    suspend fun cleanLink(item: Item): Item {
+        val url = item.sourceUrl ?: return item
+        val resolver = resolvers.firstOrNull { it.handles(url) } ?: return item
+        return when (val cleaned = resolver.cleanLink(url)) {
+            CleanedLink.Unchanged -> item
+            is CleanedLink.Clean -> {
+                DebugLog.d(LOG, "${resolver.serviceName} link cleaned of sharer details")
+                refreshed(item, item.copy(sourceUrl = cleaned.url, linkMayIdentify = false)).also { items.update(it) }
+            }
+            is CleanedLink.MayIdentify -> {
+                // Only that it happened and why — never the link.
+                DebugLog.w(LOG, "${resolver.serviceName} link kept as shared: ${cleaned.reason}")
+                item.copy(linkMayIdentify = true).also { items.update(it) }
+            }
+        }
     }
 
     /**

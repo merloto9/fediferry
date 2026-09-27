@@ -96,6 +96,28 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun setVisibility(visibility: Visibility) = edit { it.copy(visibility = visibility) }
     fun setAccount(accountId: String) = edit { it.copy(accountId = accountId) }
 
+    /**
+     * Takes a link that may name its sharer out of the post: out of the text,
+     * wherever it appears, and off the item so it is not filled in again.
+     */
+    fun removeLink() = edit { item ->
+        val link = item.sourceUrl ?: return@edit item
+        val unlinked = item.copy(sourceUrl = null, linkMayIdentify = false)
+        val template = _state.value.templates.firstOrNull { it.id == item.templateId }
+        val keys = _state.value.placeholderKeys
+        // Still the template's own text: write it again without the link, so
+        // the "via" line goes with it. Edited text: take out the link alone.
+        val body = if (template != null &&
+            item.bodyText == TemplateEngine.render(template, keys, TemplateEngine.inputsOf(item))
+        ) {
+            TemplateEngine.render(template, keys, TemplateEngine.inputsOf(unlinked))
+        } else {
+            item.bodyText.replace(link, "").lines().joinToString("\n") { it.trimEnd() }
+                .replace(Regex("\n{3,}"), "\n\n").trim()
+        }
+        unlinked.copy(bodyText = body)
+    }
+
     /** Picks the model for this picture's alt text; the default stays as it is. */
     fun setAltModel(id: String) = _state.update { it.copy(altModelId = id) }
 

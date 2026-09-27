@@ -20,6 +20,7 @@
 package app.fediferry.module.pinterest
 
 import app.fediferry.data.model.ContentSource
+import app.fediferry.link.CleanedLink
 import app.fediferry.link.LinkResolver
 import app.fediferry.link.ResolvedPost
 import app.fediferry.link.fieldsOf
@@ -42,6 +43,12 @@ import okhttp3.Request
  * `originals/` at full size, so that URL is used instead — but only when the
  * page itself names it, rather than guessing at a URL that may not exist.
  *
+ * A shared link carries who shared it. The app shares
+ * `pin.it/<code>`, which redirects to `/pin/<id>/sent/?invite_code=…&sender=…`,
+ * where `sender` is the sharer's Pinterest user id. [cleanLink] follows the
+ * redirect without loading the page, rebuilds the plain `/pin/<id>/` address,
+ * and loads that to check it is the same pin before it replaces the link.
+ *
  * Video pins are declined rather than resolved. Their `og:image` is a cover
  * frame, and posting a still of a video without saying so is the failure the
  * 9GAG resolver was written to avoid. Declining leaves the screenshot path,
@@ -53,23 +60,69 @@ class PinterestResolver(private val http: OkHttpClient) : LinkResolver {
 
     override fun handles(url: String): Boolean = linkOf(url) != null
 
+    override val cleansLinks = true
+
+    /** For the short link's redirects, wanted as addresses, not as pages. */
+    private val noRedirects: OkHttpClient by lazy {
+        http.newBuilder().followRedirects(false).followSslRedirects(false).build()
+    }
+
+    /**
+     * The last pin page loaded, so checking a cleaned link and then fetching
+     * its picture downloads the page — well over a megabyte — once.
+     */
+    @Volatile private var lastPage: Pair<String, String>? = null
+
+    override suspend fun cleanLink(url: String): CleanedLink = withContext(Dispatchers.IO) {
+        val link = linkOf(url) ?: return@withContext CleanedLink.Unchanged
+        runCatching {
+            val pinLink = if (SHORT.matches(link)) followShortLink(link) else link
+            val id = pinIdOf(pinLink)
+                ?: return@runCatching CleanedLink.MayIdentify("the short link led nowhere Pinterest-shaped")
+            val clean = canonicalOf(id)
+            if (url.trim() == clean) return@runCatching CleanedLink.Unchanged
+            val html = page(clean)
+            if (isPinPage(html, id)) CleanedLink.Clean(clean)
+            else CleanedLink.MayIdentify("the plain pin address did not show the same pin")
+        }.getOrElse { CleanedLink.MayIdentify(it.message ?: it.javaClass.simpleName) }
+    }
+
+    /** Follows a pin.it link's redirects to the pin address, without loading any page. */
+    private fun followShortLink(link: String): String {
+        var current = link
+        repeat(MAX_REDIRECTS) {
+            if (pinIdOf(current) != null) return current
+            val request = Request.Builder().url(current).header("User-Agent", USER_AGENT).get().build()
+            current = noRedirects.newCall(request).execute().use { response ->
+                if (!response.isRedirect) return current
+                response.header("Location")?.let { response.request.url.resolve(it)?.toString() }
+            } ?: return current
+        }
+        return current
+    }
+
+    private fun page(url: String): String {
+        lastPage?.let { (cachedUrl, html) -> if (cachedUrl == url) return html }
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "text/html")
+            .get()
+            .build()
+        val html = http.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "Pinterest returned ${response.code}" }
+            response.peekBody(MAX_HTML_BYTES).string()
+        }
+        lastPage = url to html
+        return html
+    }
+
     override suspend fun resolve(url: String): Result<ResolvedPost> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val link = linkOf(url) ?: error("Not a Pinterest pin link")
-                val request = Request.Builder()
-                    .url(link)
-                    .header("User-Agent", USER_AGENT)
-                    .header("Accept", "text/html")
-                    .get()
-                    .build()
-
                 // A pin.it link redirects to the pin page; OkHttp follows it.
-                val html = http.newCall(request).execute().use { response ->
-                    check(response.isSuccessful) { "Pinterest returned ${response.code}" }
-                    response.peekBody(MAX_HTML_BYTES).string()
-                }
-                parse(html).getOrThrow()
+                parse(page(link)).getOrThrow()
             }
         }
 
@@ -95,9 +148,32 @@ class PinterestResolver(private val http: OkHttpClient) : LinkResolver {
         /** The share sheet's own short link, which redirects to a pin page. */
         private val SHORT = Regex("""https?://pin\.it/[A-Za-z0-9]+/?""", RegexOption.IGNORE_CASE)
 
+        private const val MAX_REDIRECTS = 5
+
         /** The URL to fetch, picked out of whatever text came with the share. */
         fun linkOf(url: String): String? =
             (PIN.find(url.trim()) ?: SHORT.find(url.trim()))?.value
+
+        /** The pin's id, from any form of its address — with a slug, a country domain, or /sent/?…. */
+        fun pinIdOf(url: String): String? =
+            PIN_ID.find(url.trim())?.groupValues?.get(1)
+
+        private val PIN_ID = Regex(
+            """pinterest\.(?:[a-z]{2,3}\.)?[a-z]{2,3}/pin/(?:[^/?#\s]*--)?([0-9]+)""",
+            RegexOption.IGNORE_CASE,
+        )
+
+        /** The address that names the pin and nothing else — no sender, no invite. */
+        fun canonicalOf(id: String): String = "https://www.pinterest.com/pin/$id/"
+
+        /**
+         * Whether [html] is pin [id]'s own page. A 200 is not enough: Pinterest
+         * answers a pin that does not exist with a page too. Its `og:url` has
+         * to name the same pin, and it has to carry the pin's picture.
+         */
+        fun isPinPage(html: String, id: String): Boolean =
+            meta(html, "og:url")?.let(::pinIdOf) == id &&
+                meta(html, "og:image")?.startsWith("https://i.pinimg.com/", ignoreCase = true) == true
 
         /**
          * Pulls the picture out of a pin page.

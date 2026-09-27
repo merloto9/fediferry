@@ -8,6 +8,20 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.17.0] — 2026-09-27
+
+### Fixed
+
+- **Pinterest links no longer say who shared them.** A link shared from
+  Pinterest leads to an address with the sharer's Pinterest user id and an
+  invite code, and that went into `{link}`. It is now replaced with the plain
+  address of the pin, after checking that address still shows the same pin —
+  Pinterest answers a missing pin with a page too, so the check compares the
+  pin itself. Short `pin.it` links are followed without loading their page.
+- When a clean link can't be confirmed, the shared one is kept and you are
+  warned: at share time, and in the editor, which can take the link out of
+  the post. This happens even with fetching images from links switched off.
+
 ## [0.16.0] — 2026-09-24
 
 ### Changed

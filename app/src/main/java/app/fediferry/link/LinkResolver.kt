@@ -62,4 +62,30 @@ interface LinkResolver {
     fun handles(url: String): Boolean
 
     suspend fun resolve(url: String): Result<ResolvedPost>
+
+    /**
+     * The shared link without what identifies the person who shared it — a
+     * sender id, an invite code — checked to still lead to the same post.
+     * Never throws. Most services put nothing personal in a link, so the
+     * default leaves it alone.
+     */
+    suspend fun cleanLink(url: String): CleanedLink = CleanedLink.Unchanged
+
+    /** Whether [cleanLink] does anything, so the share can say it is checking. */
+    val cleansLinks: Boolean get() = false
+}
+
+/** What [LinkResolver.cleanLink] found. */
+sealed interface CleanedLink {
+    /** Nothing to remove, or a link the resolver does not know. */
+    data object Unchanged : CleanedLink
+
+    /** The same post, without what identified the sharer, and checked to lead there. */
+    data class Clean(val url: String) : CleanedLink
+
+    /**
+     * A link that may identify the sharer, kept as it was because a clean one
+     * could not be confirmed. [reason] is for the log; the user is warned.
+     */
+    data class MayIdentify(val reason: String) : CleanedLink
 }

@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -57,6 +58,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -71,6 +73,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.AiModel
@@ -211,6 +214,10 @@ fun EditorScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            if (item.linkMayIdentify && item.sourceUrl != null) {
+                LinkWarning(onRemoveLink = viewModel::removeLink)
+            }
 
             StableTextField(
                 // Regenerating alt text replaces it from outside, so the field
@@ -364,3 +371,31 @@ private fun AccountPicker(state: EditorState, viewModel: EditorViewModel) {
         }
     }
 }
+
+/**
+ * The link may name whoever shared it — a Pinterest link carries the sender —
+ * and no clean one could be confirmed. A warning, so in the warning colours.
+ */
+@Composable
+private fun LinkWarning(onRemoveLink: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text("This link may show who shared it", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "It was shared with details about the sender, and a clean link that still " +
+                    "leads to the same post couldn't be confirmed, so it is posted as shared.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            TextButton(
+                onClick = onRemoveLink,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
+            ) { Text("Take the link out of the post", fontWeight = FontWeight.Bold) }
+        }
+    }
+}
+

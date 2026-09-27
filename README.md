@@ -106,6 +106,13 @@ Video pins are left alone. Their preview image is a cover frame, and posting a
 still of a video without saying so is worse than asking you to screenshot it, so
 the share falls back to the screenshot path.
 
+A shared pin link names who shared it: the app's `pin.it` link leads to an
+address carrying the sender's Pinterest user id and an invite code. FediFerry
+replaces it with the plain `pinterest.com/pin/<id>/` address, after checking
+that address still shows the same pin. If it can't confirm that, it keeps the
+link as shared and says so — at share time and in the editor, which offers to
+take the link out of the post.
+
 Bear in mind a pin is usually itself someone's repost, so `via {link}` credits
 whoever pinned it rather than whoever made it.
 

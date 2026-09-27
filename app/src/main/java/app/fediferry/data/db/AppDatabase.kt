@@ -54,7 +54,7 @@ import app.fediferry.template.TemplateEngine
         AiModel::class,
         HashtagUsage::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -250,6 +250,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds the flag for a link that may identify whoever shared it. */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE items ADD COLUMN linkMayIdentify INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         private fun seedPlaceholder(db: SupportSQLiteDatabase, key: PlaceholderKey) {
             db.execSQL(
                 "INSERT OR IGNORE INTO placeholder_keys (id, name, mappings, sortOrder) VALUES (?, ?, ?, ?)",
@@ -280,7 +287,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "fediferry.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .addCallback(SEED)
                 .build()
     }

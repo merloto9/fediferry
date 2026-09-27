@@ -20,7 +20,15 @@
 package app.fediferry
 
 import app.fediferry.data.model.ContentSource
+import app.fediferry.link.CleanedLink
 import app.fediferry.module.pinterest.PinterestResolver
+import kotlinx.coroutines.test.runTest
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -223,6 +231,138 @@ class PinterestResolverTest {
         assertTrue(fields["description"]!!.startsWith("Find the perfect handmade gift"))
         assertTrue(ContentSource.PINTEREST.fields.map { it.name }.containsAll(fields.keys))
     }
+
+    // --- the sharer's details in a link -------------------------------------
+
+    @Test
+    fun `reads the pin id from every shape a link comes in`() {
+        for (url in listOf(
+            "https://www.pinterest.com/pin/13018286423924683/sent/?invite_code=ebf11b4c&sender=323555691887329335&sfo=1",
+            "https://de.pinterest.com/pin/13018286423924683/",
+            "https://www.pinterest.co.uk/pin/some-title--13018286423924683/",
+        )) {
+            assertEquals(url, "13018286423924683", PinterestResolver.pinIdOf(url))
+        }
+        assertNull(PinterestResolver.pinIdOf("https://pin.it/1KEyRrKCD"))
+    }
+
+    @Test
+    fun `the clean address names the pin and nothing else`() {
+        assertEquals("https://www.pinterest.com/pin/13018286423924683/", PinterestResolver.canonicalOf("13018286423924683"))
+    }
+
+    @Test
+    fun `a pin page is recognised as that pin, and only that pin`() {
+        val html = fixture("pinterest_pin_titled.html")
+
+        assertTrue(PinterestResolver.isPinPage(html, "751467887802740312"))
+        assertFalse("another pin's page", PinterestResolver.isPinPage(html, "13018286423924683"))
+        assertFalse(
+            "a page without the pin's picture",
+            PinterestResolver.isPinPage(html.replace("og:image", "og:nothing"), "751467887802740312"),
+        )
+    }
+
+    @Test
+    fun `a shared link loses its sender once the plain address shows the same pin`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { url ->
+            if (url == "https://www.pinterest.com/pin/751467887802740312/") page(fixture("pinterest_pin_titled.html")) else notFound()
+        }
+
+        val cleaned = PinterestResolver(http).cleanLink(
+            "https://www.pinterest.com/pin/751467887802740312/sent/?invite_code=ebf11b4c&sender=323555691887329335&sfo=1",
+        )
+
+        assertEquals(CleanedLink.Clean("https://www.pinterest.com/pin/751467887802740312/"), cleaned)
+        assertTrue("the sender's address is never loaded", seen.none { "sender=" in it })
+    }
+
+    @Test
+    fun `a pin_it link is followed, without loading its page, to a clean address`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { url ->
+            when (url) {
+                // The chain Pinterest really answers with, shortener hop included.
+                "https://pin.it/1KEyRrKCD" -> redirect("https://api.pinterest.com/url_shortener/1KEyRrKCD/redirect/")
+                "https://api.pinterest.com/url_shortener/1KEyRrKCD/redirect/" ->
+                    redirect("https://www.pinterest.com/pin/751467887802740312/sent/?invite_code=ebf11b4c&sender=323555691887329335&sfo=1")
+                "https://www.pinterest.com/pin/751467887802740312/" -> page(fixture("pinterest_pin_titled.html"))
+                else -> notFound()
+            }
+        }
+
+        val cleaned = PinterestResolver(http).cleanLink("https://pin.it/1KEyRrKCD")
+
+        assertEquals(CleanedLink.Clean("https://www.pinterest.com/pin/751467887802740312/"), cleaned)
+        assertTrue(seen.none { "sender=" in it })
+    }
+
+    @Test
+    fun `when the plain address shows no such pin, the shared link is kept and flagged`() = runTest {
+        // Pinterest answers a missing pin with a page too — one that is not this pin.
+        val http = fake { page("<html><head><meta property=\"og:url\" content=\"https://www.pinterest.com/\"></head></html>") }
+
+        val cleaned = PinterestResolver(http).cleanLink(
+            "https://www.pinterest.com/pin/751467887802740312/sent/?invite_code=ebf11b4c&sender=323555691887329335",
+        )
+
+        assertTrue(cleaned is CleanedLink.MayIdentify)
+    }
+
+    @Test
+    fun `when Pinterest can't be reached, the shared link is kept and flagged`() = runTest {
+        val http = OkHttpClient.Builder().addInterceptor(Interceptor { throw java.io.IOException("offline") }).build()
+
+        assertTrue(PinterestResolver(http).cleanLink("https://pin.it/1KEyRrKCD") is CleanedLink.MayIdentify)
+    }
+
+    @Test
+    fun `an already clean link is left alone, and a non-pin link too`() = runTest {
+        val http = fake { notFound() }
+
+        assertEquals(CleanedLink.Unchanged, PinterestResolver(http).cleanLink("https://www.pinterest.com/pin/751467887802740312/"))
+        assertEquals(CleanedLink.Unchanged, PinterestResolver(http).cleanLink("https://www.instagram.com/p/abc/"))
+    }
+
+    @Test
+    fun `fetching the picture after the check does not load the page again`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { url ->
+            if (url == "https://www.pinterest.com/pin/751467887802740312/") page(fixture("pinterest_pin_titled.html")) else notFound()
+        }
+        val resolver = PinterestResolver(http)
+
+        val clean = (resolver.cleanLink("https://www.pinterest.com/pin/751467887802740312/sent/?sender=1") as CleanedLink.Clean).url
+        resolver.resolve(clean).getOrThrow()
+
+        assertEquals(1, seen.count { it == "GET https://www.pinterest.com/pin/751467887802740312/" })
+    }
+
+    // --- fake network ---------------------------------------------------------
+
+    private class Reply(val code: Int, val body: String = "", val location: String? = null)
+
+    private fun page(html: String) = Reply(200, html)
+    private fun notFound() = Reply(404)
+    private fun redirect(to: String) = Reply(302, location = to)
+
+    private fun fake(seen: MutableList<String> = mutableListOf(), route: (url: String) -> Reply): OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor(Interceptor { chain ->
+                val request = chain.request()
+                seen += "${request.method} ${request.url}"
+                val reply = route(request.url.toString())
+                Response.Builder()
+                    .request(request)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(reply.code)
+                    .message("fake")
+                    .apply { reply.location?.let { header("Location", it) } }
+                    .body(reply.body.toResponseBody("text/html".toMediaType()))
+                    .build()
+            })
+            .build()
 
     private companion object {
         /** `handles` does no I/O, so the client is never touched. */

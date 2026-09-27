@@ -8,6 +8,16 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.18.1] — 2026-09-28
+
+### Fixed
+
+- **The screen no longer twitches while you type.** On Android 15 and 16 the
+  app is drawn edge to edge, and the window was panned to keep the cursor
+  above the keyboard while the page scrolled it into view too; the two undid
+  each other on every keystroke. The window now resizes for the keyboard, and
+  the editor, Settings and Clean up end above it.
+
 ## [0.18.0] — 2026-09-28
 
 ### Added

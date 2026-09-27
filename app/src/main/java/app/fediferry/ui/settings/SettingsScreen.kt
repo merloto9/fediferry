@@ -62,6 +62,8 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import app.fediferry.ui.typingInsets
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -200,6 +202,7 @@ fun SettingsScreen(
     val state by viewModel.state.collectAsState()
 
     Scaffold(
+        contentWindowInsets = ScaffoldDefaults.typingInsets,
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
@@ -266,6 +269,7 @@ fun SettingsPageScreen(
     }
 
     Scaffold(
+        contentWindowInsets = ScaffoldDefaults.typingInsets,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(

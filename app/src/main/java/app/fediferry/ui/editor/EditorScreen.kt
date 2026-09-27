@@ -56,6 +56,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import app.fediferry.ui.typingInsets
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -113,6 +115,7 @@ fun EditorScreen(
     }
 
     Scaffold(
+        contentWindowInsets = ScaffoldDefaults.typingInsets,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(

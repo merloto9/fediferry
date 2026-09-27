@@ -132,6 +132,18 @@ screenshot. No Reddit account is involved.
 
 The post's title fills `{caption}`, and its subreddit is available to map.
 
+The Reddit app's share links are made per share — a `/s/` short link, or a
+permalink with `share_id` and `utm_` tags. They show no name, but Reddit ties
+them to the account that shared them. FediFerry posts the plain permalink
+instead, once Reddit's embed page confirms it is the same post, and warns you
+if it can't. Plain permalinks and `redd.it` links carry nothing and stay as
+they are.
+
+Links look longer than the short ones, but that costs nothing on Mastodon:
+every link counts as 23 characters, whatever its length, and is shown
+shortened in the post. A short `pin.it` link can't be kept, as its code is
+what carries the sharer.
+
 ### Placeholders
 
 Two things are kept apart. A **template** is a topic: the hashtags it ticks,

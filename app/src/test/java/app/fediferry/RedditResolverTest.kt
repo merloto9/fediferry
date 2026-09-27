@@ -20,6 +20,7 @@
 package app.fediferry
 
 import app.fediferry.data.model.ContentSource
+import app.fediferry.link.CleanedLink
 import app.fediferry.module.reddit.RedditResolver
 import kotlinx.coroutines.test.runTest
 import okhttp3.Interceptor
@@ -273,6 +274,94 @@ class RedditResolverTest {
         val http = fake { _, _ -> status(403) }
 
         assertTrue(RedditResolver(http).resolve("https://www.reddit.com/r/memes/comments/1wn0qai/").isFailure)
+    }
+
+    // --- the sharer's details in a link -------------------------------------
+
+    @Test
+    fun `a share link becomes the post's plain permalink, checked on its embed page`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { _, url ->
+            when (url) {
+                "https://www.reddit.com/r/comics/s/Ab3dEf9Hij" ->
+                    redirect("https://www.reddit.com/r/comics/comments/1wmu6f7/the_next_episode/?share_id=Qx7&utm_medium=android_app&utm_source=share")
+                "https://embed.reddit.com/r/comics/comments/1wmu6f7/" -> page(fixture("reddit_gallery.html"))
+                else -> notFound()
+            }
+        }
+
+        val cleaned = RedditResolver(http).cleanLink("https://www.reddit.com/r/comics/s/Ab3dEf9Hij")
+
+        assertEquals(CleanedLink.Clean("https://www.reddit.com/r/comics/comments/1wmu6f7/the_next_episode/"), cleaned)
+        assertTrue("the tracked permalink is never loaded", seen.none { "share_id" in it })
+    }
+
+    @Test
+    fun `a permalink with a share id and tracking tags is cleaned too`() = runTest {
+        val http = fake { _, url ->
+            if (url == "https://embed.reddit.com/r/comics/comments/1wmu6f7/") page(fixture("reddit_gallery.html")) else notFound()
+        }
+
+        val cleaned = RedditResolver(http).cleanLink(
+            "https://www.reddit.com/r/comics/comments/1wmu6f7/the_next_episode/?share_id=Qx7&utm_content=2&utm_source=share",
+        )
+
+        assertEquals(CleanedLink.Clean("https://www.reddit.com/r/comics/comments/1wmu6f7/the_next_episode/"), cleaned)
+    }
+
+    @Test
+    fun `links that carry nothing are left alone, without a request`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { _, _ -> notFound() }
+        val resolver = RedditResolver(http)
+
+        for (url in listOf(
+            "https://www.reddit.com/r/comics/comments/1wmu6f7/the_next_episode/",
+            "https://redd.it/1wmu6f7",
+            "https://i.redd.it/qlmiuotnsyqh1.jpg",
+        )) {
+            assertEquals(url, CleanedLink.Unchanged, resolver.cleanLink(url))
+        }
+        assertTrue(seen.isEmpty())
+    }
+
+    @Test
+    fun `when the embed page shows another post, the shared link is kept and flagged`() = runTest {
+        val http = fake { _, url ->
+            // The page for a different post than the permalink names.
+            if (url == "https://embed.reddit.com/r/comics/comments/1wmu6f7/") page(fixture("reddit_image.html")) else notFound()
+        }
+
+        val cleaned = RedditResolver(http).cleanLink("https://www.reddit.com/r/comics/comments/1wmu6f7/x/?share_id=Qx7")
+
+        assertTrue(cleaned.toString(), cleaned is CleanedLink.MayIdentify)
+    }
+
+    @Test
+    fun `when Reddit can't be reached, the shared link is kept and flagged`() = runTest {
+        val http = fake { _, _ -> status(403) }
+
+        assertTrue(RedditResolver(http).cleanLink("https://www.reddit.com/r/comics/s/Ab3dEf9Hij") is CleanedLink.MayIdentify)
+    }
+
+    @Test
+    fun `fetching the picture after the clean-up does not load the embed page again`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { method, url ->
+            when {
+                url == "https://www.reddit.com/r/comics/s/Ab3dEf9Hij" ->
+                    redirect("https://www.reddit.com/r/comics/comments/1wmu6f7/the_next_episode/?share_id=Qx7")
+                url == "https://embed.reddit.com/r/comics/comments/1wmu6f7/" -> page(fixture("reddit_gallery.html"))
+                method == "HEAD" -> ok()
+                else -> notFound()
+            }
+        }
+        val resolver = RedditResolver(http)
+
+        val clean = (resolver.cleanLink("https://www.reddit.com/r/comics/s/Ab3dEf9Hij") as CleanedLink.Clean).url
+        resolver.resolve(clean).getOrThrow()
+
+        assertEquals(1, seen.count { it == "GET https://embed.reddit.com/r/comics/comments/1wmu6f7/" })
     }
 
     // --- fake network ---------------------------------------------------

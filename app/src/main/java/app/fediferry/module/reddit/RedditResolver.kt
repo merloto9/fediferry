@@ -21,6 +21,7 @@ package app.fediferry.module.reddit
 
 import app.fediferry.BuildConfig
 import app.fediferry.data.model.ContentSource
+import app.fediferry.link.CleanedLink
 import app.fediferry.link.LinkResolver
 import app.fediferry.link.ResolvedPost
 import app.fediferry.link.fieldsOf
@@ -81,24 +82,62 @@ class RedditResolver(private val http: OkHttpClient) : LinkResolver {
                 val link = linkOf(url) ?: error("Not a Reddit post link")
                 directMediaOf(link)?.let { return@runCatching it }
 
-                val target = postOf(link)
-                    ?: postOf(followShareLink(link))
-                    ?: error("Reddit share link did not lead to a post")
-
-                var page = embed(target)
-                // Asked at the wrong subreddit, the embed page renders nothing
-                // but still names the post's real address.
-                val canonical = canonicalOf(page)?.let(::postOf)
-                if (canonical != null && !canonical.owner.equals(target.owner, ignoreCase = true)) {
-                    page = embed(canonical)
-                }
-
-                val post = parse(page).getOrThrow()
+                val post = parse(postPage(link)).getOrThrow()
                 val original = post.takeIf { it.mimeType.startsWith("image/") }
                     ?.let { originalOf(it.mediaUrl) }
                 if (original != null && exists(original)) post.copy(mediaUrl = original) else post
             }
         }
+
+    /**
+     * The Reddit app's share links are made per share: a `/s/<code>` short
+     * link, or a permalink with `?share_id=…` and `utm_…` tags. Neither shows
+     * a name, but Reddit ties both to the account that shared them. The clean
+     * link is the post's permalink as its embed page names it, used once that
+     * page shows the same post. Plain permalinks and `redd.it` links carry
+     * nothing and are left alone.
+     */
+    override suspend fun cleanLink(url: String): CleanedLink = withContext(Dispatchers.IO) {
+        val link = linkOf(url) ?: return@withContext CleanedLink.Unchanged
+        if (DIRECT.matches(link)) return@withContext CleanedLink.Unchanged
+        if (!SHARE.matches(link) && '?' !in url) return@withContext CleanedLink.Unchanged
+        runCatching {
+            val page = postPage(link)
+            val clean = canonicalOf(page)?.substringBefore('?')?.substringBefore('#')
+                ?: return@runCatching CleanedLink.MayIdentify("the embed page named no permalink")
+            if (clean == url.trim()) return@runCatching CleanedLink.Unchanged
+            if (isPostPage(page, clean)) {
+                // The fetch that follows asks for the clean link; it gets this page.
+                linkOf(clean)?.let { lastPage = it to page }
+                CleanedLink.Clean(clean)
+            } else {
+                CleanedLink.MayIdentify("the embed page did not show the same post")
+            }
+        }.getOrElse { CleanedLink.MayIdentify(it.message ?: it.javaClass.simpleName) }
+    }
+
+    override val cleansLinks = true
+
+    /** The last post page found, so a clean-up and then a fetch load it once. */
+    @Volatile private var lastPage: Pair<String, String>? = null
+
+    /** The embed page for whatever post [link] names, a share link's redirect followed. */
+    private fun postPage(link: String): String {
+        lastPage?.let { (cachedLink, html) -> if (cachedLink == link) return html }
+        val target = postOf(link)
+            ?: postOf(followShareLink(link))
+            ?: error("Reddit share link did not lead to a post")
+
+        var page = embed(target)
+        // Asked at the wrong subreddit, the embed page renders nothing
+        // but still names the post's real address.
+        val canonical = canonicalOf(page)?.let(::postOf)
+        if (canonical != null && !canonical.owner.equals(target.owner, ignoreCase = true)) {
+            page = embed(canonical)
+        }
+        lastPage = link to page
+        return page
+    }
 
     private fun embed(post: PostRef): String {
         val request = Request.Builder()
@@ -207,6 +246,16 @@ class RedditResolver(private val http: OkHttpClient) : LinkResolver {
 
         fun directMediaOf(link: String): ResolvedPost? =
             DIRECT.matchEntire(link)?.let { ResolvedPost(link, mimeOf(link)) }
+
+        /**
+         * Whether [html] is the embed page of the post [permalink] names: the
+         * post Reddit's own data describes has that id.
+         */
+        fun isPostPage(html: String, permalink: String): Boolean {
+            val id = postOf(permalink)?.id ?: return false
+            val shown = screenviewOf(html)?.get("post")?.jsonObject?.string("id") ?: return false
+            return shown.equals("t3_$id", ignoreCase = true)
+        }
 
         /** The post's own address, which the page names even when it will not render it. */
         fun canonicalOf(html: String): String? =

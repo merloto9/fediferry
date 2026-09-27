@@ -8,6 +8,17 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.17.1] — 2026-09-27
+
+### Fixed
+
+- **Reddit links no longer carry the share that made them.** The Reddit app
+  shares a `/s/` short link, or a permalink with `share_id` and `utm_` tags —
+  no name, but tied by Reddit to the account that shared it. The post now gets
+  the plain permalink, once Reddit's embed page confirms it is the same post;
+  otherwise the shared link is kept and you are warned, as with Pinterest.
+  Plain permalinks and `redd.it` links are left as they are.
+
 ## [0.17.0] — 2026-09-27
 
 ### Fixed

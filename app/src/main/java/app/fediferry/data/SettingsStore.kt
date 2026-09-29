@@ -69,6 +69,11 @@ data class Settings(
      * source's tags would otherwise pile up in it.
      */
     val rememberSentHashtags: Boolean = false,
+    /**
+     * Whether the offer to clean the links of older inbox posts has been
+     * answered. Settings can set it back, which asks again.
+     */
+    val oldLinkCleanupOffered: Boolean = false,
 
     // --- appearance ------------------------------------------------------
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -110,6 +115,7 @@ class SettingsStore(private val context: Context) {
         val lastCleanupProfile = stringPreferencesKey("last_cleanup_profile")
         val debugLogging = booleanPreferencesKey("debug_logging")
         val rememberSentHashtags = booleanPreferencesKey("remember_sent_hashtags")
+        val oldLinkCleanupOffered = booleanPreferencesKey("old_link_cleanup_offered")
         val themeMode = stringPreferencesKey("theme_mode")
         val colorSource = stringPreferencesKey("color_source")
         val contrastLevel = stringPreferencesKey("contrast_level")
@@ -134,6 +140,7 @@ class SettingsStore(private val context: Context) {
             lastCleanupProfileId = p[Keys.lastCleanupProfile].orEmpty(),
             debugLogging = p[Keys.debugLogging] ?: false,
             rememberSentHashtags = p[Keys.rememberSentHashtags] ?: false,
+            oldLinkCleanupOffered = p[Keys.oldLinkCleanupOffered] ?: false,
             themeMode = enumOr(p[Keys.themeMode], ThemeMode.SYSTEM),
             colorSource = enumOr(p[Keys.colorSource], ColorSource.APP),
             contrastLevel = enumOr(p[Keys.contrastLevel], ContrastLevel.SYSTEM),
@@ -170,6 +177,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setAutoCrop(enabled: Boolean) = edit { it[Keys.autoCrop] = enabled }
     suspend fun setDebugLogging(enabled: Boolean) = edit { it[Keys.debugLogging] = enabled }
     suspend fun setRememberSentHashtags(enabled: Boolean) = edit { it[Keys.rememberSentHashtags] = enabled }
+    suspend fun setOldLinkCleanupOffered(v: Boolean) = edit { it[Keys.oldLinkCleanupOffered] = v }
     suspend fun setThemeMode(v: ThemeMode) = edit { it[Keys.themeMode] = v.name }
     suspend fun setColorSource(v: ColorSource) = edit { it[Keys.colorSource] = v.name }
     suspend fun setContrastLevel(v: ContrastLevel) = edit { it[Keys.contrastLevel] = v.name }

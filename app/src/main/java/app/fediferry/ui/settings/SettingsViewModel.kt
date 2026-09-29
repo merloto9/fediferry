@@ -287,6 +287,9 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setResolveLinks(enabled: Boolean) =
         persist { settingsStore.setResolveLinks(enabled) }
     fun setAutoCrop(enabled: Boolean) = persist { settingsStore.setAutoCrop(enabled) }
+
+    /** Asks again whether to clean the links of older inbox posts; the prompt appears at once. */
+    fun offerOldLinkCleanupAgain() = persist { settingsStore.setOldLinkCleanupOffered(false) }
     fun setThemeMode(v: ThemeMode) = persist { settingsStore.setThemeMode(v) }
     fun setColorSource(v: ColorSource) = persist { settingsStore.setColorSource(v) }
     fun setContrastLevel(v: ContrastLevel) = persist { settingsStore.setContrastLevel(v) }

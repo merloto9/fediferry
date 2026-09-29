@@ -75,6 +75,9 @@ fun FediFerryNavHost(
         onEditConsumed()
     }
 
+    // Asks once whether to clean the links of posts shared before links were cleaned.
+    OldLinkCleanupPrompt()
+
     NavHost(navController = navController, startDestination = Routes.INBOX) {
         composable(Routes.INBOX) {
             InboxScreen(

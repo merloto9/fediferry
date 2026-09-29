@@ -60,6 +60,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import app.fediferry.ui.typingInsets
@@ -563,6 +564,21 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
             checked = state.settings.autoCrop,
             onCheckedChange = viewModel::setAutoCrop,
         )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Clean older links")
+            Text(
+                "Posts shared before FediFerry 0.17.1 may still carry Pinterest or Reddit links that " +
+                    "say who shared them. Check the ones in the inbox now.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        OutlinedButton(onClick = viewModel::offerOldLinkCleanupAgain) { Text("Check") }
     }
 
     Text("Undo window: ${state.settings.undoDelaySeconds}s")

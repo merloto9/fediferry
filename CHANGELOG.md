@@ -8,6 +8,18 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.18.2] — 2026-09-29
+
+### Fixed
+
+- **Older Pinterest and Reddit links can be cleaned.** Posts shared before
+  0.17.1 kept the link as shared, including the part that says who shared it.
+  On the first start after updating, FediFerry offers once to check the links
+  of the posts still in the inbox (drafts and failed posts). Each link is
+  tested as a new share's would be; one that can't be confirmed is kept and
+  marked in the editor, and an edited post text gets the clean link too. Ask
+  again from Settings → Sharing & posting → *Clean older links*.
+
 ## [0.18.1] — 2026-09-28
 
 ### Fixed

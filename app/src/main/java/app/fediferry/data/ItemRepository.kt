@@ -44,6 +44,7 @@ import app.fediferry.share.SharePayload
 import app.fediferry.template.TemplateEngine
 import app.fediferry.template.TemplateEngine.inputsOf
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.util.UUID
 
 /**
@@ -313,6 +314,37 @@ class ItemRepository(
                 item.copy(linkMayIdentify = true).also { items.update(it) }
             }
         }
+    }
+
+    /** Inbox posts whose link a service would clean; no I/O. */
+    suspend fun oldLinkCandidates(): List<Item> =
+        items.observeInbox().first().filter { OldLinkCleanup.isCandidate(it) && linkCleaningService(it) != null }
+
+    /**
+     * Runs [cleanLink] over every [oldLinkCandidates] post, one at a time so
+     * the services are not flooded. Each failure only marks that post, as a
+     * share would, and the run carries on.
+     */
+    suspend fun cleanOldLinks(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): OldLinkCleanup.Result {
+        val candidates = oldLinkCandidates()
+        var result = OldLinkCleanup.Result()
+        candidates.forEachIndexed { index, item ->
+            onProgress(index, candidates.size)
+            val oldUrl = item.sourceUrl!!
+            val after = cleanLink(item)
+            val newUrl = after.sourceUrl ?: oldUrl
+            result = when {
+                newUrl != oldUrl -> {
+                    val body = OldLinkCleanup.rewriteBody(after.bodyText, oldUrl, newUrl)
+                    if (body != after.bodyText) items.update(after.copy(bodyText = body))
+                    result.copy(cleaned = result.cleaned + 1)
+                }
+                after.linkMayIdentify -> result.copy(kept = result.kept + 1)
+                else -> result.copy(alreadyClean = result.alreadyClean + 1)
+            }
+        }
+        onProgress(candidates.size, candidates.size)
+        return result
     }
 
     /**

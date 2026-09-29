@@ -573,8 +573,8 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
         Column(Modifier.weight(1f)) {
             Text("Clean older links")
             Text(
-                "Posts shared before FediFerry 0.17.1 may still carry Pinterest or Reddit links that " +
-                    "say who shared them. Check the ones in the inbox now.",
+                "Pinterest and Reddit links shared before FediFerry 0.17.1, or added to a " +
+                    "post's text by hand, may say who shared them. Check every link in the inbox now.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

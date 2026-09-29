@@ -73,7 +73,7 @@ class OldLinkCleanupViewModel(app: Application) : AndroidViewModel(app) {
                         // A new install, or an inbox without such links: nothing to ask.
                         settings.setOldLinkCleanupOffered(true)
                     } else {
-                        val services = candidates.mapNotNull { repo.linkCleaningService(it) }.distinct()
+                        val services = candidates.flatMap { repo.cleaningServices(it) }.distinct()
                         _phase.value = Phase.Offer(candidates.size, services.joinToString(" and "))
                     }
                 }
@@ -117,10 +117,11 @@ fun OldLinkCleanupPrompt(viewModel: OldLinkCleanupViewModel = viewModel()) {
                 title = { Text("Clean older links?") },
                 text = {
                     Text(
-                        "${plural(p.count, "post")} in the inbox ${if (p.count == 1) "has a" else "have"} " +
-                            "${p.services} link. Links shared before FediFerry 0.17.1 may still " +
-                            "say who shared them. Check them now? Each link is tested, and one that can't be " +
-                            "confirmed is kept and marked in the editor.\n\n" +
+                        "${plural(p.count, "post")} in the inbox ${if (p.count == 1) "has" else "have"} " +
+                            "${p.services} links, in the shared link or the text. Links from before " +
+                            "FediFerry 0.17.1, or added by hand, may still say who shared them. " +
+                            "Check them now? Each link is tested, and one that can't be " +
+                            "confirmed is kept as it is.\n\n" +
                             "You can do this later in Settings → Sharing & posting.",
                     )
                 },
@@ -138,7 +139,7 @@ fun OldLinkCleanupPrompt(viewModel: OldLinkCleanupViewModel = viewModel()) {
                         Text("Looking at the inbox…")
                         LinearProgressIndicator(Modifier.fillMaxWidth())
                     } else {
-                        Text("Checking link ${minOf(p.done + 1, p.total)} of ${p.total}")
+                        Text("Checking post ${minOf(p.done + 1, p.total)} of ${p.total}")
                         LinearProgressIndicator(
                             progress = { p.done / p.total.toFloat() },
                             modifier = Modifier.fillMaxWidth(),
@@ -166,7 +167,7 @@ internal fun summary(r: OldLinkCleanup.Result): String = buildList {
         val one = r.kept == 1
         add(
             "${plural(r.kept, "link")} couldn't be confirmed and ${if (one) "was" else "were"} " +
-                "kept as shared. The editor shows a warning on ${if (one) "it" else "them"}.",
+                "kept as shared, so ${if (one) "it" else "they"} may still say who shared ${if (one) "it" else "them"}.",
         )
     }
     if (r.alreadyClean > 0) add("${plural(r.alreadyClean, "link")} already clean.")

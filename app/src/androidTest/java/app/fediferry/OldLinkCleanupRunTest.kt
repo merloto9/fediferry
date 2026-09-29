@@ -49,14 +49,17 @@ class OldLinkCleanupRunTest {
     private val tracked = "https://pin.it/tracked"
     private val unconfirmed = "https://pin.it/unconfirmed"
     private val clean = "https://www.pinterest.com/pin/1/"
+    private val trackedToo = "https://pin.it/tracked2"
+    private val cleanToo = "https://www.pinterest.com/pin/2/"
 
     private val pinterest = object : LinkResolver {
         override val source = ContentSource.PINTEREST
         override val cleansLinks = true
-        override fun handles(url: String) = "pin" in url
+        override fun handles(url: String) = "pin" in url && "9gag" !in url
         override suspend fun resolve(url: String): Result<ResolvedPost> = Result.failure(UnsupportedOperationException())
         override suspend fun cleanLink(url: String): CleanedLink = when (url) {
             tracked -> CleanedLink.Clean(clean)
+            trackedToo -> CleanedLink.Clean(cleanToo)
             unconfirmed -> CleanedLink.MayIdentify("test")
             else -> CleanedLink.Unchanged
         }
@@ -68,6 +71,26 @@ class OldLinkCleanupRunTest {
     )
 
     @After fun close() = db.close()
+
+    @Test
+    fun aLinkAddedToTheTextIsCleanedToo() = runBlocking {
+        // Shared as a clean link, then a tracked one pasted into the text by hand.
+        db.items().upsert(
+            Item(id = "added", templateId = "t", sourceUrl = clean, bodyText = "via $clean\nalso $trackedToo."),
+        )
+        // No shared link at all, and a source that cleans nothing.
+        db.items().upsert(
+            Item(id = "typed", templateId = "t", sourceUrl = "https://9gag.com/gag/x", bodyText = "see $unconfirmed"),
+        )
+
+        val result = repo.cleanOldLinks()
+
+        assertEquals("via $clean\nalso $cleanToo.", db.items().byId("added")!!.bodyText)
+        assertEquals("see $unconfirmed", db.items().byId("typed")!!.bodyText)
+        assertEquals(1, result.cleaned)
+        assertEquals(1, result.kept)
+        assertEquals(1, result.alreadyClean)
+    }
 
     @Test
     fun cleansInboxLinksAndLeavesTheRestAlone() = runBlocking {

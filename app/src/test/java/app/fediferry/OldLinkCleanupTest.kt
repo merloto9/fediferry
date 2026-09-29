@@ -40,7 +40,8 @@ class OldLinkCleanupTest {
         assertFalse(OldLinkCleanup.isCandidate(item.copy(status = Status.QUEUED)))
         assertFalse(OldLinkCleanup.isCandidate(item.copy(status = Status.POSTING)))
         assertFalse(OldLinkCleanup.isCandidate(item.copy(status = Status.POSTED)))
-        assertFalse(OldLinkCleanup.isCandidate(item.copy(sourceUrl = null)))
+        // A link typed into the text counts as much as the one it was shared with.
+        assertTrue(OldLinkCleanup.isCandidate(item.copy(sourceUrl = null)))
     }
 
     @Test
@@ -53,10 +54,35 @@ class OldLinkCleanupTest {
     }
 
     @Test
+    fun findsEveryLinkInTheTextWithoutTheSentenceAroundIt() {
+        val text = "Saw this (https://pin.it/abc). Also https://www.reddit.com/r/memes/s/xyz, " +
+            "and <https://example.com/a?b=c>!\nhttp://9gag.com/gag/q"
+        assertEquals(
+            listOf(
+                "https://pin.it/abc",
+                "https://www.reddit.com/r/memes/s/xyz",
+                "https://example.com/a?b=c",
+                "http://9gag.com/gag/q",
+            ),
+            OldLinkCleanup.linksIn(text),
+        )
+        assertEquals(emptyList<String>(), OldLinkCleanup.linksIn("no links, just https:// on its own"))
+    }
+
+    @Test
+    fun swapsWholeLinksOnly() {
+        val body = "one https://pin.it/abc, two https://pin.it/abcdef and https://pin.it/abc"
+        assertEquals(
+            "one https://clean/1, two https://pin.it/abcdef and https://clean/1",
+            OldLinkCleanup.rewriteBody(body, "https://pin.it/abc", "https://clean/1"),
+        )
+    }
+
+    @Test
     fun theSummarySaysWhatHappened() {
         assertEquals(
-            "2 links cleaned.\n1 link couldn't be confirmed and was kept as shared. " +
-                "The editor shows a warning on it.\n1 link already clean.",
+            "2 links cleaned.\n1 link couldn't be confirmed and was kept as shared, " +
+                "so it may still say who shared it.\n1 link already clean.",
             summary(OldLinkCleanup.Result(cleaned = 2, kept = 1, alreadyClean = 1)),
         )
         assertEquals("Nothing needed changing.", summary(OldLinkCleanup.Result()))

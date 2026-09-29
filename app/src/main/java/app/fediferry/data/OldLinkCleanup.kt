@@ -37,13 +37,27 @@ object OldLinkCleanup {
      * left alone: the worker may be reading them right now.
      */
     fun isCandidate(item: Item): Boolean =
-        item.sourceUrl != null && (item.status == Status.DRAFT || item.status == Status.FAILED)
+        item.status == Status.DRAFT || item.status == Status.FAILED
+
+    /**
+     * The web links in a post's text, in order. Punctuation that closes a
+     * sentence or a bracket around a link is not part of it.
+     */
+    fun linksIn(text: String): List<String> =
+        LINK.findAll(text).map { it.value.trimEnd(*TRAILING) }.filter { it.length > "https://".length }.toList()
+
+    private val LINK = Regex("""https?://[^\s<>"'`]+""", RegexOption.IGNORE_CASE)
+    private val TRAILING = charArrayOf('.', ',', ';', ':', '!', '?', ')', ']', '}', '*', '_')
 
     /**
      * The body with the old link swapped for the clean one. A body the user
      * edited is not re-rendered from its template, so without this the old
      * link would stay in the text even though the post's link is clean.
      */
-    fun rewriteBody(body: String, oldUrl: String, newUrl: String): String =
-        if (oldUrl == newUrl) body else body.replace(oldUrl, newUrl)
+    fun rewriteBody(body: String, oldUrl: String, newUrl: String): String {
+        if (oldUrl == newUrl) return body
+        // Whole links only: pin.it/abc must not rewrite the start of pin.it/abcdef.
+        val whole = Regex(Regex.escape(oldUrl) + """(?=[.,;:!?)\]}*_]*(?:[\s<>"'`]|$))""")
+        return whole.replace(body) { newUrl }
+    }
 }

@@ -316,35 +316,79 @@ class ItemRepository(
         }
     }
 
-    /** Inbox posts whose link a service would clean; no I/O. */
-    suspend fun oldLinkCandidates(): List<Item> =
-        items.observeInbox().first().filter { OldLinkCleanup.isCandidate(it) && linkCleaningService(it) != null }
+    private fun cleaningResolver(url: String): LinkResolver? =
+        resolvers.firstOrNull { it.handles(url) }?.takeIf { it.cleansLinks }
 
     /**
-     * Runs [cleanLink] over every [oldLinkCandidates] post, one at a time so
-     * the services are not flooded. Each failure only marks that post, as a
-     * share would, and the run carries on.
+     * Every link in the post that a service would clean: the link it was
+     * shared with, and any in its text — including ones added in the editor.
+     */
+    fun cleanableLinks(item: Item): List<String> =
+        (listOfNotNull(item.sourceUrl) + OldLinkCleanup.linksIn(item.bodyText))
+            .distinct()
+            .filter { cleaningResolver(it) != null }
+
+    /** The services behind [cleanableLinks], for saying what will be checked. */
+    fun cleaningServices(item: Item): List<String> =
+        cleanableLinks(item).mapNotNull { cleaningResolver(it)?.serviceName }.distinct()
+
+    /** Inbox posts with at least one link a service would clean; no I/O. */
+    suspend fun oldLinkCandidates(): List<Item> =
+        items.observeInbox().first().filter { OldLinkCleanup.isCandidate(it) && cleanableLinks(it).isNotEmpty() }
+
+    /**
+     * Cleans every link in every [oldLinkCandidates] post, one post at a time so
+     * the services are not flooded.
+     *
+     * The link a post was shared with goes through [cleanLink], exactly as a
+     * share's would. Links in the text are swapped for their clean form where
+     * one is confirmed and left alone where not. Each failure only affects
+     * that link, and the run carries on. Counts are per link.
      */
     suspend fun cleanOldLinks(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): OldLinkCleanup.Result {
         val candidates = oldLinkCandidates()
-        var result = OldLinkCleanup.Result()
+        var cleaned = 0
+        var kept = 0
+        var alreadyClean = 0
         candidates.forEachIndexed { index, item ->
             onProgress(index, candidates.size)
-            val oldUrl = item.sourceUrl!!
-            val after = cleanLink(item)
-            val newUrl = after.sourceUrl ?: oldUrl
-            result = when {
-                newUrl != oldUrl -> {
-                    val body = OldLinkCleanup.rewriteBody(after.bodyText, oldUrl, newUrl)
-                    if (body != after.bodyText) items.update(after.copy(bodyText = body))
-                    result.copy(cleaned = result.cleaned + 1)
+            var current = item
+            val source = item.sourceUrl
+            if (source != null && cleaningResolver(source) != null) {
+                current = cleanLink(item)
+                val newSource = current.sourceUrl ?: source
+                when {
+                    newSource != source -> {
+                        // An edited text is not re-rendered, so swap the link in it by hand.
+                        current = current.copy(bodyText = OldLinkCleanup.rewriteBody(current.bodyText, source, newSource))
+                        cleaned++
+                    }
+                    current.linkMayIdentify -> kept++
+                    else -> alreadyClean++
                 }
-                after.linkMayIdentify -> result.copy(kept = result.kept + 1)
-                else -> result.copy(alreadyClean = result.alreadyClean + 1)
             }
+            val handled = setOfNotNull(source, current.sourceUrl)
+            var body = current.bodyText
+            OldLinkCleanup.linksIn(body).distinct().filter { it !in handled }.forEach { link ->
+                val resolver = cleaningResolver(link) ?: return@forEach
+                when (val result = resolver.cleanLink(link)) {
+                    CleanedLink.Unchanged -> alreadyClean++
+                    is CleanedLink.Clean -> {
+                        body = OldLinkCleanup.rewriteBody(body, link, result.url)
+                        cleaned++
+                    }
+                    is CleanedLink.MayIdentify -> {
+                        // Only that it happened and why — never the link.
+                        DebugLog.w(LOG, "${resolver.serviceName} link in the text kept: ${result.reason}")
+                        kept++
+                    }
+                }
+            }
+            current = current.copy(bodyText = body)
+            if (current != item) items.update(current)
         }
         onProgress(candidates.size, candidates.size)
-        return result
+        return OldLinkCleanup.Result(cleaned = cleaned, kept = kept, alreadyClean = alreadyClean)
     }
 
     /**

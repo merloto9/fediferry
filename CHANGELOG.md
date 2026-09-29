@@ -8,6 +8,17 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.18.3] — 2026-09-29
+
+### Fixed
+
+- **Clean older links now checks every link in a post.** It used to look only
+  at the link a post was shared with, so a Pinterest or Reddit link added to
+  the text by hand, or in a post shared from another service, was missed.
+  Every such link in the text is now tested and swapped for its clean form
+  where one is confirmed. Only whole links are swapped, so a link that starts
+  the same as a longer one is left intact. The summary counts links.
+
 ## [0.18.2] — 2026-09-29
 
 ### Fixed

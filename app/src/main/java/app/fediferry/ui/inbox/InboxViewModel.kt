@@ -92,31 +92,23 @@ class InboxViewModel(app: Application) : AndroidViewModel(app) {
     /** Puts posts on [stackId], or back in New when it is null. */
     fun move(ids: Collection<String>, stackId: String?) = viewModelScope.launch { stackDao.move(ids, stackId) }
 
-    /**
-     * Posts everything on a stack that is ready to go — drafts, and posts that
-     * failed — leaving what is already queued alone.
-     */
-    fun postStack(stack: InboxStack, spacingMinutes: Int = 0) {
-        val ids = items.value.filter { it.stackId == stack.id && canPost(it) }.map { it.id }
-        post(ids, spacingMinutes)
+    /** Posts one item now. Posts go out one at a time, never as a batch. */
+    fun post(id: String) = viewModelScope.launch {
+        repo.markQueued(id)
+        PostScheduler.enqueue(getApplication(), id)
     }
 
     /**
-     * Posts the given items. [spacingMinutes] staggers them so a batch of six
-     * saved memes does not arrive on followers' timelines as one wall.
+     * Hands one post to Mastodon to publish at [atMillis]. The time travels
+     * with the upload to the server, which keeps the schedule; the app keeps
+     * none, so it need not run when the post goes out.
      */
-    fun post(ids: Collection<String>, spacingMinutes: Int = 0) = viewModelScope.launch {
-        ids.forEachIndexed { index, id ->
-            repo.markQueued(id)
-            PostScheduler.enqueue(
-                getApplication(),
-                id,
-                delayMillis = index * spacingMinutes * 60_000L,
-            )
-        }
+    fun schedule(id: String, atMillis: Long) = viewModelScope.launch {
+        repo.markQueued(id)
+        PostScheduler.schedule(getApplication(), id, atMillis)
     }
 
-    fun retry(id: String) = post(listOf(id))
+    fun retry(id: String) = post(id)
 
     fun delete(ids: Collection<String>) = viewModelScope.launch {
         ids.forEach { id ->

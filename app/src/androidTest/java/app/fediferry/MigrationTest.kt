@@ -410,5 +410,20 @@ class MigrationTest {
             assertEquals(0, c.getInt(0))
         }
     }
-}
 
+    @Test
+    fun migrate10To11ReRegistersOldClientsOnTheNextSignIn() {
+        helper.createDatabase(database, 10).use { db ->
+            db.execSQL("INSERT INTO instance_apps (instance, clientId, clientSecret) VALUES ('m.social', 'id', 'secret')")
+        }
+
+        val db = helper.runMigrationsAndValidate(database, 11, true, AppDatabase.MIGRATION_10_11)
+
+        // No recorded scopes, so the sign-in registers afresh with read:statuses.
+        db.query("SELECT clientId, scopes FROM instance_apps WHERE instance = 'm.social'").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("id", c.getString(0))
+            assertNull(c.getString(1))
+        }
+    }
+}

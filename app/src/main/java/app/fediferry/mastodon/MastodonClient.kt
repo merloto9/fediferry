@@ -217,6 +217,54 @@ class MastodonClient(private val http: OkHttpClient) {
         decode(execute(request))
     }
 
+    // --- Scheduled posts --------------------------------------------------
+
+    /**
+     * `GET /api/v1/scheduled_statuses`, every page, soonest first. Needs
+     * `read:statuses`; a token from before FediFerry asked for it gets a 403.
+     */
+    suspend fun scheduledStatuses(instance: String, token: String): List<ScheduledStatus> =
+        withContext(Dispatchers.IO) {
+            val all = mutableListOf<ScheduledStatus>()
+            var maxId: String? = null
+            // Mastodon allows 300 in all; 40 a page covers that in eight.
+            repeat(MAX_SCHEDULED_PAGES) {
+                val url = base(instance).addPathSegments("api/v1/scheduled_statuses")
+                    .addQueryParameter("limit", SCHEDULED_PAGE.toString())
+                    .apply { maxId?.let { addQueryParameter("max_id", it) } }
+                    .build()
+                val request = Request.Builder().url(url).header("Authorization", "Bearer $token").get().build()
+                val page: List<ScheduledStatus> = decode(execute(request))
+                all += page
+                if (page.size < SCHEDULED_PAGE) return@withContext all.sortedBy { it.scheduledAt }
+                maxId = page.last().id
+            }
+            all.sortedBy { it.scheduledAt }
+        }
+
+    /** `PUT /api/v1/scheduled_statuses/:id` — a new time, at least five minutes away. */
+    suspend fun reschedule(instance: String, token: String, id: String, scheduledAtIso: String): ScheduledStatus =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(base(instance).addPathSegments("api/v1/scheduled_statuses").addPathSegment(id).build())
+                .header("Authorization", "Bearer $token")
+                .put(FormBody.Builder().add("scheduled_at", scheduledAtIso).build())
+                .build()
+            decode(execute(request))
+        }
+
+    /** `DELETE /api/v1/scheduled_statuses/:id` — the post will not go out. */
+    suspend fun cancelScheduled(instance: String, token: String, id: String) {
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(base(instance).addPathSegments("api/v1/scheduled_statuses").addPathSegment(id).build())
+                .header("Authorization", "Bearer $token")
+                .delete()
+                .build()
+            execute(request).close()
+        }
+    }
+
     // --- plumbing ---------------------------------------------------------
 
     private fun base(instance: String): HttpUrl.Builder {
@@ -234,9 +282,16 @@ class MastodonClient(private val http: OkHttpClient) {
         if (response.code in acceptCodes) return response
 
         val code = response.code
+        // Mastodon says why it rejected something — a time too soon, a daily
+        // limit reached. That reason is shown; the rest of the body never is.
+        val reason = if (code == 422) {
+            runCatching { json.decodeFromString<ErrorBody>(response.peekBody(MAX_ERROR_BYTES).string()).error }.getOrNull()
+        } else {
+            null
+        }
         response.close()
         throw MastodonException(
-            message = describe(code),
+            message = reason?.let { "${describe(code)}: $it" } ?: describe(code),
             code = code,
             retryable = code == 429 || code in 500..599 || code == 408,
         )
@@ -257,7 +312,7 @@ class MastodonClient(private val http: OkHttpClient) {
         403 -> "The instance refused this post"
         404 -> "Endpoint not found — is this a Mastodon instance?"
         413 -> "Attachment too large for this instance"
-        422 -> "The instance rejected the post contents"
+        422 -> "The instance rejected it"
         429 -> "Rate limited by the instance"
         in 500..599 -> "Instance error ($code)"
         else -> "Unexpected response ($code)"
@@ -267,6 +322,9 @@ class MastodonClient(private val http: OkHttpClient) {
         runCatching { toMediaType() }.getOrElse { "application/octet-stream".toMediaType() }
 
     private companion object {
+        const val SCHEDULED_PAGE = 40
+        const val MAX_SCHEDULED_PAGES = 10
+        const val MAX_ERROR_BYTES = 2048L
         const val INITIAL_MEDIA_POLL_MS = 700L
         const val MAX_MEDIA_POLL_MS = 5_000L
         const val MEDIA_POLL_ATTEMPTS = 8

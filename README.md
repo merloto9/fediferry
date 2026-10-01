@@ -65,11 +65,32 @@ Put posts on stacks while they wait — "To research", "For the weekend",
 "Ready to post". Make one with the folder button at the top of the inbox;
 long-press posts and choose *Move to stack*, or pick the stack in the editor
 under *Stack*. Shares arrive in *New*, on no stack. Each stack folds open and
-shut, and its menu posts everything on it at once or spaced out, renames it,
-or deletes it — its posts go back to New, none is lost.
+shut, and its menu renames it or deletes it — its posts go back to New, none
+is lost.
 
 A way to use them: edit what's in New, move it to *Ready to post* when it's
-done, and post from there without wondering what still needs doing.
+done, and post or schedule from there without wondering what still needs
+doing. Posts go out one at a time; there is no "post all".
+
+### Scheduling and the Queue
+
+Long-press one post in the inbox and tap the clock to have Mastodon publish
+it later. Pick a day and a time at least ten minutes away (Mastodon needs
+five; the picture uploads first). FediFerry uploads the post straight away,
+with the time, using Mastodon's own scheduling (`scheduled_at`). From then on
+**Mastodon holds the post and the schedule** — FediFerry keeps no copy of
+either, and need not be open, or even installed, when the post goes out. The
+post leaves the inbox once Mastodon has it.
+
+The **Queue** tab, between Inbox and Sources, reads the scheduled posts from
+each connected account every time you open it. Change a post's time or cancel
+it from its menu; both go straight to the server. Mastodon cannot change a
+scheduled post's text or picture, so to edit one, cancel it and share it again.
+
+Reading the queue needs permission to read your posts (`read:statuses`),
+which FediFerry only asks for since 0.19. An account connected earlier shows
+*Reconnect* in the Queue; scheduling itself works without it. Mastodon allows
+up to 300 scheduled posts, and 25 on one day.
 
 ### Settings
 

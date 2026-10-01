@@ -21,6 +21,7 @@ package app.fediferry.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -31,6 +32,7 @@ import androidx.compose.runtime.Composable
 /** The app's two spaces: what you have saved, and where things come from. */
 enum class Space(val route: String, val label: String) {
     INBOX(Routes.INBOX, "Inbox"),
+    QUEUE(Routes.QUEUE, "Queue"),
     SOURCES(Routes.SOURCES, "Sources"),
 }
 
@@ -45,6 +47,7 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
                     Icon(
                         when (space) {
                             Space.INBOX -> Icons.Default.Inbox
+                            Space.QUEUE -> Icons.Default.Schedule
                             Space.SOURCES -> Icons.Default.Subscriptions
                         },
                         contentDescription = space.label,

@@ -33,6 +33,7 @@ import app.fediferry.log.DebugLog
 import app.fediferry.mastodon.MastodonException
 import app.fediferry.template.TemplateEngine
 
+
 /**
  * Sends one item to Mastodon.
  *
@@ -55,11 +56,26 @@ class PostWorker(
 
         if (item.status == Status.POSTED) return Result.success()
 
+        // Set only when Mastodon is to publish the post later; it is not stored.
+        val scheduledAt = inputData.getLong(KEY_SCHEDULED_AT, 0L).takeIf { it > 0 }
+        if (scheduledAt != null && scheduledAt - System.currentTimeMillis() < MIN_SCHEDULE_LEAD_MS) {
+            // Mastodon refuses a time under five minutes away. Say so, rather
+            // than posting at once when the upload waited too long for a network.
+            return fail(
+                item,
+                "The time picked is less than 5 minutes away, which Mastodon does not accept. " +
+                    "Schedule it again.",
+                retry = false,
+            )
+        }
+
         Notifications.cancel(app, itemId)
         repo.update(item.copy(status = Status.POSTING, failureReason = null))
 
         return try {
-            val posted = send(item)
+            val posted = send(item, scheduledAt)
+            // A scheduled post has left the inbox: Mastodon holds it, and the
+            // Queue shows it from there. Only the hand-over is recorded here.
             repo.update(
                 item.copy(
                     status = Status.POSTED,
@@ -70,9 +86,17 @@ class PostWorker(
                     failureReason = null,
                 ),
             )
-            DebugLog.d(LOG, "Posted item $itemId${if (posted.altTextFailed) " (alt text failed)" else ""}")
+            DebugLog.d(
+                LOG,
+                "${if (scheduledAt != null) "Scheduled" else "Posted"} item $itemId" +
+                    if (posted.altTextFailed) " (alt text failed)" else "",
+            )
             recordHashtags(posted.text)
-            Notifications.showResult(app, itemId, "Posted", posted.url ?: "Sent to Mastodon")
+            if (scheduledAt != null) {
+                Notifications.showResult(app, itemId, "Scheduled", "Mastodon posts it ${ScheduleFormat.whenText(scheduledAt)}")
+            } else {
+                Notifications.showResult(app, itemId, "Posted", posted.url ?: "Sent to Mastodon")
+            }
             Result.success()
         } catch (e: MastodonException) {
             fail(item, e.message ?: "Posting failed", retry = e.retryable)
@@ -89,7 +113,7 @@ class PostWorker(
         val text: String,
     )
 
-    private suspend fun send(item: Item): Sent {
+    private suspend fun send(item: Item, scheduledAt: Long?): Sent {
         val app = applicationContext
         val repo = ServiceLocator.items(app)
         val accounts = ServiceLocator.database(app).accounts()
@@ -139,8 +163,10 @@ class PostWorker(
             visibility = item.visibility,
             contentWarning = item.contentWarning,
             // Derived from the item id: a retry after an ambiguous failure
-            // resolves to the same post rather than a second one.
-            idempotencyKey = item.id,
+            // resolves to the same post rather than a second one. A schedule
+            // has its own, so scheduling after a failed one is not a replay.
+            idempotencyKey = if (scheduledAt == null) item.id else "${item.id}@$scheduledAt",
+            scheduledAtIso = scheduledAt?.let { java.time.Instant.ofEpochMilli(it).toString() },
         )
         return Sent(status.url, altText, altFailed, text)
     }
@@ -206,6 +232,10 @@ class PostWorker(
         private const val LOG = "post"
 
         const val KEY_ITEM_ID = "item_id"
+        const val KEY_SCHEDULED_AT = "scheduled_at"
+
+        /** Mastodon's five minutes, and a little for the upload itself. */
+        const val MIN_SCHEDULE_LEAD_MS = 5 * 60_000L + 15_000L
         private const val MAX_ATTEMPTS = 5
     }
 }

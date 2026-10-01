@@ -19,6 +19,12 @@
  */
 package app.fediferry.ui.inbox
 
+import kotlinx.coroutines.launch
+import app.fediferry.work.ScheduleFormat
+import app.fediferry.ui.SchedulePicker
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -37,7 +43,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -105,6 +110,26 @@ fun InboxScreen(
     var newCollapsed by rememberSaveable { mutableStateOf(false) }
     var moving by remember { mutableStateOf(false) }
     var naming by remember { mutableStateOf<StackNaming?>(null) }
+    var scheduling by remember { mutableStateOf<String?>(null) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    scheduling?.let { id ->
+        SchedulePicker(
+            title = "Schedule post",
+            confirmLabel = "Schedule",
+            initial = ScheduleFormat.suggested(),
+            onPick = { at ->
+                viewModel.schedule(id, at)
+                scheduling = null
+                selection = emptySet()
+                scope.launch {
+                    snackbar.showSnackbar("Handing it to Mastodon to post ${ScheduleFormat.whenText(at)}. It'll show in Queue.")
+                }
+            },
+            onDismiss = { scheduling = null },
+        )
+    }
 
     if (moving) {
         MoveSheet(
@@ -140,6 +165,7 @@ fun InboxScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { SpaceBar(Space.INBOX, onSwitchSpace) },
         topBar = {
             TopAppBar(
@@ -153,18 +179,12 @@ fun InboxScreen(
                 },
                 actions = {
                     if (selecting) {
-                        IconButton(onClick = {
-                            viewModel.post(selection)
-                            selection = emptySet()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Post selected")
-                        }
-                        IconButton(onClick = {
-                            // Spaced out so a saved batch does not flood a timeline.
-                            viewModel.post(selection, spacingMinutes = 30)
-                            selection = emptySet()
-                        }) {
-                            Icon(Icons.Default.Schedule, contentDescription = "Post spaced out")
+                        // One post at a time: posts are never sent as a batch.
+                        val single = selection.singleOrNull()?.let { id -> items.firstOrNull { it.id == id } }
+                        if (single != null && InboxViewModel.canPost(single)) {
+                            IconButton(onClick = { scheduling = single.id }) {
+                                Icon(Icons.Default.Schedule, contentDescription = "Schedule post")
+                            }
                         }
                         IconButton(onClick = { moving = true }) {
                             Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = "Move to stack")
@@ -224,11 +244,8 @@ fun InboxScreen(
                             },
                             menu = stack?.let {
                                 StackMenu(
-                                    onPostAll = { viewModel.postStack(it) },
-                                    onPostSpaced = { viewModel.postStack(it, spacingMinutes = 30) },
                                     onRename = { naming = StackNaming.Rename(it) },
                                     onDelete = { viewModel.deleteStack(it) },
-                                    canPost = section.items.any(InboxViewModel::canPost),
                                 )
                             },
                         )
@@ -375,11 +392,8 @@ private sealed interface StackNaming {
 
 /** The actions on one stack, offered from its header. */
 private class StackMenu(
-    val onPostAll: () -> Unit,
-    val onPostSpaced: () -> Unit,
     val onRename: () -> Unit,
     val onDelete: () -> Unit,
-    val canPost: Boolean,
 )
 
 /** A section's name, how many posts it holds, and a fold arrow; a stack adds its menu. */
@@ -424,16 +438,6 @@ private fun SectionHeader(
                     Icon(Icons.Default.MoreVert, contentDescription = "Stack actions for $title")
                 }
                 DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Post all") },
-                        enabled = menu.canPost,
-                        onClick = { open = false; menu.onPostAll() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Post all, spaced out") },
-                        enabled = menu.canPost,
-                        onClick = { open = false; menu.onPostSpaced() },
-                    )
                     DropdownMenuItem(text = { Text("Rename") }, onClick = { open = false; menu.onRename() })
                     DropdownMenuItem(
                         text = { Text("Delete stack — posts go back to New") },

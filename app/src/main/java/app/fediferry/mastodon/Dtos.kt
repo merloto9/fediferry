@@ -47,6 +47,8 @@ data class CredentialAccount(
 data class MediaAttachment(
     val id: String,
     val url: String? = null,
+    @SerialName("preview_url") val previewUrl: String? = null,
+    val description: String? = null,
 )
 
 @Serializable
@@ -54,3 +56,23 @@ data class PostedStatus(
     val id: String,
     val url: String? = null,
 )
+
+/** A post Mastodon holds to publish later. Only the server keeps these. */
+@Serializable
+data class ScheduledStatus(
+    val id: String,
+    @SerialName("scheduled_at") val scheduledAt: String,
+    val params: ScheduledParams = ScheduledParams(),
+    @SerialName("media_attachments") val media: List<MediaAttachment> = emptyList(),
+)
+
+@Serializable
+data class ScheduledParams(
+    val text: String = "",
+    @SerialName("spoiler_text") val spoilerText: String? = null,
+    val visibility: String? = null,
+)
+
+/** The body Mastodon sends with an error: a reason, never the post. */
+@Serializable
+data class ErrorBody(val error: String? = null)

@@ -46,9 +46,24 @@ object PostScheduler {
      * @param delayMillis the undo window, or a scheduled send time. The item is
      *   already persisted as QUEUED before this is called.
      */
-    fun enqueue(context: Context, itemId: String, delayMillis: Long = 0) {
+    fun enqueue(context: Context, itemId: String, delayMillis: Long = 0) =
+        enqueue(context, itemId, delayMillis, scheduledAtMillis = null)
+
+    /**
+     * Uploads the post now and has Mastodon publish it at [atMillis]. The time
+     * rides in this one job's input until the upload is done; after that only
+     * the server holds it.
+     */
+    fun schedule(context: Context, itemId: String, atMillis: Long) =
+        enqueue(context, itemId, delayMillis = 0, scheduledAtMillis = atMillis)
+
+    private fun enqueue(context: Context, itemId: String, delayMillis: Long, scheduledAtMillis: Long?) {
+        val input = Data.Builder()
+            .putString(PostWorker.KEY_ITEM_ID, itemId)
+            .apply { if (scheduledAtMillis != null) putLong(PostWorker.KEY_SCHEDULED_AT, scheduledAtMillis) }
+            .build()
         val request = OneTimeWorkRequestBuilder<PostWorker>()
-            .setInputData(Data.Builder().putString(PostWorker.KEY_ITEM_ID, itemId).build())
+            .setInputData(input)
             .setConstraints(
                 Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)

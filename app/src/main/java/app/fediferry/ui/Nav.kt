@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui
 
+import app.fediferry.ui.queue.QueueScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
@@ -39,6 +40,7 @@ import androidx.navigation.NavController
 
 object Routes {
     const val INBOX = "inbox"
+    const val QUEUE = "queue"
     const val SOURCES = "sources"
     const val CHANNEL = "channel/{sourceId}"
     const val SETTINGS = "settings"
@@ -82,6 +84,12 @@ fun FediFerryNavHost(
         composable(Routes.INBOX) {
             InboxScreen(
                 onOpenItem = { navController.navigate(Routes.editor(it)) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(Routes.QUEUE) {
+            QueueScreen(
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onSwitchSpace = { navController.switchSpace(it) },
             )

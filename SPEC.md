@@ -152,7 +152,7 @@ send. Target: under ten seconds.
 
 ### 3. Save for later
 Persists as a draft and stops. User opens the app later, browses the inbox grid,
-edits and posts items individually or schedules them spaced out. This is the
+edits and posts items individually or has Mastodon schedule them. This is the
 workflow that matches actual meme-consumption behaviour — save six while
 scrolling, post them over the following days rather than flooding a timeline.
 
@@ -274,8 +274,8 @@ Declare intent filters for `image/*` and `text/plain` on both `ACTION_SEND` and
 
 ## Open questions for implementation
 
-- Scheduled posting: use Mastodon's `scheduled_at` or local WorkManager delays?
-  Server-side scheduling survives app uninstall but caps at a fixed horizon.
+- Scheduled posting: decided — Mastodon's `scheduled_at`. The app keeps no
+  schedule; the Queue screen reads `GET /api/v1/scheduled_statuses` live.
 - Whether to keep posted items in the store as history or purge after N days.
 - Video support — Mastodon accepts it, screenshots don't produce it, but a shared
   screen recording would work.

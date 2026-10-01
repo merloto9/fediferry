@@ -50,7 +50,7 @@ class AuthManager(
 
     suspend fun beginAuthorization(rawInstance: String) {
         val instance = normalise(rawInstance)
-        val app = accounts.appFor(instance) ?: registerApp(instance)
+        val app = accounts.appFor(instance)?.takeIf { it.scopes == SCOPES } ?: registerApp(instance)
         val state = randomState()
         pending = Pending(instance, state)
 
@@ -123,7 +123,7 @@ class AuthManager(
             scopes = SCOPES,
             website = WEBSITE,
         )
-        return InstanceApp(instance, registration.clientId, registration.clientSecret)
+        return InstanceApp(instance, registration.clientId, registration.clientSecret, scopes = SCOPES)
             .also { accounts.upsertApp(it) }
     }
 
@@ -143,7 +143,8 @@ class AuthManager(
     }
 
     companion object {
-        const val SCOPES = "write:statuses write:media read:accounts"
+        /** `read:statuses` reads the posts Mastodon holds for later, for the Queue. */
+        const val SCOPES = "write:statuses write:media read:accounts read:statuses"
         const val CLIENT_NAME = "FediFerry"
         const val WEBSITE = "https://github.com/merloto9/fediferry"
         val REDIRECT_URI: String get() = "${BuildConfig.OAUTH_SCHEME}://oauth"

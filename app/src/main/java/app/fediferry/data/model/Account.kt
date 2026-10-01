@@ -44,4 +44,10 @@ data class InstanceApp(
     @PrimaryKey val instance: String,
     val clientId: String,
     val clientSecret: String,
+    /**
+     * What the client was registered for. A server refuses a sign-in asking
+     * for more, so a registration from before a scope was added is replaced.
+     * Null for registrations made before this was recorded.
+     */
+    val scopes: String? = null,
 )

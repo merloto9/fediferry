@@ -8,6 +8,32 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.19.0] — 2026-10-01
+
+### Added
+
+- **Schedule a post with Mastodon.** Long-press one post in the inbox and tap
+  the clock to pick a day and a time. FediFerry uploads it at once with Mastodon's
+  own scheduling, so the server holds the post and its time: the app keeps no
+  schedule and need not be running when the post goes out.
+- **A Queue tab**, between Inbox and Sources, showing what each account has
+  scheduled, read fresh from Mastodon every time. Change a post's time or
+  cancel it from there.
+
+### Changed
+
+- FediFerry now asks for permission to read your posts (`read:statuses`), to
+  show the Queue. Accounts connected before are asked to reconnect there; the
+  server registration is renewed on that sign-in.
+- When Mastodon rejects something, its own reason is shown, for example a time
+  too soon or the daily limit reached.
+
+### Removed
+
+- Posting several posts at once: *Post selected* and *Post spaced out* in the
+  inbox, and *Post all* and *Post all, spaced out* on a stack. Posts go out one
+  at a time, now or scheduled.
+
 ## [0.18.3] — 2026-09-29
 
 ### Fixed

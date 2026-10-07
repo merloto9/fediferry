@@ -31,6 +31,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.lifecycleScope
 import app.fediferry.MainActivity
@@ -85,9 +86,13 @@ class ShareReceiverActivity : ComponentActivity() {
         )
 
         // Connected to a FediFerry server: a share kept for later goes to the
-        // project's library there. Compose and Post now stay on the phone until
-        // drafts and publishing move to the server too.
+        // project's library there, and Compose starts a draft there. Post now
+        // stays on the phone until publishing moves to the server too.
         val server = ServiceLocator.serverConnections(this).current()
+        if (server != null && mode == ShareMode.COMPOSE) {
+            composeOnServer(payload, server.projectName)
+            return
+        }
         if (server != null && mode == ShareMode.SAVE_FOR_LATER) {
             lifecycleScope.launch {
                 runCatching {
@@ -128,6 +133,50 @@ class ShareReceiverActivity : ComponentActivity() {
                 },
             )
         }
+    }
+
+    /**
+     * Keeps the share like any other, sends it straight away and opens the
+     * draft the server starts from it. Without a connection it waits with the
+     * other shares, and the draft is made when it goes up.
+     */
+    private fun composeOnServer(payload: SharePayload, project: String) = lifecycleScope.launch {
+        val shares = runCatching {
+            ServiceLocator.pendingShares(this@ShareReceiverActivity).add(IngestModes.COMPOSE, payload.imageUris, payload.link, payload.text)
+        }.getOrElse { error ->
+            DebugLog.w(LOG, "Keeping a share for the server failed", error)
+            toast(getString(R.string.receiver_read_failed, error.describe()))
+            finish()
+            return@launch
+        }
+        setContent {
+            FediFerryTheme {
+                LoadingScrim(
+                    title = getString(R.string.receiver_drafting_title, project),
+                    detail = getString(R.string.receiver_drafting_detail),
+                    icon = Icons.Outlined.EditNote,
+                )
+            }
+        }
+        val connections = ServiceLocator.serverConnections(this@ShareReceiverActivity)
+        val client = connections.current()?.let(connections::client)
+        val drafts = runCatching { shares.mapNotNull { share -> client?.let { UploadWorker.send(this@ShareReceiverActivity, it, share) } } }
+            .onFailure { DebugLog.w(LOG, "Starting a draft on the server failed: ${(it as? app.fediferry.client.ServerException)?.code}") }
+            .getOrNull()
+        val first = drafts?.firstOrNull()
+        if (first == null) {
+            UploadWorker.enqueue(this@ShareReceiverActivity)
+            toast(getString(R.string.receiver_draft_later, project))
+        } else {
+            if (drafts.size > 1) toast(resources.getQuantityString(R.plurals.receiver_drafts_made, drafts.size, drafts.size))
+            startActivity(
+                Intent(this@ShareReceiverActivity, MainActivity::class.java)
+                    .setAction(MainActivity.ACTION_EDIT_POST)
+                    .putExtra(MainActivity.EXTRA_POST_ID, first)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            )
+        }
+        finish()
     }
 
     private suspend fun handle(mode: ShareMode, shared: ItemRepository.Ingested) {

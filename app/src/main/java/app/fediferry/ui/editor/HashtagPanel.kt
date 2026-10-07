@@ -52,7 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.fediferry.R
 import app.fediferry.data.model.Hashtags
-import app.fediferry.data.model.Item
+import app.fediferry.data.model.ContentSource
 
 /**
  * Picks this post's hashtags. Opens in the text flow below the template row, on
@@ -66,7 +66,12 @@ import app.fediferry.data.model.Item
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HashtagPanel(
-    item: Item,
+    /** What the panel belongs to; typing starts afresh when it changes. */
+    key: Any,
+    /** The hashtags this post has now. */
+    picked: List<String>,
+    origin: ContentSource?,
+    addSourceHashtags: Boolean,
     hashtagList: List<String>,
     onToggle: (String) -> Unit,
     onAdd: (String) -> Boolean,
@@ -90,7 +95,6 @@ internal fun HashtagPanel(
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.hashtags_title), style = MaterialTheme.typography.titleSmall)
 
-            val picked = item.hashtagList
             // Most used first. The counts only change once a post is sent, so
             // ticking a chip never moves it away from the finger.
             val offered = Hashtags.sortedByUse(Hashtags.union(hashtagList, picked), uses)
@@ -121,9 +125,9 @@ internal fun HashtagPanel(
             }
 
             // Only worth offering when the post came from somewhere.
-            item.origin?.let { origin ->
+            origin?.let { origin ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = item.addSourceHashtags, onCheckedChange = onAddSourceHashtags)
+                    Checkbox(checked = addSourceHashtags, onCheckedChange = onAddSourceHashtags)
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(R.string.hashtags_add_source, origin.label), style = MaterialTheme.typography.bodyMedium)
                         Text(
@@ -138,7 +142,7 @@ internal fun HashtagPanel(
                 }
             }
 
-            var typed by remember(item.id) { mutableStateOf("") }
+            var typed by remember(key) { mutableStateOf("") }
             fun add() {
                 if (onAdd(typed)) typed = ""
             }

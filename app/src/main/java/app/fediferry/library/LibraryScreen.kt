@@ -55,9 +55,11 @@ import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -117,6 +119,7 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
+    onOpenDraft: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onSwitchSpace: (Space) -> Unit,
     viewModel: LibraryViewModel = viewModel(),
@@ -146,6 +149,7 @@ fun LibraryScreen(
             folders = state.folders,
             mediaUrl = item.asset?.let { viewModel.mediaUrl(it.id) },
             onPatch = { viewModel.patch(item.id, it) },
+            onNewPost = { opened = null; viewModel.newPost(listOf(item.id), onOpenDraft) },
             onDelete = { viewModel.delete(listOf(item.id)); opened = null },
             onDismiss = { opened = null },
         )
@@ -212,6 +216,13 @@ fun LibraryScreen(
                 },
                 actions = {
                     if (selection.isNotEmpty()) {
+                        IconButton(onClick = {
+                            // In the order they were picked: the first feeds the template.
+                            viewModel.newPost(selection.toList(), onOpenDraft)
+                            selection = emptySet()
+                        }) {
+                            Icon(Icons.Outlined.PostAdd, contentDescription = stringResource(R.string.library_new_post))
+                        }
                         IconButton(onClick = { moving = true }) {
                             Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = stringResource(R.string.library_move))
                         }
@@ -435,6 +446,7 @@ private fun ItemSheet(
     folders: List<FolderDto>,
     mediaUrl: String?,
     onPatch: (LibraryItemPatch) -> Unit,
+    onNewPost: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -470,6 +482,10 @@ private fun ItemSheet(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp).clip(RoundedCornerShape(12.dp))
                         .clickable(onClickLabel = stringResource(R.string.media_show_full_screen)) { fullScreen = true },
                 )
+            }
+            Button(onClick = onNewPost, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.PostAdd, contentDescription = null)
+                Text(stringResource(R.string.library_new_post), modifier = Modifier.padding(start = 8.dp))
             }
             OutlinedTextField(
                 value = title,

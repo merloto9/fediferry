@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_drafts">Entwürfe</string>
+    <string name="drafts_title">Entwürfe</string>
+    <string name="drafts_loading">Entwürfe werden gelesen…</string>
+    <string name="drafts_empty">Noch keine Entwürfe. Wähle Bilder in der Bibliothek aus und tippe auf „Neuer Beitrag“, oder teile mit „Bearbeiten“.</string>
+    <string name="drafts_no_text">Noch kein Text</string>
+    <string name="drafts_no_channel">Kein Kanal gewählt</string>
+    <string name="drafts_being_edited">Wird auf %1$s bearbeitet</string>
+    <string name="drafts_delete">Entwurf löschen</string>
+    <string name="library_new_post">Neuer Beitrag</string>
+
+    <string name="draft_title">Entwurf</string>
+    <string name="draft_saving">Wird gespeichert…</string>
+    <string name="draft_saved">Auf dem Server gespeichert</string>
+    <string name="draft_gone">Diesen Entwurf gibt es nicht mehr. Vielleicht wurde er auf einem anderen Gerät gelöscht.</string>
+    <string name="draft_done">Fertig</string>
+    <string name="draft_lock_asking">Der Server wird gefragt, ob du bearbeiten kannst…</string>
+    <string name="draft_lock_elsewhere">%1$s bearbeitet diesen Entwurf. Meldet es sich nicht mehr, ist der Entwurf um %2$s wieder frei.</string>
+    <string name="draft_lock_lost">Ein anderes Gerät hat den Entwurf übernommen. Du kannst ihn ansehen, aber nicht bearbeiten.</string>
+    <string name="draft_another_phone">Ein anderes Gerät</string>
+    <string name="draft_take_over">Übernehmen</string>
+    <string name="draft_take_over_title">Entwurf übernehmen?</string>
+    <string name="draft_take_over_text">%1$s bearbeitet ihn noch. Wenn du übernimmst, gehen dort noch nicht gespeicherte Änderungen verloren.</string>
+    <string name="draft_undo_edit">Letzte Änderung zurücknehmen</string>
+    <string name="draft_remove_picture">Bild entfernen</string>
+    <string name="draft_length">%1$d Zeichen</string>
+    <string name="draft_length_of">%1$d von %2$d Zeichen</string>
+    <string name="draft_channel">Posten auf: %1$s</string>
+    <string name="draft_pick_channel">Kanal wählen</string>
+    <string name="draft_no_channels">Noch kein Kanal. Verbinde ein Mastodon-Konto unter Einstellungen → Mastodon-Konto.</string>
+
+    <string name="draft_offline">Gerade keine Verbindung zum Server.</string>
+    <string name="server_error_locked">%1$s bearbeitet diesen Entwurf (bis %2$s).</string>
+    <string name="server_error_lock_required">Dieses Gerät bearbeitet den Entwurf nicht mehr.</string>
+    <string name="server_error_version_conflict">Der Entwurf wurde auf einem anderen Gerät geändert und neu geladen.</string>
+    <string name="server_error_not_draft">Dieser Beitrag ist kein Entwurf mehr und kann nicht bearbeitet werden.</string>
+    <string name="server_error_alt_no_model">Das Projekt hat kein Modell für Bildbeschreibungen. Füge eins unter Einstellungen → Bildbeschreibung hinzu.</string>
+    <string name="server_error_alt_failed">Die Beschreibung konnte nicht erstellt werden (%1$s).</string>
+    <string name="server_error_not_editable">Dieses Bild lässt sich nicht bearbeiten.</string>
+
+    <string name="receiver_drafting_title">Entwurf in „%1$s“ wird angelegt</string>
+    <string name="receiver_drafting_detail">Das Bild wird an den Server geschickt…</string>
+    <string name="receiver_draft_later">Keine Verbindung zu „%1$s“. Das Geteilte wird aufbewahrt, und der Entwurf entsteht, sobald es hochgeladen ist.</string>
+    <plurals name="receiver_drafts_made">
+        <item quantity="one">%1$d Entwurf angelegt.</item>
+        <item quantity="other">%1$d Entwürfe angelegt; der erste ist offen.</item>
+    </plurals>
+</resources>

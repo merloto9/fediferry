@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_drafts">Drafts</string>
+    <string name="drafts_title">Drafts</string>
+    <string name="drafts_loading">Reading the drafts…</string>
+    <string name="drafts_empty">No drafts yet. Select pictures in the library and tap “New post”, or share with “Compose”.</string>
+    <string name="drafts_no_text">No text yet</string>
+    <string name="drafts_no_channel">No channel picked</string>
+    <string name="drafts_being_edited">Being edited on %1$s</string>
+    <string name="drafts_delete">Delete draft</string>
+    <string name="library_new_post">New post</string>
+
+    <string name="draft_title">Draft</string>
+    <string name="draft_saving">Saving…</string>
+    <string name="draft_saved">Saved on the server</string>
+    <string name="draft_gone">This draft is gone. It may have been deleted on another phone.</string>
+    <string name="draft_done">Done</string>
+    <string name="draft_lock_asking">Asking the server whether you can edit…</string>
+    <string name="draft_lock_elsewhere">%1$s is editing this draft. If it goes quiet, the draft is free again at %2$s.</string>
+    <string name="draft_lock_lost">Another phone took over this draft. You can look, but not edit.</string>
+    <string name="draft_another_phone">Another phone</string>
+    <string name="draft_take_over">Take over</string>
+    <string name="draft_take_over_title">Take over this draft?</string>
+    <string name="draft_take_over_text">%1$s is still editing it. If you take over, changes it has not saved yet are lost.</string>
+    <string name="draft_undo_edit">Undo last edit</string>
+    <string name="draft_remove_picture">Remove picture</string>
+    <string name="draft_length">%1$d characters</string>
+    <string name="draft_length_of">%1$d of %2$d characters</string>
+    <string name="draft_channel">Post to: %1$s</string>
+    <string name="draft_pick_channel">pick a channel</string>
+    <string name="draft_no_channels">No channel yet. Connect a Mastodon account in Settings → Mastodon account.</string>
+
+    <string name="draft_offline">No connection to the server right now.</string>
+    <string name="server_error_locked">%1$s is editing this draft (until %2$s).</string>
+    <string name="server_error_lock_required">This phone is no longer editing this draft.</string>
+    <string name="server_error_version_conflict">The draft changed on another phone. It has been read again.</string>
+    <string name="server_error_not_draft">This post is no longer a draft and can\'t be edited.</string>
+    <string name="server_error_alt_no_model">The project has no model for image descriptions. Add one in Settings → Alt text.</string>
+    <string name="server_error_alt_failed">The description could not be made (%1$s).</string>
+    <string name="server_error_not_editable">This picture can\'t be edited.</string>
+
+    <string name="receiver_drafting_title">Starting a draft in “%1$s”</string>
+    <string name="receiver_drafting_detail">Sending the picture to the server…</string>
+    <string name="receiver_draft_later">No connection to “%1$s”. The share is kept, and its draft is started once it goes up.</string>
+    <plurals name="receiver_drafts_made">
+        <item quantity="one">%1$d draft started.</item>
+        <item quantity="other">%1$d drafts started; the first is open.</item>
+    </plurals>
+</resources>

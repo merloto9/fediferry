@@ -20,6 +20,13 @@
 package app.fediferry.client
 
 import app.fediferry.api.ImportAccountRequest
+import app.fediferry.api.AltSuggestion
+import app.fediferry.api.CreatePost
+import app.fediferry.api.DeriveRequest
+import app.fediferry.api.LockDto
+import app.fediferry.api.MediaAssetDto
+import app.fediferry.api.PostDto
+import app.fediferry.api.PostPatch
 import app.fediferry.api.CompleteRequest
 import app.fediferry.api.ChannelPatch
 import app.fediferry.api.ChannelDto
@@ -155,6 +162,33 @@ class ServerClient(
     suspend fun deleteFolder(id: String) = sendNoContent("library/folders/$id", "DELETE")
 
     suspend fun tags(): List<TagDto> = get("tags")
+
+    // --- posts -----------------------------------------------------------------
+
+    suspend fun posts(stage: String): List<PostDto> = get("posts", query = mapOf("stage" to stage))
+
+    suspend fun post(id: String): PostDto = get("posts/$id")
+
+    suspend fun createPost(request: CreatePost): PostDto = post("posts", json.encodeToString(request))
+
+    /** Changes a draft this device holds the lock on; [version] is the one the change was made on. */
+    suspend fun patchPost(id: String, version: Long, patch: PostPatch): PostDto =
+        call(request("posts/$id", auth = true).header("If-Match", version.toString())
+            .method("PATCH", json.encodeToString(patch).toRequestBody(JSON_TYPE)).build())
+
+    suspend fun deletePost(id: String) = sendNoContent("posts/$id", "DELETE")
+
+    /** Takes or renews the edit lock; [force] takes it from another device. */
+    suspend fun lockPost(id: String, force: Boolean = false): LockDto =
+        call(request("posts/$id/lock", auth = true, query = if (force) mapOf("force" to "true") else emptyMap())
+            .post("".toRequestBody(JSON_TYPE)).build())
+
+    suspend fun unlockPost(id: String) = sendNoContent("posts/$id/lock", "DELETE")
+
+    suspend fun suggestAlt(postId: String, position: Int): AltSuggestion = post("posts/$postId/media/$position/alt-suggestion", "{}")
+
+    /** A new picture made from [assetId]: cropped and/or cleaned. The original stays as it is. */
+    suspend fun derive(assetId: String, request: DeriveRequest): MediaAssetDto = post("media/$assetId/derive", json.encodeToString(request))
 
     // --- channels --------------------------------------------------------------
 

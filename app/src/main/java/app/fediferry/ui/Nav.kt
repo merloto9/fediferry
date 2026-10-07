@@ -23,6 +23,8 @@ import app.fediferry.di.ServiceLocator
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import app.fediferry.library.LibraryScreen
+import app.fediferry.drafts.DraftEditorScreen
+import app.fediferry.drafts.DraftsScreen
 import app.fediferry.ui.queue.QueuedPostScreen
 import android.net.Uri
 import app.fediferry.ui.queue.QueueScreen
@@ -47,6 +49,8 @@ import androidx.navigation.NavController
 object Routes {
     const val INBOX = "inbox"
     const val LIBRARY = "library"
+    const val DRAFTS = "drafts"
+    const val DRAFT = "draft/{postId}"
     const val QUEUE = "queue"
     const val QUEUED_POST = "queue/{accountId}/{statusId}"
     const val SOURCES = "sources"
@@ -58,6 +62,7 @@ object Routes {
     const val CLEANUP = "cleanup/{itemId}"
 
     fun editor(itemId: String) = "editor/$itemId"
+    fun draft(postId: String) = "draft/$postId"
     fun crop(itemId: String) = "crop/$itemId"
     fun cleanup(itemId: String) = "cleanup/$itemId"
     fun channel(sourceId: String) = "channel/$sourceId"
@@ -71,15 +76,18 @@ fun FediFerryNavHost(
     navController: NavHostController,
     editItemId: String?,
     cropItemId: String?,
+    editPostId: String? = null,
     onEditConsumed: () -> Unit,
 ) {
     // A Compose-mode share lands here: jump straight to the editor for the item
     // the share receiver already persisted — or to the trim step first, when the
     // share brought an image that still looks like a full screenshot.
-    LaunchedEffect(editItemId, cropItemId) {
+    LaunchedEffect(editItemId, cropItemId, editPostId) {
         val crop = cropItemId
         val edit = editItemId
+        val draft = editPostId
         when {
+            draft != null -> navController.navigate(Routes.draft(draft))
             crop != null -> navController.navigate(Routes.crop(crop))
             edit != null -> navController.navigate(Routes.editor(edit))
             else -> return@LaunchedEffect
@@ -96,8 +104,25 @@ fun FediFerryNavHost(
     NavHost(navController = navController, startDestination = start) {
         composable(Routes.LIBRARY) {
             LibraryScreen(
+                onOpenDraft = { navController.navigate(Routes.draft(it)) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(Routes.DRAFTS) {
+            DraftsScreen(
+                onOpenDraft = { navController.navigate(Routes.draft(it)) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(
+            route = Routes.DRAFT,
+            arguments = listOf(navArgument("postId") { type = NavType.StringType }),
+        ) { entry ->
+            DraftEditorScreen(
+                postId = entry.arguments?.getString("postId").orEmpty(),
+                onDone = { if (!navController.popBackStack()) navController.navigate(Routes.DRAFTS) },
             )
         }
         composable(Routes.INBOX) {

@@ -119,7 +119,7 @@ fun CropScreen(
             )
 
             CropCanvas(
-                path = path,
+                model = File(path),
                 crop = state.crop,
                 onCropChange = viewModel::setCrop,
                 aspect = state.imageAspect,
@@ -153,9 +153,10 @@ private const val HANDLE_GRAB_RADIUS = 64f
 /** The crop can never be shrunk below this fraction of the image. */
 private const val MIN_CROP_FRACTION = 0.05f
 
+/** The picture with a crop frame over it; [model] is anything the image loader takes. */
 @Composable
-private fun CropCanvas(
-    path: String,
+internal fun CropCanvas(
+    model: Any?,
     crop: NormalisedCrop,
     onCropChange: (NormalisedCrop) -> Unit,
     aspect: Float,
@@ -171,7 +172,7 @@ private fun CropCanvas(
 
     Box(modifier.onSizeChanged { container = Size(it.width.toFloat(), it.height.toFloat()) }) {
         AsyncImage(
-            model = File(path),
+            model = model,
             contentDescription = stringResource(R.string.crop_image_description),
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),

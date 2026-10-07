@@ -22,6 +22,7 @@ package app.fediferry.ui
 import app.fediferry.di.ServiceLocator
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inbox
@@ -35,9 +36,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import app.fediferry.R
 
-/** The app's spaces. The library is there only while the phone works with a FediFerry server. */
+/** The app's spaces. The library and drafts are there only while the phone works with a FediFerry server. */
 enum class Space(val route: String, @StringRes val labelRes: Int) {
     LIBRARY(Routes.LIBRARY, R.string.nav_library),
+    DRAFTS(Routes.DRAFTS, R.string.nav_drafts),
     INBOX(Routes.INBOX, R.string.nav_inbox),
     QUEUE(Routes.QUEUE, R.string.nav_queue),
     SOURCES(Routes.SOURCES, R.string.nav_sources),
@@ -47,7 +49,7 @@ enum class Space(val route: String, @StringRes val labelRes: Int) {
 fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
     val connected = ServiceLocator.serverConnections(LocalContext.current).current() != null
     NavigationBar {
-        Space.entries.filter { it != Space.LIBRARY || connected }.forEach { space ->
+        Space.entries.filter { connected || (it != Space.LIBRARY && it != Space.DRAFTS) }.forEach { space ->
             val label = stringResource(space.labelRes)
             NavigationBarItem(
                 selected = space == current,
@@ -56,6 +58,7 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
                     Icon(
                         when (space) {
                             Space.LIBRARY -> Icons.Outlined.PhotoLibrary
+                            Space.DRAFTS -> Icons.Outlined.EditNote
                             Space.INBOX -> Icons.Default.Inbox
                             Space.QUEUE -> Icons.Default.Schedule
                             Space.SOURCES -> Icons.Default.Subscriptions

@@ -210,7 +210,10 @@ fun EditorScreen(
             }
             AnimatedVisibility(visible = showHashtags) {
                 HashtagPanel(
-                    item = item,
+                    key = item.id,
+                    picked = item.hashtagList,
+                    origin = item.origin,
+                    addSourceHashtags = item.addSourceHashtags,
                     hashtagList = state.hashtagList,
                     onToggle = viewModel::toggleHashtag,
                     onAdd = viewModel::addHashtag,

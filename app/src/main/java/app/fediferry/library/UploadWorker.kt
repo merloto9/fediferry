@@ -21,6 +21,11 @@ package app.fediferry.library
 
 import app.fediferry.api.LibraryItemPatch
 import app.fediferry.api.FolderInput
+import app.fediferry.api.CreatePost
+import app.fediferry.api.IngestModes
+import app.fediferry.client.ServerClient
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -50,18 +55,8 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
         for (share in pending.all.value) {
             try {
-                val file = pending.file(share).takeIf { share.hasFile && it.exists() }?.readBytes()
-                val result = client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt)
-                share.folder?.let { name ->
-                    val folder = client.folders().firstOrNull { it.name.equals(name, ignoreCase = true) }
-                        ?: client.createFolder(FolderInput(name))
-                    client.patchLibraryItem(result.item.id, LibraryItemPatch(folderId = folder.id))
-                }
-                pending.remove(share)
-                DebugLog.d(LOG, "Uploaded a share")
+                send(app, client, share)
             } catch (e: ServerException) {
-                pending.update(share.copy(attempts = share.attempts + 1, lastError = e.code))
-                DebugLog.w(LOG, "Upload failed: ${e.code}")
                 // No server, or a passing fault: try again later. Anything else
                 // (a revoked token, a refused file) needs a person, not a retry.
                 if (e.unreachable || e.status >= 500 || e.status == 429) return Result.retry()
@@ -72,6 +67,42 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
     companion object {
         private const val LOG = "upload"
+
+        /** One upload at a time, whether from here or straight from a share. */
+        private val sending = Mutex()
+
+        /**
+         * Sends one waiting share and lets go of it once the server has it. A
+         * Compose share also starts a draft from what arrived; its id comes back.
+         * Null when the share had already gone.
+         */
+        suspend fun send(context: Context, client: ServerClient, share: PendingShare): String? = sending.withLock {
+            val pending = ServiceLocator.pendingShares(context)
+            if (!pending.has(share.id)) return null
+            try {
+                val file = pending.file(share).takeIf { share.hasFile && it.exists() }?.readBytes()
+                val result = client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt)
+                share.folder?.let { name ->
+                    val folder = client.folders().firstOrNull { it.name.equals(name, ignoreCase = true) }
+                        ?: client.createFolder(FolderInput(name))
+                    client.patchLibraryItem(result.item.id, LibraryItemPatch(folderId = folder.id))
+                }
+                // The share stays waiting until its draft exists too, so a
+                // failure here starts the draft on the next try.
+                val draft = if (share.mode == IngestModes.COMPOSE) {
+                    client.createPost(CreatePost(listOf(result.item.id))).id
+                } else {
+                    null
+                }
+                pending.remove(share)
+                DebugLog.d(LOG, "Uploaded a share")
+                draft
+            } catch (e: ServerException) {
+                pending.update(share.copy(attempts = share.attempts + 1, lastError = e.code))
+                DebugLog.w(LOG, "Upload failed: ${e.code}")
+                throw e
+            }
+        }
         private const val NAME = "upload-shares"
 
         fun enqueue(context: Context) {

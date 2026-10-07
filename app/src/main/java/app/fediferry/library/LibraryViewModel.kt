@@ -22,6 +22,7 @@ package app.fediferry.library
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.api.CreatePost
 import app.fediferry.api.FolderDto
 import app.fediferry.api.FolderInput
 import app.fediferry.api.LibraryItemDto
@@ -165,6 +166,14 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     fun move(ids: Collection<String>, folderId: String?) = act { api ->
         ids.forEach { api.patchLibraryItem(it, LibraryItemPatch(folderId = folderId ?: "")) }
+    }
+
+    /** Starts a draft from [ids], in the order they were picked, and hands back its id. */
+    fun newPost(ids: List<String>, onCreated: (String) -> Unit) = viewModelScope.launch {
+        val api = client ?: return@launch
+        runCatching { api.createPost(CreatePost(ids)) }
+            .onSuccess { onCreated(it.id) }
+            .onFailure { e -> _messages.tryEmit((e as? ServerException)?.code ?: "client.unknown") }
     }
 
     fun delete(ids: Collection<String>) = act { api -> ids.forEach { api.deleteLibraryItem(it) } }

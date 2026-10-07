@@ -401,7 +401,7 @@ class RedditResolverTest {
         val fields = RedditResolver.parse(fixture("reddit_image.html")).getOrThrow().fields
 
         assertEquals("pics", fields["subreddit"])
-        assertTrue(ContentSource.REDDIT.fields.map { it.name }.containsAll(fields.keys))
+        assertTrue(ContentSource.REDDIT.fieldNames.containsAll(fields.keys))
     }
 
     private companion object {

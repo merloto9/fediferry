@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "FediFerry"
 include(":app")
+include(":shared")

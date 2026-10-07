@@ -229,7 +229,7 @@ class PinterestResolverTest {
 
         assertEquals("Hydrangeas Art Print", fields["title"])
         assertTrue(fields["description"]!!.startsWith("Find the perfect handmade gift"))
-        assertTrue(ContentSource.PINTEREST.fields.map { it.name }.containsAll(fields.keys))
+        assertTrue(ContentSource.PINTEREST.fieldNames.containsAll(fields.keys))
     }
 
     // --- the sharer's details in a link -------------------------------------

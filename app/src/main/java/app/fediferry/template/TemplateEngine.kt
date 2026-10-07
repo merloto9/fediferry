@@ -19,6 +19,7 @@
  */
 package app.fediferry.template
 
+import app.fediferry.data.model.fields
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.Item

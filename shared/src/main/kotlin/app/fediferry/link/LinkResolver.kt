@@ -39,7 +39,7 @@ data class ResolvedPost(
 )
 
 /** Keeps the fields that say something; an empty one is the same as a missing one. */
-internal fun fieldsOf(vararg pairs: Pair<String, String?>): Map<String, String> =
+fun fieldsOf(vararg pairs: Pair<String, String?>): Map<String, String> =
     pairs.mapNotNull { (name, value) -> value?.trim()?.takeIf { it.isNotEmpty() }?.let { name to it } }.toMap()
 
 /**

@@ -126,7 +126,7 @@ class NineGagResolverTest {
 
     @Test
     fun `only declares fields the 9GAG source lists`() {
-        val declared = ContentSource.NINEGAG.fields.map { it.name }.toSet()
+        val declared = ContentSource.NINEGAG.fieldNames.toSet()
         val sent = NineGagResolver.parse(fixture("ninegag_fields.json")).getOrThrow().fields.keys
 
         assertTrue("undeclared: ${sent - declared}", declared.containsAll(sent))

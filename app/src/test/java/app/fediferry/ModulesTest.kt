@@ -36,6 +36,15 @@ class ModulesTest {
     }
 
     @Test
+    fun `a module describes exactly the fields its source sends`() {
+        // The names live with the source, shared with the server; the module adds descriptions.
+        Modules.all.forEach { module ->
+            assertEquals(module.source.fieldNames, module.fields.map { it.name })
+            assertEquals(module.source.label, module.name)
+        }
+    }
+
+    @Test
     fun `a module's resolver reports the module's own source`() {
         val http = OkHttpClient()
         Modules.all.forEach { module ->

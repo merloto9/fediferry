@@ -19,7 +19,6 @@
  */
 package app.fediferry.module.reddit
 
-import app.fediferry.BuildConfig
 import app.fediferry.data.model.ContentSource
 import app.fediferry.link.CleanedLink
 import app.fediferry.link.LinkResolver
@@ -65,7 +64,15 @@ import okhttp3.Request
  * - Text and link posts have nothing to attach and are declined, leaving the
  *   screenshot path.
  */
-class RedditResolver(private val http: OkHttpClient) : LinkResolver {
+class RedditResolver(
+    private val http: OkHttpClient,
+    /** The app's version, for the User-Agent Reddit asks for. */
+    appVersion: String = "dev",
+) : LinkResolver {
+
+    /** Reddit asks for `<platform>:<app id>:<version>` and a way to reach the author. */
+    private val userAgent = "android:app.fediferry:$appVersion (+https://github.com/merloto9/fediferry)"
+
 
     override val source = ContentSource.REDDIT
 
@@ -142,7 +149,7 @@ class RedditResolver(private val http: OkHttpClient) : LinkResolver {
     private fun embed(post: PostRef): String {
         val request = Request.Builder()
             .url("https://embed.reddit.com/${post.path}")
-            .header("User-Agent", USER_AGENT)
+            .header("User-Agent", userAgent)
             .header("Accept", "text/html")
             .get()
             .build()
@@ -158,7 +165,7 @@ class RedditResolver(private val http: OkHttpClient) : LinkResolver {
         repeat(MAX_REDIRECTS) {
             val request = Request.Builder()
                 .url(current)
-                .header("User-Agent", USER_AGENT)
+                .header("User-Agent", userAgent)
                 .get()
                 .build()
             val next = noRedirects.newCall(request).execute().use { response ->
@@ -174,7 +181,7 @@ class RedditResolver(private val http: OkHttpClient) : LinkResolver {
     private fun exists(url: String): Boolean = runCatching {
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", USER_AGENT)
+            .header("User-Agent", userAgent)
             .head()
             .build()
         http.newCall(request).execute().use { it.isSuccessful }
@@ -190,9 +197,6 @@ class RedditResolver(private val http: OkHttpClient) : LinkResolver {
     }
 
     companion object {
-        /** Reddit asks for `<platform>:<app id>:<version>` and a way to reach the author. */
-        private val USER_AGENT =
-            "android:app.fediferry:${BuildConfig.VERSION_NAME} (+https://github.com/merloto9/fediferry)"
 
         private const val PLACEHOLDER_SUBREDDIT = "all"
 

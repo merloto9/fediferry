@@ -19,6 +19,7 @@
  */
 package app.fediferry.module.reddit
 
+import app.fediferry.BuildConfig
 import app.fediferry.R
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.SourceField
@@ -36,5 +37,5 @@ object RedditModule : SourceModule {
     )
     override val defaultRecipes = mapOf("caption" to "{title}")
 
-    override fun resolver(http: OkHttpClient) = RedditResolver(http)
+    override fun resolver(http: OkHttpClient) = RedditResolver(http, BuildConfig.VERSION_NAME)
 }

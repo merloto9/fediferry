@@ -25,25 +25,5 @@ import app.fediferry.module.Modules
 /** One raw value a source delivers, as a placeholder mapping refers to it. */
 data class SourceField(val name: String, @StringRes val description: Int)
 
-/**
- * The stable id of a source module — what items and templates store. Everything
- * else about a source, its fields included, lives in its module under
- * [app.fediferry.module]; this only names it.
- *
- * Stored by [name], so the order here can change freely.
- */
-enum class ContentSource {
-    NINEGAG,
-    PINTEREST,
-    REDDIT,
-    YOUTUBE,
-    ;
-
-    val label: String get() = Modules.of(this).name
-
-    val fields: List<SourceField> get() = Modules.of(this).fields
-
-    companion object {
-        fun fromName(name: String?): ContentSource? = entries.firstOrNull { it.name == name }
-    }
-}
+/** The fields this source's module delivers, with descriptions for Settings. */
+val ContentSource.fields: List<SourceField> get() = Modules.of(this).fields

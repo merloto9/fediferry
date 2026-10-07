@@ -131,6 +131,9 @@ ksp {
 }
 
 dependencies {
+    // Logic shared with the FediFerry server: resolvers, Mastodon types, image steps.
+    implementation(project(":shared"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

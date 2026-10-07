@@ -8,6 +8,14 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [Unreleased]
+
+### Changed
+
+- **Deleting asks first.** The trash button in the inbox (for the selected
+  posts) and in the editor now asks whether to delete the post — or the
+  selection — permanently, with its pictures: *Yes, delete* or *Back*.
+
 ## [0.21.2] — 2026-10-07
 
 ### Fixed

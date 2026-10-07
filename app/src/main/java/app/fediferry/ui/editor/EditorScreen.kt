@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.editor
 
+import app.fediferry.ui.DeletePostsDialog
 import app.fediferry.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
@@ -104,6 +105,7 @@ fun EditorScreen(
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var showPlaceholderHelp by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
 
     if (showPlaceholderHelp) {
         PlaceholderHelpDialog(keys = state.placeholderKeys, onDismiss = { showPlaceholderHelp = false })
@@ -122,6 +124,16 @@ fun EditorScreen(
         contentWindowInsets = ScaffoldDefaults.typingInsets,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
+            if (deleting) {
+                DeletePostsDialog(
+                    count = 1,
+                    onConfirm = {
+                        deleting = false
+                        viewModel.discard(onDone)
+                    },
+                    onDismiss = { deleting = false },
+                )
+            }
             TopAppBar(
                 title = { Text(stringResource(R.string.editor_title)) },
                 navigationIcon = {
@@ -130,7 +142,7 @@ fun EditorScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.discard(onDone) }) {
+                    IconButton(onClick = { deleting = true }) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.editor_discard))
                     }
                 },

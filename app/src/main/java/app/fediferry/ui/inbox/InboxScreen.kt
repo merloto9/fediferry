@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.inbox
 
+import app.fediferry.ui.DeletePostsDialog
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -116,6 +117,19 @@ fun InboxScreen(
     var moving by remember { mutableStateOf(false) }
     var naming by remember { mutableStateOf<StackNaming?>(null) }
     var scheduling by remember { mutableStateOf<String?>(null) }
+    var deleting by remember { mutableStateOf(false) }
+
+    if (deleting) {
+        DeletePostsDialog(
+            count = selection.size,
+            onConfirm = {
+                viewModel.delete(selection)
+                selection = emptySet()
+                deleting = false
+            },
+            onDismiss = { deleting = false },
+        )
+    }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val resources = LocalResources.current
@@ -194,10 +208,7 @@ fun InboxScreen(
                         IconButton(onClick = { moving = true }) {
                             Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = stringResource(R.string.inbox_move_to_stack))
                         }
-                        IconButton(onClick = {
-                            viewModel.delete(selection)
-                            selection = emptySet()
-                        }) {
+                        IconButton(onClick = { deleting = true }) {
                             Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.inbox_delete_selected))
                         }
                     } else {

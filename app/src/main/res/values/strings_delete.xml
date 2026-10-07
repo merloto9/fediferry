@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="delete_title">
+        <item quantity="one">Delete this post?</item>
+        <item quantity="other">Delete %1$d posts?</item>
+    </plurals>
+    <plurals name="delete_text">
+        <item quantity="one">It is deleted permanently, together with its picture. This can\'t be undone.</item>
+        <item quantity="other">They are deleted permanently, together with their pictures. This can\'t be undone.</item>
+    </plurals>
+    <string name="delete_confirm">Yes, delete</string>
+    <string name="delete_back">Back</string>
+</resources>

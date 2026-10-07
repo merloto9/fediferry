@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="delete_title">
+        <item quantity="one">Diesen Beitrag löschen?</item>
+        <item quantity="other">%1$d Beiträge löschen?</item>
+    </plurals>
+    <plurals name="delete_text">
+        <item quantity="one">Er wird endgültig gelöscht, zusammen mit seinem Bild. Das lässt sich nicht rückgängig machen.</item>
+        <item quantity="other">Sie werden endgültig gelöscht, zusammen mit ihren Bildern. Das lässt sich nicht rückgängig machen.</item>
+    </plurals>
+    <string name="delete_confirm">Ja, löschen</string>
+    <string name="delete_back">Zurück</string>
+</resources>

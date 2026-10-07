@@ -8,6 +8,17 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.20.0] — 2026-10-07
+
+### Added
+
+- **Make a draft from a scheduled post.** In the Queue, a post's menu has
+  *Make a draft*: FediFerry downloads its picture and copies it into a new
+  inbox draft with its text, hashtags (ticked again, with `{tags}` back in
+  place), content warning, visibility, alt text and account. Keep the
+  scheduled post, or cancel it — only once the draft is made. This is how a
+  scheduled post gets edited, as Mastodon cannot change its text or picture.
+
 ## [0.19.1] — 2026-10-07
 
 ### Fixed

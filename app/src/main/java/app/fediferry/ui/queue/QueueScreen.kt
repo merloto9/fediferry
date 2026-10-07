@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.Account
+import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.LoadingScreen
 import app.fediferry.ui.SchedulePicker
 import app.fediferry.ui.Space
@@ -93,6 +94,7 @@ fun QueueScreen(
     val snackbar = remember { SnackbarHostState() }
     var moving by remember { mutableStateOf<QueuedPost?>(null) }
     var cancelling by remember { mutableStateOf<QueuedPost?>(null) }
+    var drafting by remember { mutableStateOf<QueuedPost?>(null) }
 
     // Every visit reads afresh, including the return from a reconnect.
     LifecycleResumeEffect(Unit) {
@@ -124,6 +126,38 @@ fun QueueScreen(
                 TextButton(onClick = { viewModel.cancel(post); cancelling = null }) { Text("Cancel post") }
             },
             dismissButton = { TextButton(onClick = { cancelling = null }) { Text("Keep it") } },
+        )
+    }
+
+    drafting?.let { post ->
+        AlertDialog(
+            onDismissRequest = { drafting = null },
+            title = { Text("Make a draft?") },
+            text = {
+                Text(
+                    "FediFerry copies this post — text, hashtags, picture and alt text — into a " +
+                        "new draft in the inbox. Mastodon can't change a scheduled post's text or " +
+                        "picture, so to edit it: make a draft, cancel this one, and schedule the " +
+                        "draft again when it's ready.",
+                )
+            },
+            confirmButton = {
+                Column(horizontalAlignment = Alignment.End) {
+                    TextButton(onClick = { viewModel.makeDraft(post, cancelAfter = true); drafting = null }) {
+                        Text("Make draft, cancel this")
+                    }
+                    TextButton(onClick = { viewModel.makeDraft(post, cancelAfter = false); drafting = null }) {
+                        Text("Make draft, keep this")
+                    }
+                    TextButton(onClick = { drafting = null }) { Text("Back") }
+                }
+            },
+        )
+    }
+    if (state.drafting) {
+        LoadingOverlay(
+            title = "Making a draft",
+            detail = "Downloading the picture from your server and copying the post into the inbox.",
         )
     }
 
@@ -167,6 +201,7 @@ fun QueueScreen(
                     onReconnect = viewModel::reconnect,
                     onMove = { moving = it },
                     onCancel = { cancelling = it },
+                    onDraft = { drafting = it },
                 )
             }
         }
@@ -179,6 +214,7 @@ private fun QueueList(
     onReconnect: (Account) -> Unit,
     onMove: (QueuedPost) -> Unit,
     onCancel: (QueuedPost) -> Unit,
+    onDraft: (QueuedPost) -> Unit,
 ) {
     val showAccount = state.accounts.size > 1
     val days = state.posts.groupBy { ScheduleFormat.dayHeading(it.at) }
@@ -210,14 +246,26 @@ private fun QueueList(
                 )
             }
             items(posts, key = { "${it.account.id}/${it.status.id}" }) { post ->
-                QueuedCard(post, showAccount, onMove = { onMove(post) }, onCancel = { onCancel(post) })
+                QueuedCard(
+                    post,
+                    showAccount,
+                    onMove = { onMove(post) },
+                    onCancel = { onCancel(post) },
+                    onDraft = { onDraft(post) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun QueuedCard(post: QueuedPost, showAccount: Boolean, onMove: () -> Unit, onCancel: () -> Unit) {
+private fun QueuedCard(
+    post: QueuedPost,
+    showAccount: Boolean,
+    onMove: () -> Unit,
+    onCancel: () -> Unit,
+    onDraft: () -> Unit,
+) {
     var menu by remember { mutableStateOf(false) }
     val media = post.status.media.firstOrNull()
     Card(
@@ -277,6 +325,7 @@ private fun QueuedCard(post: QueuedPost, showAccount: Boolean, onMove: () -> Uni
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Change time") }, onClick = { menu = false; onMove() })
+                    DropdownMenuItem(text = { Text("Make a draft") }, onClick = { menu = false; onDraft() })
                     DropdownMenuItem(text = { Text("Cancel post") }, onClick = { menu = false; onCancel() })
                 }
             }

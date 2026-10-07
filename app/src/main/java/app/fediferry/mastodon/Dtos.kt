@@ -49,6 +49,8 @@ data class MediaAttachment(
     val url: String? = null,
     @SerialName("preview_url") val previewUrl: String? = null,
     val description: String? = null,
+    /** image, gifv, video, audio or unknown. */
+    val type: String? = null,
 )
 
 @Serializable

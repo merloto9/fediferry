@@ -85,7 +85,10 @@ post leaves the inbox once Mastodon has it.
 The **Queue** tab, between Inbox and Sources, reads the scheduled posts from
 each connected account every time you open it. Change a post's time or cancel
 it from its menu; both go straight to the server. Mastodon cannot change a
-scheduled post's text or picture, so to edit one, cancel it and share it again.
+scheduled post's text or picture, so to edit one, choose *Make a draft*: its
+text, hashtags, content warning, visibility, picture and alt text are copied
+into a new inbox draft, and you choose whether the scheduled post is cancelled
+or stays. It is only cancelled once the draft has been made.
 
 Reading the queue needs permission to read your posts (`read:statuses`),
 which FediFerry only asks for since 0.19. An account connected earlier shows

@@ -19,6 +19,8 @@
  */
 package app.fediferry.data
 
+import app.fediferry.mastodon.MastodonException
+import app.fediferry.mastodon.ScheduledStatus
 import app.fediferry.data.db.AccountDao
 import app.fediferry.data.db.CleanupDao
 import app.fediferry.data.db.ItemDao
@@ -271,6 +273,47 @@ class ItemRepository(
             templateId = template.id,
             accountId = template.accountId ?: accounts.defaultAccount()?.id,
             status = status,
+        )
+        items.upsert(item)
+        item
+    }
+
+    /**
+     * A new draft in the inbox from a post Mastodon holds for later: its text,
+     * hashtags, content warning, visibility, account, and its picture with the
+     * alt text. Mastodon cannot change a scheduled post's text or picture, so
+     * this is how one gets edited. The scheduled post itself is not touched.
+     *
+     * The picture is downloaded from the server; if that fails, so does this,
+     * and the scheduled post is still there to try again. A draft with the
+     * same picture already in the inbox is returned instead of a second one.
+     */
+    suspend fun draftFromScheduled(accountId: String, status: ScheduledStatus): Result<Item> = runCatching {
+        val template = resolveTemplate(null)
+        val attachment = status.media.firstOrNull()
+        val stored = attachment?.url?.let { url ->
+            val bytes = fetcher.fetch(url).getOrElse { throw MastodonException("Couldn't download the picture: ${it.message}") }
+            media.store(bytes, ScheduledDraft.mimeTypeOf(attachment)).getOrThrow()
+        }
+        stored?.let { items.draftByMediaHash(it.sha256) }?.let { return@runCatching it }
+
+        // Its hashtags were written out when it was scheduled; they become the
+        // post's own again, ticked, with {tags} where they stood.
+        val (body, tags) = Hashtags.adoptFromText(status.params.text)
+        val item = Item(
+            id = UUID.randomUUID().toString(),
+            mediaPath = stored?.file?.absolutePath,
+            mediaHash = stored?.sha256,
+            mimeType = stored?.mimeType,
+            altText = attachment?.description?.takeIf { it.isNotBlank() },
+            bodyText = body,
+            hashtags = Hashtags.format(tags),
+            addSourceHashtags = false,
+            contentWarning = status.params.spoilerText?.takeIf { it.isNotBlank() },
+            visibility = ScheduledDraft.visibilityOf(status.params.visibility) ?: template.visibility,
+            templateId = template.id,
+            accountId = accountId,
+            status = Status.DRAFT,
         )
         items.upsert(item)
         item

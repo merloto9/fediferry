@@ -53,6 +53,8 @@ data class QueueState(
     val accounts: List<Account> = emptyList(),
     val posts: List<QueuedPost> = emptyList(),
     val problems: Map<Account, QueueProblem> = emptyMap(),
+    /** A draft is being made from a queued post: its picture is downloading. */
+    val drafting: Boolean = false,
 )
 
 /**
@@ -66,6 +68,7 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
     private val tokens = ServiceLocator.tokens(app)
     private val client = ServiceLocator.mastodon(app)
     private val auth = ServiceLocator.auth(app)
+    private val repo = ServiceLocator.items(app)
 
     private val _state = MutableStateFlow(QueueState())
     val state: StateFlow<QueueState> = _state
@@ -112,6 +115,35 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
 
     fun cancel(post: QueuedPost) = change(post, "Cancelled. Mastodon won't post it.") { token ->
         client.cancelScheduled(post.account.instance, token, post.status.id)
+    }
+
+    /**
+     * Copies a queued post into a new inbox draft. With [cancelAfter], the
+     * scheduled post is cancelled too — but only once the draft is safely
+     * made, so nothing is lost if the copy fails.
+     */
+    fun makeDraft(post: QueuedPost, cancelAfter: Boolean) = viewModelScope.launch {
+        _state.value = _state.value.copy(drafting = true)
+        val draft = repo.draftFromScheduled(post.account.id, post.status)
+        val message = draft.fold(
+            onSuccess = {
+                if (!cancelAfter) {
+                    "Draft made. It's in the inbox; the scheduled post stays."
+                } else {
+                    runCatching {
+                        val token = tokens.get(post.account.id) ?: throw MastodonException("No access token — reconnect")
+                        client.cancelScheduled(post.account.instance, token, post.status.id)
+                    }.fold(
+                        { "Draft made and the scheduled post cancelled. Edit it in the inbox." },
+                        { "Draft made, but the scheduled post couldn't be cancelled: ${it.message}" },
+                    )
+                }
+            },
+            onFailure = { "Couldn't make a draft: ${it.message}" },
+        )
+        _state.value = _state.value.copy(drafting = false)
+        _messages.tryEmit(message)
+        refresh()
     }
 
     private fun change(post: QueuedPost, done: String, call: suspend (String) -> Unit) = viewModelScope.launch {

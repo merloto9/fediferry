@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.settings
 
+import app.fediferry.channels.ChannelsSection
 import app.fediferry.di.ServiceLocator
 import app.fediferry.connect.ServerSection
 import androidx.compose.material.icons.outlined.Dns
@@ -356,7 +357,12 @@ fun SettingsPageScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             when (page) {
-                SettingsPage.ACCOUNT -> AccountsSection(state, viewModel)
+                SettingsPage.ACCOUNT -> if (ServiceLocator.serverConnections(LocalContext.current).current() != null) {
+                    // With a server, accounts are the project's channels and live there.
+                    ChannelsSection()
+                } else {
+                    AccountsSection(state, viewModel)
+                }
                 SettingsPage.SERVER -> ServerSection()
                 SettingsPage.TEMPLATES -> TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
                 SettingsPage.HASHTAGS -> HashtagsSection(state, viewModel)

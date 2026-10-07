@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channels_intro">Die Kanäle des Projekts: die Konten, in die seine Beiträge gehen. Angemeldet wird über den FediFerry-Server, der das Token des Kontos verwahrt; es liegt nie auf einem Telefon.</string>
+    <string name="channels_none">Noch kein Kanal. Melde dich unten bei einem Mastodon-Konto an.</string>
+    <string name="channels_failed">Das hat nicht geklappt (%1$s).</string>
+    <plurals name="channels_local_accounts">
+        <item quantity="one">Dieses Telefon ist bei %1$d Konto angemeldet, welches dem Projekt noch fehlt.</item>
+        <item quantity="other">Dieses Telefon ist bei %1$d Konten angemeldet, die dem Projekt noch fehlen.</item>
+    </plurals>
+    <string name="channels_take_over">Ins Projekt übernehmen</string>
+    <string name="channels_add_title">Mastodon-Konto hinzufügen</string>
+    <string name="channels_instance">Instanz</string>
+    <string name="channels_sign_in">Anmelden</string>
+    <string name="channels_capabilities">Zeichen: %1$d · Bilder: %2$d · Bildbeschreibung: %3$d</string>
+    <string name="channels_default">Standardkanal</string>
+    <string name="channels_actions">Aktionen für %1$s</string>
+    <string name="channels_make_default">Als Standard</string>
+    <string name="channels_rename">Umbenennen</string>
+    <string name="channels_refresh">Grenzen neu lesen</string>
+    <string name="channels_remove">Entfernen</string>
+    <string name="channels_remove_title">%1$s entfernen?</string>
+    <string name="channels_remove_text">Das Projekt postet dort nicht mehr, und der Server vergisst das Token des Kontos. Das Konto selbst bleibt, wie es ist.</string>
+</resources>

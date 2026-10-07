@@ -19,6 +19,8 @@
  */
 package app.fediferry.mastodon
 
+import app.fediferry.client.ServerException
+import app.fediferry.channels.PendingChannelSignIn
 import app.fediferry.i18n.AppLocale
 import android.content.Context
 import android.content.Intent
@@ -70,6 +72,26 @@ class OAuthRedirectActivity : ComponentActivity() {
                     icon = Icons.AutoMirrored.Outlined.Login,
                 )
             }
+        }
+
+        // A sign-in started through the FediFerry server finishes there: the
+        // server exchanges the code and keeps the token.
+        if (PendingChannelSignIn.take(this, state)) {
+            lifecycleScope.launch {
+                val connections = ServiceLocator.serverConnections(this@OAuthRedirectActivity)
+                val result = runCatching {
+                    val connection = connections.current() ?: error("not connected")
+                    connections.client(connection).completeMastodon(code, state)
+                }
+                toast(
+                    result.fold(
+                        onSuccess = { getString(R.string.auth_connected, it.acct) },
+                        onFailure = { getString(R.string.auth_failed, (it as? ServerException)?.code ?: it.message.orEmpty()) },
+                    ),
+                )
+                openApp()
+            }
+            return
         }
 
         lifecycleScope.launch {

@@ -19,6 +19,12 @@
  */
 package app.fediferry.client
 
+import app.fediferry.api.ImportAccountRequest
+import app.fediferry.api.CompleteRequest
+import app.fediferry.api.ChannelPatch
+import app.fediferry.api.ChannelDto
+import app.fediferry.api.AuthorizeResponse
+import app.fediferry.api.AuthorizeRequest
 import kotlinx.serialization.json.JsonObject
 import app.fediferry.api.SettingsEntryDto
 import app.fediferry.api.SecretInput
@@ -149,6 +155,26 @@ class ServerClient(
     suspend fun deleteFolder(id: String) = sendNoContent("library/folders/$id", "DELETE")
 
     suspend fun tags(): List<TagDto> = get("tags")
+
+    // --- channels --------------------------------------------------------------
+
+    suspend fun channels(): List<ChannelDto> = get("channels")
+
+    suspend fun patchChannel(id: String, patch: ChannelPatch): ChannelDto =
+        send("channels/${encode(id)}", "PATCH", json.encodeToString(patch))
+
+    suspend fun deleteChannel(id: String) = sendNoContent("channels/${encode(id)}", "DELETE")
+
+    suspend fun refreshCapabilities(id: String): ChannelDto = send("channels/${encode(id)}/refresh-capabilities", "POST", "{}")
+
+    suspend fun authorizeMastodon(instance: String, redirectUri: String): AuthorizeResponse =
+        post("channels/mastodon/authorize", json.encodeToString(AuthorizeRequest(instance, redirectUri)))
+
+    suspend fun completeMastodon(code: String, state: String): ChannelDto =
+        post("channels/mastodon/complete", json.encodeToString(CompleteRequest(code, state)))
+
+    suspend fun importMastodon(instance: String, accessToken: String, channelId: String?): ChannelDto =
+        post("channels/mastodon/import", json.encodeToString(ImportAccountRequest(instance, accessToken, channelId)))
 
     // --- project settings ------------------------------------------------------
 

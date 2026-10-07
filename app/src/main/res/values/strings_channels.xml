@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channels_intro">The project\'s channels: the accounts its posts go to. Signing in happens through the FediFerry server, which keeps the account\'s token; it never sits on a phone.</string>
+    <string name="channels_none">No channel yet. Sign in to a Mastodon account below.</string>
+    <string name="channels_failed">That didn\'t work (%1$s).</string>
+    <plurals name="channels_local_accounts">
+        <item quantity="one">This phone is signed in to %1$d account the project does not have yet.</item>
+        <item quantity="other">This phone is signed in to %1$d accounts the project does not have yet.</item>
+    </plurals>
+    <string name="channels_take_over">Move them to the project</string>
+    <string name="channels_add_title">Add a Mastodon account</string>
+    <string name="channels_instance">Instance</string>
+    <string name="channels_sign_in">Sign in</string>
+    <string name="channels_capabilities">Characters: %1$d · Pictures: %2$d · Alt text: %3$d</string>
+    <string name="channels_default">Default channel</string>
+    <string name="channels_actions">Actions for %1$s</string>
+    <string name="channels_make_default">Make default</string>
+    <string name="channels_rename">Rename</string>
+    <string name="channels_refresh">Read limits again</string>
+    <string name="channels_remove">Remove</string>
+    <string name="channels_remove_title">Remove %1$s?</string>
+    <string name="channels_remove_text">The project stops posting there and the server forgets the account\'s token. The account itself stays as it is.</string>
+</resources>

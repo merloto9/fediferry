@@ -19,6 +19,7 @@
  */
 package app.fediferry.server
 
+import app.fediferry.mastodon.MastodonAccounts
 import java.util.concurrent.TimeUnit
 import java.io.File
 import okhttp3.OkHttpClient
@@ -64,6 +65,7 @@ class Services(
     val version: String = SERVER_VERSION,
     resolvers: List<LinkResolver> = defaultResolvers(version),
     fetcher: MediaFetcher = OkHttpMediaFetcher(outboundHttp),
+    mastodon: MastodonAccounts = MastodonAccounts(outboundHttp),
 ) {
     val projects = Projects(storage, clock)
     val feed = ChangeFeed(storage, clock)
@@ -72,6 +74,7 @@ class Services(
     val crypto = Crypto.load(dataDir)
     val secrets = Secrets(storage.db, crypto, clock)
     val settings = SettingsStore(storage, feed, clock)
+    val channels = Channels(storage, secrets, crypto, feed, mastodon, clock)
 }
 
 /** One HTTP client for everything the server fetches from services. */
@@ -136,6 +139,7 @@ fun Application.fediferry(services: Services) {
                 deviceRoutes(services)
                 libraryRoutes(services)
                 settingsRoutes(services)
+                channelRoutes(services)
 
                 get("/changes") {
                     val since = call.request.queryParameters["since"]?.toLongOrNull() ?: 0L

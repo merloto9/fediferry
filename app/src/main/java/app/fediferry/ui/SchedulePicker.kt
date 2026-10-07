@@ -19,6 +19,11 @@
  */
 package app.fediferry.ui
 
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import app.fediferry.R
+import app.fediferry.work.ScheduleWords
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -88,8 +93,8 @@ fun SchedulePicker(
     if (!pickingTime) {
         DatePickerDialog(
             onDismissRequest = onDismiss,
-            confirmButton = { TextButton(onClick = { pickingTime = true }) { Text("Next") } },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            confirmButton = { TextButton(onClick = { pickingTime = true }) { Text(stringResource(R.string.schedule_next)) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.schedule_cancel)) } },
         ) {
             DatePicker(state = dateState, title = { Text(title, modifier = Modifier.padding(start = 24.dp, top = 16.dp)) })
         }
@@ -103,25 +108,27 @@ fun SchedulePicker(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(ScheduleFormat.dayHeading(at), style = MaterialTheme.typography.titleSmall)
+                Text(ScheduleWords.dayHeading(LocalResources.current, at), style = MaterialTheme.typography.titleSmall)
                 TimePicker(state = timeState)
                 if (tooSoon) {
                     Text(
-                        "Pick a time at least ${ScheduleFormat.MIN_LEAD_MINUTES} minutes from now. " +
-                            "Mastodon needs five, and the picture has to upload first.",
+                        pluralStringResource(
+                            R.plurals.schedule_too_soon,
+                            ScheduleFormat.MIN_LEAD_MINUTES.toInt(),
+                            ScheduleFormat.MIN_LEAD_MINUTES.toInt(),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 } else {
                     Text(
-                        "Mastodon keeps the post and publishes it ${ScheduleFormat.whenText(at)}. " +
-                            "FediFerry doesn't need to be open then.",
+                        stringResource(R.string.schedule_hint, ScheduleWords.whenText(LocalResources.current, at)),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
         },
         confirmButton = { TextButton(onClick = { onPick(at) }, enabled = !tooSoon) { Text(confirmLabel) } },
-        dismissButton = { TextButton(onClick = { pickingTime = false }) { Text("Back") } },
+        dismissButton = { TextButton(onClick = { pickingTime = false }) { Text(stringResource(R.string.schedule_back)) } },
     )
 }

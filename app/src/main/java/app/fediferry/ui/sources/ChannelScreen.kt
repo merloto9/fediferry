@@ -61,8 +61,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.R
 import app.fediferry.module.youtube.SourcePost
 import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.LoadingScreen
@@ -97,15 +100,15 @@ fun ChannelScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text(state.source?.displayName ?: "Channel") },
+                title = { Text(state.source?.displayName ?: stringResource(R.string.sources_channel)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.sources_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reload")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.sources_reload))
                     }
                 },
             )
@@ -114,10 +117,11 @@ fun ChannelScreen(
         when {
             state.loading && state.posts.isEmpty() ->
                 LoadingScreen(
-                    title = "Fetching community posts",
-                    detail = "Asking YouTube for the latest posts from " +
-                        (state.source?.let { "@${it.handle}" } ?: "this channel") +
-                        ". Only the ones with pictures are kept.",
+                    title = stringResource(R.string.sources_fetching_title),
+                    detail = stringResource(
+                        R.string.sources_fetching_detail,
+                        state.source?.let { "@${it.handle}" } ?: stringResource(R.string.sources_this_channel),
+                    ),
                     icon = Icons.Outlined.Subscriptions,
                     modifier = Modifier.padding(padding),
                 )
@@ -133,7 +137,7 @@ fun ChannelScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                         )
-                        TextButton(onClick = { viewModel.refresh() }) { Text("Try again") }
+                        TextButton(onClick = { viewModel.refresh() }) { Text(stringResource(R.string.sources_try_again)) }
                     }
                 }
 
@@ -142,7 +146,7 @@ fun ChannelScreen(
                     Modifier.fillMaxSize().padding(padding).padding(32.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("No posts with pictures here", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.sources_no_picture_posts), style = MaterialTheme.typography.bodyMedium)
                 }
 
             else -> Box(Modifier.fillMaxSize().padding(padding)) {
@@ -168,9 +172,8 @@ fun ChannelScreen(
 
     if (state.picking != null) {
         LoadingOverlay(
-            title = "Downloading the picture",
-            detail = "Fetching it from YouTube at full size and keeping a copy on this " +
-                "phone, so the editor can open it.",
+            title = stringResource(R.string.sources_downloading_title),
+            detail = stringResource(R.string.sources_downloading_detail),
             icon = Icons.Outlined.Image,
         )
     }
@@ -189,7 +192,7 @@ private fun ImagePlaceholder() {
         ) {
             CircularProgressIndicator(Modifier.size(32.dp), strokeWidth = 3.dp)
             Text(
-                "Loading picture…",
+                stringResource(R.string.sources_loading_picture),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -204,7 +207,7 @@ private fun PostCard(post: SourcePost, picking: String?, onPick: (String) -> Uni
             post.imageUrls.forEach { url ->
                 SubcomposeAsyncImage(
                     model = url,
-                    contentDescription = post.text ?: "Post image",
+                    contentDescription = post.text ?: stringResource(R.string.sources_post_image),
                     contentScale = ContentScale.Crop,
                     loading = { ImagePlaceholder() },
                     modifier = Modifier
@@ -235,7 +238,7 @@ private fun PostCard(post: SourcePost, picking: String?, onPick: (String) -> Uni
                 )
                 if (post.imageUrls.size > 1) {
                     Text(
-                        "${post.imageUrls.size} pictures — tap one",
+                        pluralStringResource(R.plurals.sources_pictures_tap_one, post.imageUrls.size, post.imageUrls.size),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

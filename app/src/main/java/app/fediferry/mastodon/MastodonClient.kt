@@ -19,6 +19,8 @@
  */
 package app.fediferry.mastodon
 
+import android.content.Context
+import app.fediferry.R
 import app.fediferry.data.model.Visibility
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -40,8 +42,11 @@ import java.io.IOException
  *
  * Request and response bodies are never logged: they carry post text and, on the
  * token endpoints, credentials.
+ *
+ * [context] supplies the messages of the [MastodonException]s it throws, in the
+ * app's language: they end up in front of the user as a post's failure reason.
  */
-class MastodonClient(private val http: OkHttpClient) {
+class MastodonClient(private val http: OkHttpClient, private val context: Context) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -178,7 +183,7 @@ class MastodonClient(private val http: OkHttpClient) {
             wait = (wait * 2).coerceAtMost(MAX_MEDIA_POLL_MS)
         }
         throw MastodonException(
-            "Instance is still processing the attachment",
+            context.getString(R.string.mastodon_still_processing),
             retryable = true,
         )
     }
@@ -242,6 +247,17 @@ class MastodonClient(private val http: OkHttpClient) {
             all.sortedBy { it.scheduledAt }
         }
 
+    /** `GET /api/v1/scheduled_statuses/:id` — one scheduled post, as the server has it now. */
+    suspend fun scheduledStatus(instance: String, token: String, id: String): ScheduledStatus =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(base(instance).addPathSegments("api/v1/scheduled_statuses").addPathSegment(id).build())
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+            decode(execute(request))
+        }
+
     /** `PUT /api/v1/scheduled_statuses/:id` — a new time, at least five minutes away. */
     suspend fun reschedule(instance: String, token: String, id: String, scheduledAtIso: String): ScheduledStatus =
         withContext(Dispatchers.IO) {
@@ -277,7 +293,7 @@ class MastodonClient(private val http: OkHttpClient) {
         val response = try {
             http.newCall(request).execute()
         } catch (e: IOException) {
-            throw MastodonException("Network error: ${e.message}", retryable = true, cause = e)
+            throw MastodonException(context.getString(R.string.mastodon_network_error, e.message.orEmpty()), retryable = true, cause = e)
         }
         if (response.code in acceptCodes) return response
 
@@ -303,19 +319,19 @@ class MastodonClient(private val http: OkHttpClient) {
             json.decodeFromString<T>(body)
         } catch (e: Exception) {
             // The body itself is not included: it may contain post text.
-            throw MastodonException("Unreadable response from instance", it.code, cause = e)
+            throw MastodonException(context.getString(R.string.mastodon_unreadable_response), it.code, cause = e)
         }
     }
 
     private fun describe(code: Int): String = when (code) {
-        401 -> "Not authorised — reconnect the account"
-        403 -> "The instance refused this post"
-        404 -> "Endpoint not found — is this a Mastodon instance?"
-        413 -> "Attachment too large for this instance"
-        422 -> "The instance rejected it"
-        429 -> "Rate limited by the instance"
-        in 500..599 -> "Instance error ($code)"
-        else -> "Unexpected response ($code)"
+        401 -> context.getString(R.string.mastodon_error_401)
+        403 -> context.getString(R.string.mastodon_error_403)
+        404 -> context.getString(R.string.mastodon_error_404)
+        413 -> context.getString(R.string.mastodon_error_413)
+        422 -> context.getString(R.string.mastodon_error_422)
+        429 -> context.getString(R.string.mastodon_error_429)
+        in 500..599 -> context.getString(R.string.mastodon_error_server, code)
+        else -> context.getString(R.string.mastodon_error_unexpected, code)
     }
 
     private fun String.toMediaTypeOrFallback() =

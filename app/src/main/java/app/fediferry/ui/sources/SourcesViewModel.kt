@@ -22,6 +22,7 @@ package app.fediferry.ui.sources
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.R
 import app.fediferry.data.model.Source
 import app.fediferry.data.model.SourceKind
 import app.fediferry.di.ServiceLocator
@@ -61,11 +62,11 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
     fun add(input: String) = viewModelScope.launch {
         val handle = youtube.normaliseHandle(input)
         if (handle == null) {
-            _state.update { it.copy(message = "Enter a channel handle like @heuteshow") }
+            _state.update { it.copy(message = getApplication<Application>().getString(R.string.sources_enter_handle)) }
             return@launch
         }
         if (dao.byHandle(SourceKind.YOUTUBE.name, handle) != null) {
-            _state.update { it.copy(message = "@$handle is already here") }
+            _state.update { it.copy(message = getApplication<Application>().getString(R.string.sources_already_here, handle)) }
             return@launch
         }
 
@@ -84,7 +85,7 @@ class SourcesViewModel(app: Application) : AndroidViewModel(app) {
                 _state.update { it.copy(adding = null) }
             },
             onFailure = { e ->
-                _state.update { it.copy(adding = null, message = e.message ?: "Could not add that channel") }
+                _state.update { it.copy(adding = null, message = e.message ?: getApplication<Application>().getString(R.string.sources_add_failed)) }
             },
         )
     }

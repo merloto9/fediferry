@@ -19,6 +19,9 @@
  */
 package app.fediferry.data
 
+import android.content.Context
+import androidx.annotation.StringRes
+import app.fediferry.R
 import app.fediferry.mastodon.MastodonException
 import app.fediferry.mastodon.ScheduledStatus
 import app.fediferry.data.db.AccountDao
@@ -66,7 +69,13 @@ class ItemRepository(
     private val resolvers: List<LinkResolver> = emptyList(),
     private val fetcher: MediaFetcher = MediaFetcher { Result.failure(UnsupportedOperationException()) },
     private val placeholderKeys: PlaceholderKeyDao? = null,
+    /** For the messages that reach the user, in the app's language. */
+    private val context: Context? = null,
 ) {
+
+    /** A message for the user; without a [context] (tests) its resource id stands in. */
+    private fun text(@StringRes id: Int, vararg args: Any): String =
+        context?.getString(id, *args) ?: "string#$id ${args.joinToString()}".trim()
 
     private suspend fun keys() = placeholderKeys?.all().orEmpty()
 
@@ -292,7 +301,7 @@ class ItemRepository(
         val template = resolveTemplate(null)
         val attachment = status.media.firstOrNull()
         val stored = attachment?.url?.let { url ->
-            val bytes = fetcher.fetch(url).getOrElse { throw MastodonException("Couldn't download the picture: ${it.message}") }
+            val bytes = fetcher.fetch(url).getOrElse { throw MastodonException(text(R.string.repo_download_failed, it.message.orEmpty())) }
             media.store(bytes, ScheduledDraft.mimeTypeOf(attachment)).getOrThrow()
         }
         stored?.let { items.draftByMediaHash(it.sha256) }?.let { return@runCatching it }
@@ -521,8 +530,8 @@ class ItemRepository(
      */
     suspend fun applyCrop(item: Item, crop: ScreenshotCropper.Crop): Result<Item> = runCatching {
         val source = item.originalMediaPath ?: item.mediaPath
-            ?: error("This item has no image to crop")
-        val bitmap = ScreenshotAnalyzer.crop(source, crop) ?: error("Could not read the image")
+            ?: error(text(R.string.repo_no_image_to_crop))
+        val bitmap = ScreenshotAnalyzer.crop(source, crop) ?: error(text(R.string.repo_unreadable_image))
         val stored = media.store(bitmap, item.mimeType).getOrThrow()
         bitmap.recycle()
 
@@ -561,9 +570,9 @@ class ItemRepository(
         instruction: String = "",
     ): Result<Cleaned> = runCatching {
         if (rules.isEmpty()) return@runCatching Cleaned(item, aiUsed = false, aiFailure = null)
-        val source = item.mediaPath ?: error("This item has no image to clean up")
+        val source = item.mediaPath ?: error(text(R.string.repo_no_image_to_clean))
         val outcome = BitmapCleaner.clean(source, rules, provider, polarity, instruction)
-            ?: error("Could not read the image")
+            ?: error(text(R.string.repo_unreadable_image))
         val bitmap = outcome.bitmap
         val stored = media.store(bitmap, item.mimeType).getOrThrow()
         bitmap.recycle()

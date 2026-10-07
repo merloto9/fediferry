@@ -49,7 +49,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.data.model.ContentWarningPresets
 import app.fediferry.data.model.ContentWarningPresets.Preset
 
@@ -67,7 +69,7 @@ fun ContentWarningField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Content warning",
+    label: String = stringResource(R.string.cw_label),
 ) {
     val focus = LocalFocusManager.current
     var sheetOpen by remember { mutableStateOf(false) }
@@ -90,7 +92,7 @@ fun ContentWarningField(
                     sheetOpen = true
                 },
             ) {
-                Icon(Icons.Outlined.Warning, contentDescription = "Pick a content warning")
+                Icon(Icons.Outlined.Warning, contentDescription = stringResource(R.string.cw_pick))
             }
         },
         modifier = modifier,
@@ -135,16 +137,16 @@ private fun ContentWarningSheet(initial: String, onClose: (String) -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "Content warning",
+                        stringResource(R.string.cw_label),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f),
                     )
                     if (current.isNotBlank()) {
-                        TextButton(onClick = { current = "" }) { Text("Clear") }
+                        TextButton(onClick = { current = "" }) { Text(stringResource(R.string.cw_clear)) }
                     }
                 }
                 Text(
-                    text = current.ifBlank { "No warning — the post shows uncovered." },
+                    text = current.ifBlank { stringResource(R.string.cw_none) },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -153,9 +155,9 @@ private fun ContentWarningSheet(initial: String, onClose: (String) -> Unit) {
             }
 
             ContentWarningPresets.groups.forEach { group ->
-                item(key = group.title) {
+                item(key = "group-${group.title}") {
                     Text(
-                        text = group.title,
+                        text = stringResource(group.title),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp),
@@ -194,7 +196,7 @@ private fun PresetRow(preset: Preset, applied: Boolean, onClick: () -> Unit) {
         if (applied) {
             Icon(
                 Icons.Default.Check,
-                contentDescription = "In use",
+                contentDescription = stringResource(R.string.cw_in_use),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }

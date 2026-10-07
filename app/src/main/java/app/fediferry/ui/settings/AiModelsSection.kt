@@ -48,9 +48,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.ai.ModelTestReport
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
@@ -67,7 +69,7 @@ internal fun AiModelsSection(kind: AiKind, state: SettingsState, viewModel: Sett
     val models = state.aiModels.filter { it.kind == kind }
     if (models.isEmpty()) {
         Text(
-            "No model yet.",
+            stringResource(R.string.models_none),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -84,7 +86,7 @@ internal fun AiModelsSection(kind: AiKind, state: SettingsState, viewModel: Sett
     }
     OutlinedButton(onClick = { viewModel.addAiModel(kind) }) {
         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-        Text("Add a model", modifier = Modifier.padding(start = 6.dp))
+        Text(stringResource(R.string.models_add), modifier = Modifier.padding(start = 6.dp))
     }
 }
 
@@ -109,7 +111,7 @@ private fun AiModelCard(
                 Text(model.displayName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 if (model.isDefault) {
                     Text(
-                        "Default",
+                        stringResource(R.string.models_default),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -118,18 +120,18 @@ private fun AiModelCard(
             OutlinedTextField(
                 value = draft.name,
                 onValueChange = { draft = draft.copy(name = it) },
-                label = { Text("Name") },
-                placeholder = { Text("What you call it, e.g. Gemini Flash") },
+                label = { Text(stringResource(R.string.models_name)) },
+                placeholder = { Text(stringResource(R.string.models_name_hint)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = draft.endpoint,
                 onValueChange = { draft = draft.copy(endpoint = AiModel.clean(it)) },
-                label = { Text("Endpoint URL") },
+                label = { Text(stringResource(R.string.models_endpoint)) },
                 isError = draft.endpoint.isNotEmpty() && !draft.hasValidEndpoint,
                 supportingText = if (draft.endpoint.isNotEmpty() && !draft.hasValidEndpoint) {
-                    { Text("Not a web address — it should start with https://") }
+                    { Text(stringResource(R.string.models_endpoint_invalid)) }
                 } else {
                     null
                 },
@@ -150,7 +152,7 @@ private fun AiModelCard(
             OutlinedTextField(
                 value = draft.model,
                 onValueChange = { draft = draft.copy(model = AiModel.clean(it)) },
-                label = { Text("Model") },
+                label = { Text(stringResource(R.string.models_model)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrectEnabled = false),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -158,10 +160,10 @@ private fun AiModelCard(
             OutlinedTextField(
                 value = newKey.orEmpty(),
                 onValueChange = { newKey = it },
-                label = { Text("API key") },
-                placeholder = { Text(if (hasKey) "Saved — type to replace" else "None") },
+                label = { Text(stringResource(R.string.models_api_key)) },
+                placeholder = { Text(stringResource(if (hasKey) R.string.models_key_saved_hint else R.string.models_key_none)) },
                 supportingText = if (hasKey && newKey == null) {
-                    { Text("Stored encrypted on this phone. It is never shown again.") }
+                    { Text(stringResource(R.string.models_key_stored)) }
                 } else {
                     null
                 },
@@ -172,7 +174,7 @@ private fun AiModelCard(
             )
 
             if (model.kind == AiKind.IMAGE_EDIT) {
-                Text("Request format", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.models_request_format), style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     EditWireFormat.entries.forEach { format ->
                         FilterChip(
@@ -182,13 +184,23 @@ private fun AiModelCard(
                         )
                     }
                 }
-                Text("Mask marks the area to replace as", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.models_mask_marks), style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MaskPolarity.entries.forEach { polarity ->
                         FilterChip(
                             selected = draft.maskPolarity == polarity.name,
                             onClick = { draft = draft.copy(maskPolarity = polarity.name) },
-                            label = { Text(if (polarity == MaskPolarity.TRANSPARENT_HOLE) "Transparent" else "White") },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        if (polarity == MaskPolarity.TRANSPARENT_HOLE) {
+                                            R.string.models_mask_transparent
+                                        } else {
+                                            R.string.models_mask_white
+                                        },
+                                    ),
+                                )
+                            },
                         )
                     }
                 }
@@ -198,20 +210,20 @@ private fun AiModelCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
-                Button(onClick = { viewModel.saveAiModel(draft, newKey) }, enabled = changed) { Text("Save") }
+                Button(onClick = { viewModel.saveAiModel(draft, newKey) }, enabled = changed) { Text(stringResource(R.string.models_save)) }
                 // Tests what is saved, so an unsaved edit cannot pass for tested.
                 OutlinedButton(
                     onClick = { viewModel.testAiModel(model) },
                     enabled = !testing && !changed && model.hasValidEndpoint,
-                ) { Text(if (testing) "Testing…" else "Test") }
+                ) { Text(stringResource(if (testing) R.string.models_testing else R.string.models_test)) }
                 if (!model.isDefault && !onlyOne) {
-                    TextButton(onClick = { viewModel.setDefaultAiModel(model) }) { Text("Make default") }
+                    TextButton(onClick = { viewModel.setDefaultAiModel(model) }) { Text(stringResource(R.string.models_make_default)) }
                 }
-                TextButton(onClick = { viewModel.deleteAiModel(model) }) { Text("Delete") }
+                TextButton(onClick = { viewModel.deleteAiModel(model) }) { Text(stringResource(R.string.models_delete)) }
             }
             if (changed) {
                 Text(
-                    "Save first to test the changes.",
+                    stringResource(R.string.models_save_first),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -220,7 +232,7 @@ private fun AiModelCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                     Text(
-                        "Sending a tiny test picture…",
+                        stringResource(R.string.models_sending_test),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 8.dp),
                     )
@@ -243,7 +255,7 @@ private fun TestReport(report: ModelTestReport) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(report.summary, style = MaterialTheme.typography.bodyMedium)
             report.details.forEach { (label, value) ->
-                Text("$label: $value", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.models_report_detail, label, value), style = MaterialTheme.typography.bodySmall)
             }
         }
     }

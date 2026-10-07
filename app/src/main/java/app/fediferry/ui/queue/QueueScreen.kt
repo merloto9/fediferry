@@ -19,6 +19,10 @@
  */
 package app.fediferry.ui.queue
 
+import androidx.compose.ui.platform.LocalResources
+import app.fediferry.work.ScheduleWords
+import app.fediferry.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +41,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -51,7 +54,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -71,12 +73,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.data.model.Account
-import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.LoadingScreen
-import app.fediferry.ui.SchedulePicker
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
-import app.fediferry.work.ScheduleFormat
 import coil3.compose.AsyncImage
 
 /**
@@ -86,6 +85,7 @@ import coil3.compose.AsyncImage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QueueScreen(
+    onOpenPost: (QueuedPost) -> Unit,
     onOpenSettings: () -> Unit,
     onSwitchSpace: (Space) -> Unit,
     viewModel: QueueViewModel = viewModel(),
@@ -104,75 +104,28 @@ fun QueueScreen(
     LaunchedEffect(Unit) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
 
     moving?.let { post ->
-        SchedulePicker(
-            title = "Move to",
-            confirmLabel = "Move",
-            initial = post.at.coerceAtLeast(ScheduleFormat.suggested()),
-            onPick = { at -> viewModel.reschedule(post, at); moving = null },
-            onDismiss = { moving = null },
-        )
+        ChangeTimeDialog(post, onPick = { at -> viewModel.reschedule(post, at); moving = null }, onDismiss = { moving = null })
     }
     cancelling?.let { post ->
-        AlertDialog(
-            onDismissRequest = { cancelling = null },
-            title = { Text("Cancel this post?") },
-            text = {
-                Text(
-                    "Mastodon takes it out of the queue and won't post it. It can't be " +
-                        "brought back afterwards.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.cancel(post); cancelling = null }) { Text("Cancel post") }
-            },
-            dismissButton = { TextButton(onClick = { cancelling = null }) { Text("Keep it") } },
-        )
+        CancelPostDialog(onConfirm = { viewModel.cancel(post); cancelling = null }, onDismiss = { cancelling = null })
     }
-
     drafting?.let { post ->
-        AlertDialog(
-            onDismissRequest = { drafting = null },
-            title = { Text("Make a draft?") },
-            text = {
-                Text(
-                    "FediFerry copies this post — text, hashtags, picture and alt text — into a " +
-                        "new draft in the inbox. Mastodon can't change a scheduled post's text or " +
-                        "picture, so to edit it: make a draft, cancel this one, and schedule the " +
-                        "draft again when it's ready.",
-                )
-            },
-            confirmButton = {
-                Column(horizontalAlignment = Alignment.End) {
-                    TextButton(onClick = { viewModel.makeDraft(post, cancelAfter = true); drafting = null }) {
-                        Text("Make draft, cancel this")
-                    }
-                    TextButton(onClick = { viewModel.makeDraft(post, cancelAfter = false); drafting = null }) {
-                        Text("Make draft, keep this")
-                    }
-                    TextButton(onClick = { drafting = null }) { Text("Back") }
-                }
-            },
-        )
+        MakeDraftDialog(onMake = { cancel -> viewModel.makeDraft(post, cancel); drafting = null }, onDismiss = { drafting = null })
     }
-    if (state.drafting) {
-        LoadingOverlay(
-            title = "Making a draft",
-            detail = "Downloading the picture from your server and copying the post into the inbox.",
-        )
-    }
+    if (state.drafting) DraftingOverlay()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { SpaceBar(Space.QUEUE, onSwitchSpace) },
         topBar = {
             TopAppBar(
-                title = { Text("Queue") },
+                title = { Text(stringResource(R.string.queue_title)) },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }, enabled = !state.loading) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.queue_refresh))
                     }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.queue_settings))
                     }
                 },
             )
@@ -180,15 +133,14 @@ fun QueueScreen(
     ) { padding ->
         when {
             !state.loadedOnce -> LoadingScreen(
-                title = "Asking Mastodon",
-                detail = "Reading the posts your server will publish later. FediFerry keeps no " +
-                    "copy, so this list always comes fresh from there.",
+                title = stringResource(R.string.queue_loading_title),
+                detail = stringResource(R.string.queue_loading_detail),
                 modifier = Modifier.padding(padding),
                 icon = Icons.Outlined.Schedule,
             )
             state.accounts.isEmpty() -> Message(
-                title = "No account connected",
-                detail = "Connect a Mastodon account in Settings to schedule posts.",
+                title = stringResource(R.string.queue_no_account_title),
+                detail = stringResource(R.string.queue_no_account_detail),
                 modifier = Modifier.padding(padding),
             )
             else -> PullToRefreshBox(
@@ -202,6 +154,7 @@ fun QueueScreen(
                     onMove = { moving = it },
                     onCancel = { cancelling = it },
                     onDraft = { drafting = it },
+                    onOpen = onOpenPost,
                 )
             }
         }
@@ -215,9 +168,11 @@ private fun QueueList(
     onMove: (QueuedPost) -> Unit,
     onCancel: (QueuedPost) -> Unit,
     onDraft: (QueuedPost) -> Unit,
+    onOpen: (QueuedPost) -> Unit,
 ) {
+    val resources = LocalResources.current
     val showAccount = state.accounts.size > 1
-    val days = state.posts.groupBy { ScheduleFormat.dayHeading(it.at) }
+    val days = state.posts.groupBy { ScheduleWords.dayHeading(resources, it.at) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -229,10 +184,8 @@ private fun QueueList(
         if (state.posts.isEmpty() && state.problems.size < state.accounts.size) {
             item(key = "empty") {
                 Message(
-                    title = "Nothing scheduled",
-                    detail = "To have Mastodon post something later, long-press it in the inbox " +
-                        "and tap the clock. Mastodon keeps the queue, so FediFerry needn't be " +
-                        "open when the post goes out.",
+                    title = stringResource(R.string.queue_empty_title),
+                    detail = stringResource(R.string.queue_empty_detail),
                 )
             }
         }
@@ -252,6 +205,7 @@ private fun QueueList(
                     onMove = { onMove(post) },
                     onCancel = { onCancel(post) },
                     onDraft = { onDraft(post) },
+                    onOpen = { onOpen(post) },
                 )
             }
         }
@@ -265,10 +219,13 @@ private fun QueuedCard(
     onMove: () -> Unit,
     onCancel: () -> Unit,
     onDraft: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
     val media = post.status.media.firstOrNull()
+    val time = ScheduleWords.timeText(LocalResources.current, post.at)
     Card(
+        onClick = onOpen,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
@@ -283,17 +240,17 @@ private fun QueuedCard(
                 if (media != null) {
                     AsyncImage(
                         model = media.previewUrl ?: media.url,
-                        contentDescription = media.description ?: "Attached picture",
+                        contentDescription = media.description ?: stringResource(R.string.media_attached_picture),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
-                    Text("Text", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.queue_text_only), style = MaterialTheme.typography.labelSmall)
                 }
             }
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(
-                    ScheduleFormat.timeText(post.at),
+                    time,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -306,13 +263,13 @@ private fun QueuedCard(
                 }
                 post.status.params.spoilerText?.takeIf { it.isNotBlank() }?.let {
                     Text(
-                        "CW: $it",
+                        stringResource(R.string.queue_cw, it),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
                 Text(
-                    post.status.params.text.ifBlank { "(no text)" },
+                    post.status.params.text.ifBlank { stringResource(R.string.queue_no_text) },
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
@@ -321,12 +278,12 @@ private fun QueuedCard(
             }
             Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Actions for the post at ${ScheduleFormat.timeText(post.at)}")
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.queue_actions_for, time))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Change time") }, onClick = { menu = false; onMove() })
-                    DropdownMenuItem(text = { Text("Make a draft") }, onClick = { menu = false; onDraft() })
-                    DropdownMenuItem(text = { Text("Cancel post") }, onClick = { menu = false; onCancel() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.queue_change_time)) }, onClick = { menu = false; onMove() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.queue_make_draft)) }, onClick = { menu = false; onDraft() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.queue_cancel_post)) }, onClick = { menu = false; onCancel() })
                 }
             }
         }
@@ -348,21 +305,22 @@ private fun ProblemCard(account: Account, problem: QueueProblem, onReconnect: (A
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                if (reconnect) "Reconnect @${account.acct}" else "Couldn't read @${account.acct}'s queue",
+                if (reconnect) {
+                    stringResource(R.string.queue_reconnect_title, account.acct)
+                } else {
+                    stringResource(R.string.queue_read_failed_title, account.acct)
+                },
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
                 when (problem) {
-                    QueueProblem.NeedsReconnect ->
-                        "To show the posts Mastodon will publish later, FediFerry needs permission " +
-                            "to read them, which this account didn't give when it was connected. " +
-                            "Scheduling works without it."
+                    QueueProblem.NeedsReconnect -> stringResource(R.string.queue_reconnect_text)
                     is QueueProblem.Failed -> problem.reason
                 },
                 style = MaterialTheme.typography.bodySmall,
             )
             if (reconnect) {
-                FilledTonalButton(onClick = { onReconnect(account) }) { Text("Reconnect") }
+                FilledTonalButton(onClick = { onReconnect(account) }) { Text(stringResource(R.string.queue_reconnect)) }
             }
         }
     }

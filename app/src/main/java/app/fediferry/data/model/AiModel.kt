@@ -55,7 +55,7 @@ data class AiModel(
 ) {
     /** A name to show even when the user left theirs empty. */
     val displayName: String
-        get() = name.ifBlank { model.ifBlank { runCatching { java.net.URI(endpoint).host }.getOrNull() ?: "Unnamed model" } }
+        get() = name.ifBlank { model.ifBlank { runCatching { java.net.URI(endpoint).host }.getOrNull() ?: "—" } }
 
     /** Whether [endpoint] is a web address a request can go to at all. */
     val hasValidEndpoint: Boolean get() = isValidEndpoint(endpoint)

@@ -37,7 +37,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.data.model.AiModel
 
 /**
@@ -52,13 +54,21 @@ fun ModelPicker(models: List<AiModel>, current: AiModel?, onPick: (String) -> Un
             onClick = { open = true },
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
         ) {
-            Text("Model: ${current?.displayName ?: "—"}", style = MaterialTheme.typography.labelMedium)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = "Change model", modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.modelpicker_current, current?.displayName ?: "—"), style = MaterialTheme.typography.labelMedium)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = stringResource(R.string.modelpicker_change), modifier = Modifier.size(18.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             models.forEach { model ->
                 DropdownMenuItem(
-                    text = { Text(model.displayName + if (model.isDefault) "  (default)" else "") },
+                    text = {
+                        Text(
+                            if (model.isDefault) {
+                                stringResource(R.string.modelpicker_default_item, model.displayName)
+                            } else {
+                                model.displayName
+                            },
+                        )
+                    },
                     leadingIcon = if (model.id == current?.id) {
                         { Icon(Icons.Default.Check, contentDescription = null) }
                     } else {

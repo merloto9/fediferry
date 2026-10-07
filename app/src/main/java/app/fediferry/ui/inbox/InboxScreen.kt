@@ -19,6 +19,11 @@
  */
 package app.fediferry.ui.inbox
 
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import app.fediferry.R
+import app.fediferry.work.ScheduleWords
 import kotlinx.coroutines.launch
 import app.fediferry.work.ScheduleFormat
 import app.fediferry.ui.SchedulePicker
@@ -113,19 +118,19 @@ fun InboxScreen(
     var scheduling by remember { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val resources = LocalResources.current
 
     scheduling?.let { id ->
         SchedulePicker(
-            title = "Schedule post",
-            confirmLabel = "Schedule",
+            title = stringResource(R.string.schedule_title),
+            confirmLabel = stringResource(R.string.schedule_confirm),
             initial = ScheduleFormat.suggested(),
             onPick = { at ->
                 viewModel.schedule(id, at)
                 scheduling = null
                 selection = emptySet()
-                scope.launch {
-                    snackbar.showSnackbar("Handing it to Mastodon to post ${ScheduleFormat.whenText(at)}. It'll show in Queue.")
-                }
+                val message = resources.getString(R.string.schedule_handing_over, ScheduleWords.whenText(resources, at))
+                scope.launch { snackbar.showSnackbar(message) }
             },
             onDismiss = { scheduling = null },
         )
@@ -148,7 +153,7 @@ fun InboxScreen(
     }
     naming?.let { task ->
         StackNameDialog(
-            title = if (task is StackNaming.Rename) "Rename stack" else "New stack",
+            title = stringResource(if (task is StackNaming.Rename) R.string.inbox_rename_stack else R.string.inbox_new_stack),
             initial = (task as? StackNaming.Rename)?.stack?.name.orEmpty(),
             onConfirm = { name ->
                 when (task) {
@@ -169,11 +174,11 @@ fun InboxScreen(
         bottomBar = { SpaceBar(Space.INBOX, onSwitchSpace) },
         topBar = {
             TopAppBar(
-                title = { Text(if (selecting) "${selection.size} selected" else "Inbox") },
+                title = { Text(if (selecting) pluralStringResource(R.plurals.inbox_selected, selection.size, selection.size) else stringResource(R.string.inbox_title)) },
                 navigationIcon = {
                     if (selecting) {
                         IconButton(onClick = { selection = emptySet() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear selection")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.inbox_clear_selection))
                         }
                     }
                 },
@@ -183,24 +188,24 @@ fun InboxScreen(
                         val single = selection.singleOrNull()?.let { id -> items.firstOrNull { it.id == id } }
                         if (single != null && InboxViewModel.canPost(single)) {
                             IconButton(onClick = { scheduling = single.id }) {
-                                Icon(Icons.Default.Schedule, contentDescription = "Schedule post")
+                                Icon(Icons.Default.Schedule, contentDescription = stringResource(R.string.inbox_schedule_post))
                             }
                         }
                         IconButton(onClick = { moving = true }) {
-                            Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = "Move to stack")
+                            Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = stringResource(R.string.inbox_move_to_stack))
                         }
                         IconButton(onClick = {
                             viewModel.delete(selection)
                             selection = emptySet()
                         }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete selected")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.inbox_delete_selected))
                         }
                     } else {
                         IconButton(onClick = { naming = StackNaming.Create() }) {
-                            Icon(Icons.Outlined.CreateNewFolder, contentDescription = "New stack")
+                            Icon(Icons.Outlined.CreateNewFolder, contentDescription = stringResource(R.string.inbox_new_stack))
                         }
                         IconButton(onClick = onOpenSettings) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.inbox_settings))
                         }
                     }
                 },
@@ -235,7 +240,7 @@ fun InboxScreen(
                     val collapsed = stack?.collapsed ?: newCollapsed
                     item(key = "header-${stack?.id ?: "new"}", span = { GridItemSpan(maxLineSpan) }) {
                         SectionHeader(
-                            title = stack?.name ?: "New",
+                            title = stack?.name ?: stringResource(R.string.inbox_section_new),
                             count = section.items.size,
                             collapsed = collapsed,
                             onToggle = {
@@ -255,9 +260,9 @@ fun InboxScreen(
                         item(key = "empty-${stack?.id ?: "new"}", span = { GridItemSpan(maxLineSpan) }) {
                             Text(
                                 if (stack == null) {
-                                    "Nothing new. Shared posts land here."
+                                    stringResource(R.string.inbox_new_empty)
                                 } else {
-                                    "Empty. Select posts with a long press, then move them here."
+                                    stringResource(R.string.inbox_stack_empty)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -313,12 +318,12 @@ private fun ItemCard(
             if (item.mediaPath != null) {
                 AsyncImage(
                     model = File(item.mediaPath),
-                    contentDescription = item.altText ?: "Shared image",
+                    contentDescription = item.altText ?: stringResource(R.string.inbox_shared_image),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                Text("Text only", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.inbox_text_only), style = MaterialTheme.typography.labelMedium)
             }
         }
         Column(Modifier.padding(10.dp)) {
@@ -326,7 +331,7 @@ private fun ItemCard(
                 StatusChip(item.status)
             }
             Text(
-                text = TemplateEngine.postTextOf(item).ifBlank { "(no text)" },
+                text = TemplateEngine.postTextOf(item).ifBlank { stringResource(R.string.inbox_no_text) },
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -349,11 +354,11 @@ private fun ItemCard(
 @Composable
 private fun StatusChip(status: Status) {
     val label = when (status) {
-        Status.DRAFT -> "Draft"
-        Status.QUEUED -> "Queued"
-        Status.POSTING -> "Sending"
-        Status.POSTED -> "Posted"
-        Status.FAILED -> "Failed"
+        Status.DRAFT -> stringResource(R.string.inbox_status_draft)
+        Status.QUEUED -> stringResource(R.string.inbox_status_queued)
+        Status.POSTING -> stringResource(R.string.inbox_status_sending)
+        Status.POSTED -> stringResource(R.string.inbox_status_posted)
+        Status.FAILED -> stringResource(R.string.inbox_status_failed)
     }
     // A label, not a disabled chip: disabled content is drawn at 38 % opacity
     // by design, which is exactly what made these hard to read. Failed is the
@@ -372,10 +377,14 @@ private fun StatusChip(status: Status) {
 private fun EmptyInbox(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Nothing saved yet", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.inbox_empty_title), style = MaterialTheme.typography.titleMedium)
             Text(
-                "Screenshot a meme, share it here, and pick Post now, Compose, " +
-                    "or Save for later.",
+                stringResource(
+                    R.string.inbox_empty_body,
+                    stringResource(R.string.share_post_now),
+                    stringResource(R.string.share_compose),
+                    stringResource(R.string.share_save_later),
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -410,7 +419,10 @@ private fun SectionHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClickLabel = if (collapsed) "Open $title" else "Fold $title", onClick = onToggle)
+            .clickable(
+                onClickLabel = stringResource(if (collapsed) R.string.inbox_section_open else R.string.inbox_section_fold, title),
+                onClick = onToggle,
+            )
             .padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -435,12 +447,12 @@ private fun SectionHeader(
         if (menu != null) {
             Box {
                 IconButton(onClick = { open = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Stack actions for $title")
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.inbox_stack_actions, title))
                 }
                 DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                    DropdownMenuItem(text = { Text("Rename") }, onClick = { open = false; menu.onRename() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.inbox_rename)) }, onClick = { open = false; menu.onRename() })
                     DropdownMenuItem(
-                        text = { Text("Delete stack — posts go back to New") },
+                        text = { Text(stringResource(R.string.inbox_delete_stack)) },
                         onClick = { open = false; menu.onDelete() },
                     )
                 }
@@ -461,13 +473,13 @@ private fun MoveSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(bottom = 24.dp)) {
             Text(
-                "Move to",
+                stringResource(R.string.inbox_move_to),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
             ListItem(
-                headlineContent = { Text("New") },
-                supportingContent = { Text("On no stack") },
+                headlineContent = { Text(stringResource(R.string.inbox_section_new)) },
+                supportingContent = { Text(stringResource(R.string.inbox_no_stack)) },
                 leadingContent = { Icon(Icons.Outlined.Inbox, contentDescription = null) },
                 modifier = Modifier.clickable { onPick(null) },
             )
@@ -479,7 +491,7 @@ private fun MoveSheet(
                 )
             }
             ListItem(
-                headlineContent = { Text("New stack…") },
+                headlineContent = { Text(stringResource(R.string.inbox_new_stack_more)) },
                 leadingContent = { Icon(Icons.Outlined.CreateNewFolder, contentDescription = null) },
                 modifier = Modifier.clickable(onClick = onNewStack),
             )
@@ -497,17 +509,17 @@ private fun StackNameDialog(title: String, initial: String, onConfirm: (String) 
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name") },
-                placeholder = { Text("Ready to post") },
+                label = { Text(stringResource(R.string.inbox_stack_name)) },
+                placeholder = { Text(stringResource(R.string.inbox_stack_name_hint)) },
                 singleLine = true,
             )
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
-                Text(if (initial.isEmpty()) "Create" else "Rename")
+                Text(stringResource(if (initial.isEmpty()) R.string.inbox_create else R.string.inbox_rename))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.inbox_cancel)) } },
     )
 }
 

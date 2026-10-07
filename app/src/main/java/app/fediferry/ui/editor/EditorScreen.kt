@@ -19,6 +19,10 @@
  */
 package app.fediferry.ui.editor
 
+import app.fediferry.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.clickable
+import app.fediferry.ui.FullscreenImage
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -119,15 +123,15 @@ fun EditorScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text("Edit post") },
+                title = { Text(stringResource(R.string.editor_title)) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.saveDraft(onDone) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Save and go back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.editor_save_and_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.discard(onDone) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Discard")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.editor_discard))
                     }
                 },
             )
@@ -136,7 +140,7 @@ fun EditorScreen(
         val item = state.item
         if (item == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                if (state.loaded) Text("That item is gone") else CircularProgressIndicator()
+                if (state.loaded) Text(stringResource(R.string.editor_item_gone)) else CircularProgressIndicator()
             }
             return@Scaffold
         }
@@ -150,14 +154,19 @@ fun EditorScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item.mediaPath?.let { path ->
+                var fullScreen by remember { mutableStateOf(false) }
+                if (fullScreen) {
+                    FullscreenImage(File(path), item.altText, onDismiss = { fullScreen = false })
+                }
                 AsyncImage(
                     model = File(path),
-                    contentDescription = item.altText ?: "Shared image",
+                    contentDescription = item.altText ?: stringResource(R.string.media_shared_image),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 280.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClickLabel = stringResource(R.string.media_show_full_screen)) { fullScreen = true },
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -165,11 +174,11 @@ fun EditorScreen(
                 ) {
                     // Both tools decode a still; a resolved animation is a video.
                     if (item.mimeType?.startsWith("video/") != true) {
-                        TextButton(onClick = { onTrim(item.id) }) { Text("Trim") }
-                        TextButton(onClick = { onCleanUp(item.id) }) { Text("Clean up") }
+                        TextButton(onClick = { onTrim(item.id) }) { Text(stringResource(R.string.editor_trim)) }
+                        TextButton(onClick = { onCleanUp(item.id) }) { Text(stringResource(R.string.editor_clean_up)) }
                     }
                     if (item.originalMediaPath != null) {
-                        TextButton(onClick = viewModel::revertEdits) { Text("Undo edits") }
+                        TextButton(onClick = viewModel::revertEdits) { Text(stringResource(R.string.editor_undo_edits)) }
                     }
                 }
             }
@@ -179,10 +188,10 @@ fun EditorScreen(
                 TemplatePicker(state, viewModel)
                 // Words rather than a bare "#": the icon alone did not say what it opened.
                 TextButton(onClick = { showHashtags = !showHashtags }) {
-                    Text("Adjust Hashtags")
+                    Text(stringResource(R.string.editor_adjust_hashtags))
                     Icon(
                         if (showHashtags) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (showHashtags) "Close" else "Open",
+                        contentDescription = stringResource(if (showHashtags) R.string.editor_close else R.string.editor_open),
                         modifier = Modifier.padding(start = 4.dp).size(18.dp),
                     )
                 }
@@ -204,14 +213,14 @@ fun EditorScreen(
                 key = item.id,
                 value = item.bodyText,
                 onValueChange = viewModel::setBody,
-                label = "Post text",
+                label = stringResource(R.string.editor_post_text),
                 minLines = 3,
                 supportingText = { TagsHint(item) },
                 trailingIcon = {
                     IconButton(onClick = { showPlaceholderHelp = true }) {
                         Icon(
                             Icons.Outlined.Info,
-                            contentDescription = "Which placeholders can I use?",
+                            contentDescription = stringResource(R.string.editor_placeholder_help),
                         )
                     }
                 },
@@ -228,20 +237,17 @@ fun EditorScreen(
                 key = item.id to item.altText,
                 value = item.altText.orEmpty(),
                 onValueChange = viewModel::setAltText,
-                label = "Alt text",
+                label = stringResource(R.string.editor_alt_text),
                 supportingText = {
                     if (state.altTextBusy) {
-                        Text("Asking the vision model to describe the picture…")
+                        Text(stringResource(R.string.editor_alt_text_busy))
                     } else if (item.altTextFailed) {
                         Text(
-                            "Automatic description failed — the post will go out without one.",
+                            stringResource(R.string.editor_alt_text_failed),
                             color = MaterialTheme.colorScheme.error,
                         )
                     } else {
-                        Text(
-                            "For people who cannot see the picture. Say what it shows, " +
-                                "including any text in it. Screen readers read this aloud.",
-                        )
+                        Text(stringResource(R.string.editor_alt_text_hint))
                     }
                 },
                 minLines = 2,
@@ -250,7 +256,7 @@ fun EditorScreen(
                         CircularProgressIndicator(Modifier.padding(12.dp))
                     } else {
                         IconButton(onClick = viewModel::regenerateAltText) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "Regenerate alt text")
+                            Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.editor_regenerate_alt_text))
                         }
                     }
                 },
@@ -287,14 +293,14 @@ fun EditorScreen(
                 OutlinedButton(
                     onClick = { viewModel.saveDraft(onDone) },
                     modifier = Modifier.weight(1f),
-                ) { Text("Save draft") }
+                ) { Text(stringResource(R.string.editor_save_draft)) }
 
                 Button(
                     onClick = { viewModel.send(onDone) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                    Text("Post", modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.editor_post), modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
@@ -312,9 +318,9 @@ private fun TagsHint(item: Item) {
     val tags = item.hashtagList
     Text(
         when {
-            hasToken && tags.isEmpty() -> "{tags} is empty — no hashtags are picked, so its line is left out."
-            hasToken -> "{tags} becomes ${tags.joinToString(" ")} when the post is sent."
-            tags.isNotEmpty() -> "The text has no {tags}, so the hashtags you picked are not posted."
+            hasToken && tags.isEmpty() -> stringResource(R.string.editor_tags_empty)
+            hasToken -> stringResource(R.string.editor_tags_becomes, tags.joinToString(" "))
+            tags.isNotEmpty() -> stringResource(R.string.editor_tags_missing)
             else -> ""
         },
     )
@@ -327,7 +333,7 @@ private fun TemplatePicker(state: EditorState, viewModel: EditorViewModel) {
 
     Box {
         TextButton(onClick = { open = true }) {
-            Text("Template: ${current?.name ?: "—"}")
+            Text(stringResource(R.string.editor_template, current?.name ?: "—"))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             state.templates.forEach { template ->
@@ -347,7 +353,7 @@ private fun TemplatePicker(state: EditorState, viewModel: EditorViewModel) {
 private fun AccountPicker(state: EditorState, viewModel: EditorViewModel) {
     if (state.accounts.isEmpty()) {
         Text(
-            "No account connected — add one in Settings → Mastodon account before posting.",
+            stringResource(R.string.editor_no_account),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
@@ -360,7 +366,7 @@ private fun AccountPicker(state: EditorState, viewModel: EditorViewModel) {
 
     Box {
         TextButton(onClick = { open = true }) {
-            Text("Account: @${current?.acct ?: "—"}")
+            Text(stringResource(R.string.editor_account, current?.acct ?: "—"))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             state.accounts.forEach { account ->
@@ -389,16 +395,15 @@ private fun LinkWarning(onRemoveLink: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp)) {
-            Text("This link may show who shared it", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_link_warning_title), style = MaterialTheme.typography.titleSmall)
             Text(
-                "It was shared with details about the sender, and a clean link that still " +
-                    "leads to the same post couldn't be confirmed, so it is posted as shared.",
+                stringResource(R.string.editor_link_warning_body),
                 style = MaterialTheme.typography.bodySmall,
             )
             TextButton(
                 onClick = onRemoveLink,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
-            ) { Text("Take the link out of the post", fontWeight = FontWeight.Bold) }
+            ) { Text(stringResource(R.string.editor_remove_link), fontWeight = FontWeight.Bold) }
         }
     }
 }
@@ -413,12 +418,12 @@ private fun StackPicker(state: EditorState, viewModel: EditorViewModel) {
     val current = state.stacks.firstOrNull { it.id == state.item?.stackId }
     Box {
         TextButton(onClick = { open = true }) {
-            Text("Stack: ${current?.name ?: "New"}")
-            Icon(Icons.Default.ArrowDropDown, contentDescription = "Change stack", modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.editor_stack, current?.name ?: stringResource(R.string.editor_stack_new)))
+            Icon(Icons.Default.ArrowDropDown, contentDescription = stringResource(R.string.editor_change_stack), modifier = Modifier.size(18.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
-                text = { Text("New — on no stack") },
+                text = { Text(stringResource(R.string.editor_stack_none)) },
                 onClick = {
                     viewModel.setStack(null)
                     open = false

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_post_now">Jetzt posten</string>
+    <string name="share_compose">Bearbeiten</string>
+    <string name="share_save_later">Für später</string>
+</resources>

@@ -41,16 +41,16 @@ object Notifications {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_PENDING,
-                "Pending posts",
+                context.getString(R.string.notify_channel_pending),
                 NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = "The undo window before a post is sent" },
+            ).apply { description = context.getString(R.string.notify_channel_pending_description) },
         )
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_RESULT,
-                "Post results",
+                context.getString(R.string.notify_channel_results),
                 NotificationManager.IMPORTANCE_LOW,
-            ).apply { description = "Confirmations and failures" },
+            ).apply { description = context.getString(R.string.notify_channel_results_description) },
         )
     }
 
@@ -67,11 +67,11 @@ object Notifications {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_PENDING)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Posting to Mastodon")
-            .setContentText("Sending in ${seconds}s")
+            .setContentTitle(context.getString(R.string.notify_posting_title))
+            .setContentText(context.getString(R.string.notify_sending_in, seconds))
             .setTimeoutAfter(seconds * 1000L + 500)
             .setOngoing(false)
-            .addAction(0, "Undo", undo)
+            .addAction(0, context.getString(R.string.notify_undo), undo)
             .setContentIntent(openApp(context))
             .build()
 

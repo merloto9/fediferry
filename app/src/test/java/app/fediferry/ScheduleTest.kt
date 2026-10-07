@@ -42,18 +42,20 @@ class ScheduleTest {
         ZonedDateTime.of(year, month, day, hour, minute, 0, 0, zone).toInstant().toEpochMilli()
 
     @Test
-    fun saysWhenInWordsAPersonUses() {
-        assertEquals("today at 14:00", ScheduleFormat.whenText(at(1, 14), now, zone, locale))
-        assertEquals("tomorrow at 09:30", ScheduleFormat.whenText(at(2, 9, 30), now, zone, locale))
-        assertEquals("on Fri 9 Oct at 18:00", ScheduleFormat.whenText(at(9, 18), now, zone, locale))
-        assertEquals("on Mon 4 Oct 2027 at 08:00", ScheduleFormat.whenText(at(4, 8, year = 2027), now, zone, locale))
+    fun countsCalendarDaysNotHours() {
+        assertEquals(0L, ScheduleFormat.dayOffset(at(1, 23, 59), now, zone))
+        // Five past midnight is tomorrow, though it is under fourteen hours away.
+        assertEquals(1L, ScheduleFormat.dayOffset(at(2, 0, 5), now, zone))
+        assertEquals(8L, ScheduleFormat.dayOffset(at(9, 18), now, zone))
+        assertEquals(false, ScheduleFormat.needsYear(at(9, 18), now, zone))
+        assertEquals(true, ScheduleFormat.needsYear(at(4, 8, year = 2027), now, zone))
     }
 
     @Test
-    fun headsEachDayOfTheQueue() {
-        assertEquals("Today", ScheduleFormat.dayHeading(at(1, 23, 59), now, zone, locale))
-        assertEquals("Tomorrow", ScheduleFormat.dayHeading(at(2, 0, 0), now, zone, locale))
-        assertEquals("Saturday, 3 October", ScheduleFormat.dayHeading(at(3, 12), now, zone, locale))
+    fun writesDatesInTheGivenPatternAndLanguage() {
+        assertEquals("Fri 9 Oct", ScheduleFormat.dateText(at(9, 18), "EEE d MMM", zone, locale))
+        assertEquals("Freitag, 9. Oktober", ScheduleFormat.dateText(at(9, 18), "EEEE, d. MMMM", zone, Locale.GERMAN))
+        assertEquals("18:00", ScheduleFormat.timeText(at(9, 18), zone, Locale.GERMAN))
     }
 
     @Test

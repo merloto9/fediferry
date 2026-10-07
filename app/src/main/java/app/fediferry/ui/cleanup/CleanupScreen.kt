@@ -69,8 +69,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.R
 import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.Region
 import app.fediferry.media.cleanup.TreatmentKind
@@ -119,22 +122,21 @@ fun CleanupScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text("Clean up") },
-                actions = { TextButton(onClick = { onDone(itemId) }) { Text("Skip") } },
+                title = { Text(stringResource(R.string.cleanup_title)) },
+                actions = { TextButton(onClick = { onDone(itemId) }) { Text(stringResource(R.string.cleanup_skip)) } },
             )
         },
     ) { padding ->
         if (state.sourcePath == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                if (state.loaded) Text("No image to clean up") else CircularProgressIndicator()
+                if (state.loaded) Text(stringResource(R.string.cleanup_no_image)) else CircularProgressIndicator()
             }
             return@Scaffold
         }
 
         Column(Modifier.fillMaxSize().padding(padding)) {
             Text(
-                "Drag over anything that should go. The treatment applies to the next " +
-                    "box you draw, so different things can be handled differently.",
+                stringResource(R.string.cleanup_hint),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
             )
@@ -163,16 +165,16 @@ fun CleanupScreen(
                 TextButton(
                     onClick = viewModel::clearRules,
                     enabled = state.rules.isNotEmpty(),
-                ) { Text("Clear") }
+                ) { Text(stringResource(R.string.cleanup_clear)) }
                 Text(
-                    "${state.rules.size} area${if (state.rules.size == 1) "" else "s"}",
+                    pluralStringResource(R.plurals.cleanup_areas, state.rules.size, state.rules.size),
                     style = MaterialTheme.typography.labelMedium,
                 )
                 Button(
                     onClick = { viewModel.apply(onDone) },
                     enabled = !state.applying,
                     modifier = Modifier.weight(1f),
-                ) { Text(if (state.applying) "Applying…" else "Use this") }
+                ) { Text(stringResource(if (state.applying) R.string.cleanup_applying else R.string.cleanup_use_this)) }
             }
         }
     }
@@ -181,9 +183,8 @@ fun CleanupScreen(
     // is done before an overlay could be read.
     if (state.applying && state.modelConfigured && viewModel.usesModel()) {
         LoadingOverlay(
-            title = "Erasing with the image model",
-            detail = "The picture and the areas you marked have been sent to your " +
-                "image model. Waiting for it to send back the cleaned-up version.",
+            title = stringResource(R.string.cleanup_ai_title),
+            detail = stringResource(R.string.cleanup_ai_detail),
             icon = Icons.Outlined.AutoFixHigh,
         )
     }
@@ -208,13 +209,16 @@ private fun TreatmentPicker(selected: TreatmentKind, onSelect: (TreatmentKind) -
     }
 }
 
-private fun TreatmentKind.label(): String = when (this) {
-    TreatmentKind.FILL -> "Fill in"
-    TreatmentKind.CROP_AWAY -> "Crop away"
-    TreatmentKind.BLUR -> "Blur"
-    TreatmentKind.PIXELATE -> "Pixelate"
-    TreatmentKind.AI_ERASE -> "Erase with AI"
-}
+@Composable
+private fun TreatmentKind.label(): String = stringResource(
+    when (this) {
+        TreatmentKind.FILL -> R.string.cleanup_treatment_fill
+        TreatmentKind.CROP_AWAY -> R.string.cleanup_treatment_crop_away
+        TreatmentKind.BLUR -> R.string.cleanup_treatment_blur
+        TreatmentKind.PIXELATE -> R.string.cleanup_treatment_pixelate
+        TreatmentKind.AI_ERASE -> R.string.cleanup_treatment_ai_erase
+    },
+)
 
 /**
  * The instruction sent with the AI regions, and an honest word about whether a
@@ -228,8 +232,7 @@ private fun AiPrompt(state: CleanupState, viewModel: CleanupViewModel) {
     ) {
         if (!state.modelConfigured) {
             Text(
-                "No image model is set up, so these areas will be filled in from " +
-                    "their surroundings instead. Add one in Settings → Image clean-up.",
+                stringResource(R.string.cleanup_no_model),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -238,14 +241,14 @@ private fun AiPrompt(state: CleanupState, viewModel: CleanupViewModel) {
             key = state.item?.id,
             value = state.instruction,
             onValueChange = viewModel::setInstruction,
-            label = "Tell the model what to do",
+            label = stringResource(R.string.cleanup_instruction_label),
             placeholder = CleanupPipeline.DEFAULT_INSTRUCTION,
             enabled = state.modelConfigured,
             minLines = 2,
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            "Applies to this image only. The default lives in Settings → Image clean-up.",
+            stringResource(R.string.cleanup_instruction_scope),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -269,7 +272,7 @@ private fun ProfileRow(
     ) {
         Box {
             TextButton(onClick = { open = true }) {
-                Text("Profile: ${state.profileName ?: "none"}")
+                Text(stringResource(R.string.cleanup_profile, state.profileName ?: stringResource(R.string.cleanup_profile_none)))
             }
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                 state.profiles.forEach { profile ->
@@ -282,7 +285,7 @@ private fun ProfileRow(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("New profile…") },
+                    text = { Text(stringResource(R.string.cleanup_new_profile_more)) },
                     onClick = {
                         open = false
                         onNewProfile()
@@ -295,7 +298,7 @@ private fun ProfileRow(
                 checked = state.rememberForProfile,
                 onCheckedChange = viewModel::setRememberForProfile,
             )
-            Text("Remember", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.cleanup_remember), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -305,18 +308,18 @@ private fun NewProfileDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit)
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New profile") },
+        title = { Text(stringResource(R.string.cleanup_new_profile)) },
         text = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name") },
+                label = { Text(stringResource(R.string.cleanup_name)) },
                 placeholder = { Text("Instagram") },
                 singleLine = true,
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(name) }) { Text("Create") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onConfirm(name) }) { Text(stringResource(R.string.cleanup_create)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cleanup_cancel)) } },
     )
 }
 
@@ -344,7 +347,7 @@ private fun PreviewCanvas(
 
         Image(
             bitmap = preview.asImageBitmap(),
-            contentDescription = "Image being cleaned up",
+            contentDescription = stringResource(R.string.cleanup_image_description),
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )

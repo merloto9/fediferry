@@ -48,7 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.Item
 
@@ -86,20 +88,19 @@ internal fun HashtagPanel(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Hashtags", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.hashtags_title), style = MaterialTheme.typography.titleSmall)
 
             val picked = item.hashtagList
             // Most used first. The counts only change once a post is sent, so
             // ticking a chip never moves it away from the finger.
             val offered = Hashtags.sortedByUse(Hashtags.union(hashtagList, picked), uses)
             Text(
-                "Ticked ones replace {tags} when the post is sent. The template decides " +
-                    "which start ticked.",
+                stringResource(R.string.hashtags_explain),
                 style = MaterialTheme.typography.bodySmall,
             )
             if (offered.isEmpty()) {
                 Text(
-                    "No hashtags yet — add some in Settings → Hashtags, or type one below.",
+                    stringResource(R.string.hashtags_none_yet),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -124,10 +125,10 @@ internal fun HashtagPanel(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = item.addSourceHashtags, onCheckedChange = onAddSourceHashtags)
                     Column(Modifier.weight(1f)) {
-                        Text("Add ${origin.label}'s hashtags", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.hashtags_add_source, origin.label), style = MaterialTheme.typography.bodyMedium)
                         Text(
                             if (sourceHashtags.isEmpty()) {
-                                "None for this post — ${origin.label}'s {tags} recipe in Settings → Placeholders & sources gives nothing."
+                                stringResource(R.string.hashtags_source_none, origin.label)
                             } else {
                                 sourceHashtags.joinToString(" ")
                             },
@@ -145,15 +146,13 @@ internal fun HashtagPanel(
                 OutlinedTextField(
                     value = typed,
                     onValueChange = { typed = it },
-                    label = { Text("Another hashtag for this post") },
-                    placeholder = { Text("#politics") },
+                    label = { Text(stringResource(R.string.hashtags_another)) },
+                    placeholder = { Text(stringResource(R.string.hashtags_example)) },
                     supportingText = {
                         Text(
-                            if (remembersNewHashtags) {
-                                "Joins Settings → Hashtags once the post is sent."
-                            } else {
-                                "For this post only."
-                            },
+                            stringResource(
+                                if (remembersNewHashtags) R.string.hashtags_joins_settings else R.string.hashtags_this_post_only,
+                            ),
                         )
                     },
                     singleLine = true,
@@ -162,7 +161,7 @@ internal fun HashtagPanel(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = ::add, enabled = Hashtags.normalize(typed) != null) {
-                    Icon(Icons.Default.Add, contentDescription = "Add hashtag")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.hashtags_add))
                 }
             }
         }

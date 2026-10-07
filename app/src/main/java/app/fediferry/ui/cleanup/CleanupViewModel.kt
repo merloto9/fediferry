@@ -24,6 +24,7 @@ import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.R
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.CleanupProfile
@@ -217,11 +218,11 @@ class CleanupViewModel(app: Application) : AndroidViewModel(app) {
             onSuccess = { cleaned ->
                 // Say which treatment actually ran. Falling back to a local fill
                 // without a word is indistinguishable from nothing happening.
-                cleaned.aiFailure?.let { why -> report("Filled in locally instead — $why") }
+                cleaned.aiFailure?.let { why -> report(app.getString(R.string.cleanup_filled_locally, why)) }
                 onDone(cleaned.item.id)
             },
             onFailure = { e ->
-                _state.update { it.copy(applying = false, message = "Could not clean up: ${e.message}") }
+                _state.update { it.copy(applying = false, message = app.getString(R.string.cleanup_failed, e.message)) }
             },
         )
     }

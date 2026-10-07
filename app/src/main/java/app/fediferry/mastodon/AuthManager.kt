@@ -23,6 +23,7 @@ import android.content.Context
 import androidx.core.net.toUri
 import androidx.browser.customtabs.CustomTabsIntent
 import app.fediferry.BuildConfig
+import app.fediferry.R
 import app.fediferry.data.TokenStore
 import app.fediferry.data.db.AccountDao
 import app.fediferry.data.model.Account
@@ -73,14 +74,14 @@ class AuthManager(
     suspend fun completeAuthorization(code: String, state: String): Result<Account> =
         runCatching {
             val session = pending
-                ?: throw MastodonException("No sign-in is in progress")
+                ?: throw MastodonException(context.getString(R.string.auth_no_sign_in))
             if (session.state != state) {
-                throw MastodonException("Sign-in response did not match the request")
+                throw MastodonException(context.getString(R.string.auth_state_mismatch))
             }
             pending = null
 
             val app = accounts.appFor(session.instance)
-                ?: throw MastodonException("Lost the client registration for ${session.instance}")
+                ?: throw MastodonException(context.getString(R.string.auth_lost_registration, session.instance))
 
             val token = client.exchangeCode(
                 instance = session.instance,

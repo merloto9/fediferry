@@ -19,6 +19,7 @@
  */
 package app.fediferry.module
 
+import androidx.annotation.StringRes
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.SourceField
 import app.fediferry.link.LinkResolver
@@ -44,10 +45,15 @@ interface SourceModule {
     val name: String
 
     /** One sentence for the Settings list: what sharing from here does. */
-    val summary: String
+    @get:StringRes
+    val summary: Int
 
     /** The link shapes it picks up, as the user would recognise them. */
     val recognises: List<String>
+
+    /** Shown in place of [recognises] when the module is not reached by link shapes at all. */
+    @get:StringRes
+    val recognisesNote: Int? get() = null
 
     val fields: List<SourceField>
 

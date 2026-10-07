@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Schedule
@@ -28,18 +29,21 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import app.fediferry.R
 
 /** The app's two spaces: what you have saved, and where things come from. */
-enum class Space(val route: String, val label: String) {
-    INBOX(Routes.INBOX, "Inbox"),
-    QUEUE(Routes.QUEUE, "Queue"),
-    SOURCES(Routes.SOURCES, "Sources"),
+enum class Space(val route: String, @StringRes val labelRes: Int) {
+    INBOX(Routes.INBOX, R.string.nav_inbox),
+    QUEUE(Routes.QUEUE, R.string.nav_queue),
+    SOURCES(Routes.SOURCES, R.string.nav_sources),
 }
 
 @Composable
 fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
     NavigationBar {
         Space.entries.forEach { space ->
+            val label = stringResource(space.labelRes)
             NavigationBarItem(
                 selected = space == current,
                 onClick = { if (space != current) onNavigate(space) },
@@ -50,10 +54,10 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
                             Space.QUEUE -> Icons.Default.Schedule
                             Space.SOURCES -> Icons.Default.Subscriptions
                         },
-                        contentDescription = space.label,
+                        contentDescription = label,
                     )
                 },
-                label = { Text(space.label) },
+                label = { Text(label) },
             )
         }
     }

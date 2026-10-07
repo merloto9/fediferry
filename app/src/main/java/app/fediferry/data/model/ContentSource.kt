@@ -19,10 +19,11 @@
  */
 package app.fediferry.data.model
 
+import androidx.annotation.StringRes
 import app.fediferry.module.Modules
 
 /** One raw value a source delivers, as a placeholder mapping refers to it. */
-data class SourceField(val name: String, val description: String)
+data class SourceField(val name: String, @StringRes val description: Int)
 
 /**
  * The stable id of a source module — what items and templates store. Everything

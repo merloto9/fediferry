@@ -19,7 +19,10 @@
  */
 package app.fediferry.ui.settings
 
+import androidx.compose.material.icons.outlined.Language
 import android.content.ClipData
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
@@ -85,11 +88,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.BuildConfig
+import app.fediferry.R
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.AltTextMode
@@ -100,6 +106,7 @@ import app.fediferry.data.model.Template
 import app.fediferry.media.cleanup.CleanupPipeline
 import app.fediferry.media.cleanup.EditWireFormat
 import app.fediferry.media.cleanup.MaskPolarity
+import app.fediferry.media.cleanup.TreatmentKind
 import app.fediferry.module.Modules
 import app.fediferry.template.TemplateEngine
 import app.fediferry.ui.AltTextModePicker
@@ -118,16 +125,22 @@ import kotlinx.coroutines.launch
  * The pages Settings is divided into, grouped by what the user is doing
  * rather than by how the app is built. Each is one screen of its own.
  */
-enum class SettingsPage(val route: String, val title: String, val group: String, val icon: ImageVector) {
-    ACCOUNT("account", "Mastodon account", "Account", Icons.Outlined.AccountCircle),
-    TEMPLATES("templates", "Templates", "Posts", Icons.Outlined.Description),
-    HASHTAGS("hashtags", "Hashtags", "Posts", Icons.Outlined.Tag),
-    PLACEHOLDERS("placeholders", "Placeholders & sources", "Posts", Icons.Outlined.DataObject),
-    SHARING("sharing", "Sharing & posting", "Posts", Icons.AutoMirrored.Outlined.Send),
-    CLEANUP("cleanup", "Image clean-up", "Pictures", Icons.Outlined.AutoFixHigh),
-    ALT_TEXT("alt_text", "Alt text", "Pictures", Icons.Outlined.Accessibility),
-    APPEARANCE("appearance", "Appearance", "App", Icons.Outlined.Palette),
-    DIAGNOSTICS("diagnostics", "Diagnostics", "App", Icons.Outlined.BugReport),
+enum class SettingsPage(
+    val route: String,
+    @StringRes val title: Int,
+    @StringRes val group: Int,
+    val icon: ImageVector,
+) {
+    ACCOUNT("account", R.string.settings_page_account, R.string.settings_group_account, Icons.Outlined.AccountCircle),
+    TEMPLATES("templates", R.string.settings_page_templates, R.string.settings_group_posts, Icons.Outlined.Description),
+    HASHTAGS("hashtags", R.string.settings_page_hashtags, R.string.settings_group_posts, Icons.Outlined.Tag),
+    PLACEHOLDERS("placeholders", R.string.settings_page_placeholders, R.string.settings_group_posts, Icons.Outlined.DataObject),
+    SHARING("sharing", R.string.settings_page_sharing, R.string.settings_group_posts, Icons.AutoMirrored.Outlined.Send),
+    CLEANUP("cleanup", R.string.settings_page_cleanup, R.string.settings_group_pictures, Icons.Outlined.AutoFixHigh),
+    ALT_TEXT("alt_text", R.string.settings_page_alt_text, R.string.settings_group_pictures, Icons.Outlined.Accessibility),
+    APPEARANCE("appearance", R.string.settings_page_appearance, R.string.settings_group_app, Icons.Outlined.Palette),
+    LANGUAGE("language", R.string.settings_language, R.string.settings_group_app, Icons.Outlined.Language),
+    DIAGNOSTICS("diagnostics", R.string.settings_page_diagnostics, R.string.settings_group_app, Icons.Outlined.BugReport),
     ;
 
     companion object {
@@ -136,60 +149,97 @@ enum class SettingsPage(val route: String, val title: String, val group: String,
 }
 
 /** What each page is set to right now, so the overview says it without opening anything. */
-private fun SettingsPage.summary(state: SettingsState): String {
+private fun SettingsPage.summary(state: SettingsState, context: Context): String {
     val s = state.settings
-    fun count(n: Int, one: String, many: String = one + "s") = "$n ${if (n == 1) one else many}"
+    val res = context.resources
+    fun count(@PluralsRes id: Int, n: Int) = res.getQuantityString(id, n, n)
+    // Strings independent facts together with " · ".
+    fun join(a: String, b: String) = context.getString(R.string.settings_summary_separator, a, b)
     return when (this) {
         SettingsPage.ACCOUNT -> {
             val default = state.accounts.firstOrNull { it.isDefault } ?: state.accounts.firstOrNull()
             when {
-                default == null -> "Not connected — nothing can be posted yet"
-                state.accounts.size == 1 -> "@${default.acct} on ${default.instance}"
-                else -> "@${default.acct} on ${default.instance}, and ${state.accounts.size - 1} more"
+                default == null -> context.getString(R.string.settings_summary_not_connected)
+                state.accounts.size == 1 ->
+                    context.getString(R.string.settings_summary_account, default.acct, default.instance)
+                else -> context.resources.getQuantityString(
+                    R.plurals.settings_summary_account_more,
+                    state.accounts.size - 1,
+                    default.acct,
+                    default.instance,
+                    state.accounts.size - 1,
+                )
             }
         }
         SettingsPage.TEMPLATES -> {
             val default = state.templates.firstOrNull { it.isDefault }?.name
-            count(state.templates.size, "template") + (default?.let { " · default: $it" } ?: "")
+            val n = count(R.plurals.settings_summary_templates, state.templates.size)
+            default?.let { context.getString(R.string.settings_summary_default, n, it) } ?: n
         }
-        SettingsPage.HASHTAGS ->
-            count(state.hashtags.size, "hashtag") + if (s.rememberSentHashtags) " · new ones from sent posts join" else ""
+        SettingsPage.HASHTAGS -> {
+            val n = count(R.plurals.settings_summary_hashtags, state.hashtags.size)
+            if (s.rememberSentHashtags) context.getString(R.string.settings_summary_hashtags_remember, n) else n
+        }
         SettingsPage.PLACEHOLDERS ->
-            state.placeholderKeys.sortedByDescending { it.isTags }.joinToString { "{${it.name}}" }
-                .ifEmpty { "No placeholders" } + " · ${count(Modules.all.size, "source")}"
-        SettingsPage.SHARING ->
-            "Undo ${s.undoDelaySeconds}s · " +
-                (if (s.resolveLinks) "fetches from links" else "screenshots only") +
-                (if (s.autoCrop) " · trims screenshots" else "")
+            join(
+                state.placeholderKeys.sortedByDescending { it.isTags }.joinToString { "{${it.name}}" }
+                    .ifEmpty { context.getString(R.string.settings_summary_no_placeholders) },
+                count(R.plurals.settings_summary_sources, Modules.all.size),
+            )
+        SettingsPage.SHARING -> {
+            val parts = listOfNotNull(
+                context.getString(R.string.settings_summary_undo, s.undoDelaySeconds),
+                context.getString(
+                    if (s.resolveLinks) R.string.settings_summary_fetches_links else R.string.settings_summary_screenshots_only,
+                ),
+                if (s.autoCrop) context.getString(R.string.settings_summary_trims) else null,
+            )
+            parts.reduce { a, b -> join(a, b) }
+        }
         SettingsPage.CLEANUP ->
-            count(state.cleanupProfiles.size, "profile") + " · " +
-                models(state, AiKind.IMAGE_EDIT, none = "no AI model")
+            join(
+                count(R.plurals.settings_summary_profiles, state.cleanupProfiles.size),
+                models(state, AiKind.IMAGE_EDIT, context, none = context.getString(R.string.settings_summary_no_ai_model)),
+            )
         SettingsPage.ALT_TEXT ->
-            models(state, AiKind.ALT_TEXT, none = "No model set up")
+            models(state, AiKind.ALT_TEXT, context, none = context.getString(R.string.settings_summary_no_model))
         SettingsPage.APPEARANCE -> {
             val theme = when (s.themeMode) {
-                ThemeMode.SYSTEM -> "System theme"
-                ThemeMode.LIGHT -> "Light"
-                ThemeMode.DARK -> "Dark"
+                ThemeMode.SYSTEM -> R.string.settings_summary_theme_system
+                ThemeMode.LIGHT -> R.string.settings_summary_theme_light
+                ThemeMode.DARK -> R.string.settings_summary_theme_dark
             }
-            val colours = if (s.colorSource == ColorSource.WALLPAPER) "wallpaper colours" else "FediFerry colours"
+            val colours = if (s.colorSource == ColorSource.WALLPAPER) {
+                R.string.settings_summary_colours_wallpaper
+            } else {
+                R.string.settings_summary_colours_app
+            }
             val contrast = when (s.contrastLevel) {
-                ContrastLevel.SYSTEM -> "system contrast"
-                ContrastLevel.STANDARD -> "standard contrast"
-                ContrastLevel.HIGH -> "high contrast"
+                ContrastLevel.SYSTEM -> R.string.settings_summary_contrast_system
+                ContrastLevel.STANDARD -> R.string.settings_summary_contrast_standard
+                ContrastLevel.HIGH -> R.string.settings_summary_contrast_high
             }
-            "$theme · $colours · $contrast"
+            listOf(theme, colours, contrast).map { context.getString(it) }.reduce { a, b -> join(a, b) }
         }
+        SettingsPage.LANGUAGE -> languageSummary(context)
         SettingsPage.DIAGNOSTICS ->
-            if (s.debugLogging) "Logging · ${formatSize(state.logSizeBytes)}" else "Log off"
+            if (s.debugLogging) {
+                context.getString(R.string.settings_summary_logging, formatSize(context, state.logSizeBytes))
+            } else {
+                context.getString(R.string.settings_summary_log_off)
+            }
     }
 }
 
 /** "2 models · default: Gemini Flash", or [none]. */
-private fun models(state: SettingsState, kind: AiKind, none: String): String {
+private fun models(state: SettingsState, kind: AiKind, context: Context, none: String): String {
     val models = state.aiModels.filter { it.kind == kind }
     val default = AiModel.pick(models) ?: return none
-    return if (models.size == 1) "Model: ${default.displayName}" else "${models.size} models · default: ${default.displayName}"
+    return if (models.size == 1) {
+        context.getString(R.string.settings_summary_model, default.displayName)
+    } else {
+        context.resources.getQuantityString(R.plurals.settings_summary_models, models.size, models.size, default.displayName)
+    }
 }
 
 /** The top of Settings: every page, grouped, each with what it is set to. */
@@ -206,10 +256,10 @@ fun SettingsScreen(
         contentWindowInsets = ScaffoldDefaults.typingInsets,
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                     }
                 },
             )
@@ -224,15 +274,15 @@ fun SettingsScreen(
         ) {
             SettingsPage.entries.groupBy { it.group }.forEach { (group, pages) ->
                 Text(
-                    group,
+                    stringResource(group),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
                 )
                 pages.forEach { page ->
                     ListItem(
-                        headlineContent = { Text(page.title) },
-                        supportingContent = { Text(page.summary(state), maxLines = 2) },
+                        headlineContent = { Text(stringResource(page.title)) },
+                        supportingContent = { Text(page.summary(state, LocalContext.current), maxLines = 2) },
                         leadingContent = { Icon(page.icon, contentDescription = null) },
                         trailingContent = {
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
@@ -274,16 +324,16 @@ fun SettingsPageScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text(page.title) },
+                title = { Text(stringResource(page.title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Settings")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back_to_settings))
                     }
                 },
                 actions = {
                     if (page == SettingsPage.TEMPLATES) {
                         IconButton(onClick = viewModel::newTemplate) {
-                            Icon(Icons.Default.Add, contentDescription = "New template")
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.settings_new_template))
                         }
                     }
                 },
@@ -315,6 +365,7 @@ fun SettingsPageScreen(
                 }
                 SettingsPage.ALT_TEXT -> VisionSection(state, viewModel)
                 SettingsPage.APPEARANCE -> AppearanceSection(state, viewModel)
+                SettingsPage.LANGUAGE -> LanguageSection()
                 SettingsPage.DIAGNOSTICS -> DiagnosticsSection(state, viewModel)
             }
         }
@@ -336,14 +387,14 @@ private fun AccountsSection(state: SettingsState, viewModel: SettingsViewModel) 
                     Text(account.instance, style = MaterialTheme.typography.bodySmall)
                 }
                 if (account.isDefault) {
-                    Text("Default", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.settings_default), style = MaterialTheme.typography.labelSmall)
                 } else {
                     TextButton(onClick = { viewModel.makeDefaultAccount(account.id) }) {
-                        Text("Make default")
+                        Text(stringResource(R.string.settings_make_default))
                     }
                 }
                 IconButton(onClick = { viewModel.disconnect(account.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Disconnect")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.settings_disconnect))
                 }
             }
         }
@@ -356,7 +407,7 @@ private fun AccountsSection(state: SettingsState, viewModel: SettingsViewModel) 
         OutlinedTextField(
             value = instance,
             onValueChange = { instance = it },
-            label = { Text("Instance") },
+            label = { Text(stringResource(R.string.settings_instance)) },
             placeholder = { Text("mastodon.social") },
             singleLine = true,
             modifier = Modifier.weight(1f),
@@ -364,14 +415,16 @@ private fun AccountsSection(state: SettingsState, viewModel: SettingsViewModel) 
         Button(
             onClick = { viewModel.connect(instance) },
             enabled = !state.connecting,
-        ) { Text("Connect") }
+        ) { Text(stringResource(R.string.settings_connect)) }
     }
 
     if (state.connecting) {
         LoadingOverlay(
-            title = "Contacting ${instance.trim().ifBlank { "your instance" }}",
-            detail = "Registering FediFerry with the server. Its sign-in page opens " +
-                "in the browser as soon as it answers.",
+            title = stringResource(
+                R.string.settings_contacting,
+                instance.trim().ifBlank { stringResource(R.string.settings_your_instance) },
+            ),
+            detail = stringResource(R.string.settings_contacting_detail),
             icon = Icons.AutoMirrored.Outlined.Login,
         )
     }
@@ -385,13 +438,11 @@ private fun TemplatesSection(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            "A template is a topic: which hashtags it ticks, and how its posts are " +
-                "written. Bodies can use {tags}, {link}, {date} and the placeholders from " +
-                "Placeholders & sources.",
+            stringResource(R.string.settings_templates_intro),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = onShowPlaceholderHelp) { Text("What can I use?") }
+        TextButton(onClick = onShowPlaceholderHelp) { Text(stringResource(R.string.settings_what_can_i_use)) }
     }
 
     state.templates.forEach { template ->
@@ -423,7 +474,7 @@ private fun TemplateCard(
             OutlinedTextField(
                 value = draft.name,
                 onValueChange = { draft = draft.copy(name = it) },
-                label = { Text("Name") },
+                label = { Text(stringResource(R.string.settings_template_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -431,15 +482,17 @@ private fun TemplateCard(
             OutlinedTextField(
                 value = draft.body,
                 onValueChange = { draft = draft.copy(body = it) },
-                label = { Text("Body") },
+                label = { Text(stringResource(R.string.settings_template_body)) },
                 minLines = 2,
                 isError = unknown.isNotEmpty(),
                 supportingText = if (unknown.isNotEmpty()) {
                     {
                         Text(
-                            unknown.joinToString { "{$it}" } + " " +
-                                (if (unknown.size == 1) "is" else "are") +
-                                " not defined, and would be posted exactly as typed.",
+                            pluralStringResource(
+                                R.plurals.settings_template_unknown,
+                                unknown.size,
+                                unknown.joinToString { "{$it}" },
+                            ),
                         )
                     }
                 } else {
@@ -463,11 +516,9 @@ private fun TemplateCard(
                     onCheckedChange = { draft = draft.copy(addSourceHashtags = it) },
                 )
                 Column(Modifier.weight(1f)) {
-                    Text("Add the source's hashtags", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.settings_add_source_hashtags), style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        "Ticks whatever a source's {tags} recipe in Placeholders & sources gives — " +
-                            "9GAG's own tags, say — beside the ones above. Each post can still " +
-                            "change it in the editor.",
+                        stringResource(R.string.settings_add_source_hashtags_detail),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -478,7 +529,7 @@ private fun TemplateCard(
                 key = template.id,
                 value = draft.contentWarning.orEmpty(),
                 onValueChange = { draft = draft.copy(contentWarning = it.ifBlank { null }) },
-                label = "Default content warning",
+                label = stringResource(R.string.settings_default_content_warning),
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -486,7 +537,7 @@ private fun TemplateCard(
                 selected = draft.visibility,
                 onSelect = { draft = draft.copy(visibility = it) },
                 text = draft.body,
-                title = "Default visibility",
+                title = stringResource(R.string.settings_default_visibility),
                 titleStyle = MaterialTheme.typography.labelMedium,
             )
 
@@ -500,8 +551,8 @@ private fun TemplateCard(
                 OutlinedTextField(
                     value = draft.staticAltText.orEmpty(),
                     onValueChange = { draft = draft.copy(staticAltText = it) },
-                    label = { Text("Fixed description") },
-                    placeholder = { Text("A meme") },
+                    label = { Text(stringResource(R.string.settings_fixed_description)) },
+                    placeholder = { Text(stringResource(R.string.settings_fixed_description_hint)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -510,16 +561,16 @@ private fun TemplateCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(onClick = { viewModel.saveTemplate(draft) }) { Text("Save") }
+                Button(onClick = { viewModel.saveTemplate(draft) }) { Text(stringResource(R.string.settings_save)) }
                 if (!template.isDefault) {
                     TextButton(onClick = { viewModel.makeDefaultTemplate(template.id) }) {
-                        Text("Make default")
+                        Text(stringResource(R.string.settings_make_default))
                     }
                     TextButton(onClick = { viewModel.deleteTemplate(template.id) }) {
-                        Text("Delete")
+                        Text(stringResource(R.string.settings_delete))
                     }
                 } else {
-                    Text("Default", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.settings_default), style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -533,11 +584,9 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Fetch images from shared links")
+            Text(stringResource(R.string.settings_resolve_links))
             Text(
-                "When a link is shared on its own, get the image from the service " +
-                    "instead of waiting for a screenshot. Works for 9GAG, Pinterest and Reddit; " +
-                    "Instagram publishes nothing to fetch.",
+                stringResource(R.string.settings_resolve_links_detail),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -552,11 +601,9 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Trim screenshots automatically")
+            Text(stringResource(R.string.settings_auto_crop))
             Text(
-                "Post now and Save for later cut a screenshot down to the picture " +
-                    "when the detection is confident. The original is kept either way, " +
-                    "so the editor can undo it.",
+                stringResource(R.string.settings_auto_crop_detail),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -571,19 +618,18 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Clean older links")
+            Text(stringResource(R.string.settings_clean_old_links))
             Text(
-                "Pinterest and Reddit links shared before FediFerry 0.17.1, or added to a " +
-                    "post's text by hand, may say who shared them. Check every link in the inbox now.",
+                stringResource(R.string.settings_clean_old_links_detail),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        OutlinedButton(onClick = viewModel::offerOldLinkCleanupAgain) { Text("Check") }
+        OutlinedButton(onClick = viewModel::offerOldLinkCleanupAgain) { Text(stringResource(R.string.settings_check)) }
     }
 
-    Text("Undo window: ${state.settings.undoDelaySeconds}s")
+    Text(stringResource(R.string.settings_undo_window, state.settings.undoDelaySeconds))
     Text(
-        "How long Post now waits before sending. Zero sends immediately.",
+        stringResource(R.string.settings_undo_window_detail),
         style = MaterialTheme.typography.bodySmall,
     )
     Slider(
@@ -595,9 +641,13 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
 
     Text(
         if (state.settings.purgePostedAfterDays == 0) {
-            "Posted items: kept forever"
+            stringResource(R.string.settings_purge_never)
         } else {
-            "Posted items: purged after ${state.settings.purgePostedAfterDays} days"
+            pluralStringResource(
+                R.plurals.settings_purge_after,
+                state.settings.purgePostedAfterDays,
+                state.settings.purgePostedAfterDays,
+            )
         },
     )
     Slider(
@@ -610,22 +660,19 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
 
 @Composable
 private fun CleanupSection(state: SettingsState, viewModel: SettingsViewModel) {
-    SectionTitle("Cleanup profiles")
+    SectionTitle(stringResource(R.string.settings_cleanup_profiles))
     Text(
-        "Areas to remove from a screenshot, per source. Drawn on the Clean up " +
-            "screen and kept here, so when a layout moves you adjust the rule " +
-            "rather than wait for an update.",
+        stringResource(R.string.settings_cleanup_intro),
         style = MaterialTheme.typography.bodySmall,
     )
     Text(
-        "The profile marked default is applied on its own to shares that do not " +
-            "stop for input. Leave none default and nothing happens unasked.",
+        stringResource(R.string.settings_cleanup_default_intro),
         style = MaterialTheme.typography.bodySmall,
     )
 
     if (state.cleanupProfiles.isEmpty()) {
         Text(
-            "No profiles yet — draw on Clean up in the editor and tick Remember.",
+            stringResource(R.string.settings_cleanup_no_profiles),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -644,19 +691,19 @@ private fun CleanupSection(state: SettingsState, viewModel: SettingsViewModel) {
                     )
                     if (profile.isDefault) {
                         TextButton(onClick = viewModel::clearDefaultCleanupProfile) {
-                            Text("Default")
+                            Text(stringResource(R.string.settings_default))
                         }
                     } else {
                         TextButton(onClick = { viewModel.setDefaultCleanupProfile(profile.id) }) {
-                            Text("Make default")
+                            Text(stringResource(R.string.settings_make_default))
                         }
                     }
                     IconButton(onClick = { viewModel.deleteCleanupProfile(profile.id) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete profile")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.settings_cleanup_delete_profile))
                     }
                 }
                 if (rules.isEmpty()) {
-                    Text("No areas yet", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.settings_cleanup_no_areas), style = MaterialTheme.typography.bodySmall)
                 }
                 rules.forEach { rule ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -665,14 +712,19 @@ private fun CleanupSection(state: SettingsState, viewModel: SettingsViewModel) {
                             onCheckedChange = { viewModel.setCleanupRuleEnabled(rule.id, it) },
                         )
                         Text(
-                            "${rule.treatment.name.lowercase().replace('_', ' ')} · " +
-                                "${(rule.left * 100).toInt()},${(rule.top * 100).toInt()}% → " +
-                                "${(rule.right * 100).toInt()},${(rule.bottom * 100).toInt()}%",
+                            stringResource(
+                                R.string.settings_cleanup_rule,
+                                stringResource(rule.treatment.label),
+                                (rule.left * 100).toInt(),
+                                (rule.top * 100).toInt(),
+                                (rule.right * 100).toInt(),
+                                (rule.bottom * 100).toInt(),
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.weight(1f).padding(start = 8.dp),
                         )
                         IconButton(onClick = { viewModel.deleteCleanupRule(rule.id) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete area")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.settings_cleanup_delete_area))
                         }
                     }
                 }
@@ -683,29 +735,24 @@ private fun CleanupSection(state: SettingsState, viewModel: SettingsViewModel) {
 
 @Composable
 private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel) {
-    SectionTitle("Image model")
+    SectionTitle(stringResource(R.string.settings_image_model))
     Text(
-        "Used by the \"Erase with AI\" treatment on the Clean up screen, for " +
-            "overlays that sit on detail where filling from the surroundings " +
-            "only smears. Leave the endpoint empty and that treatment falls " +
-            "back to a local fill.",
+        stringResource(R.string.settings_image_model_intro),
         style = MaterialTheme.typography.bodySmall,
     )
     Text(
-        "Inpainting has no standard request shape, so the format is a setting " +
-            "rather than a guess. Multipart suits the OpenAI images/edits " +
-            "family; JSON suits the Stable Diffusion derived servers.",
+        stringResource(R.string.settings_image_model_format),
         style = MaterialTheme.typography.bodySmall,
     )
 
     AiModelsSection(AiKind.IMAGE_EDIT, state, viewModel)
 
-    Text("What to ask for", style = MaterialTheme.typography.labelLarge)
+    Text(stringResource(R.string.settings_what_to_ask), style = MaterialTheme.typography.labelLarge)
     StableTextField(
         key = "image-instruction",
         value = state.settings.imageInstruction,
         onValueChange = viewModel::setImageInstruction,
-        label = "Instruction",
+        label = stringResource(R.string.settings_instruction),
         placeholder = CleanupPipeline.DEFAULT_INSTRUCTION,
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
@@ -715,21 +762,18 @@ private fun ImageModelSection(state: SettingsState, viewModel: SettingsViewModel
 @Composable
 private fun VisionSection(state: SettingsState, viewModel: SettingsViewModel) {
     Text(
-        "Writes alt text for templates set to Generated. Any OpenAI-compatible " +
-            "chat-completions endpoint whose model can look at images works. The " +
-            "picture is sent there, so pick a service you trust with it. A failure " +
-            "never blocks a post; it goes out without a description instead.",
+        stringResource(R.string.settings_vision_intro),
         style = MaterialTheme.typography.bodySmall,
     )
 
     AiModelsSection(AiKind.ALT_TEXT, state, viewModel)
 
-    Text("What to ask for", style = MaterialTheme.typography.labelLarge)
+    Text(stringResource(R.string.settings_what_to_ask), style = MaterialTheme.typography.labelLarge)
     StableTextField(
         key = "vision-prompt",
         value = state.settings.visionPrompt,
         onValueChange = viewModel::setVisionPrompt,
-        label = "Prompt",
+        label = stringResource(R.string.settings_prompt),
         minLines = 2,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -751,11 +795,9 @@ private fun DiagnosticsSection(state: SettingsState, viewModel: SettingsViewMode
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Keep a log")
+            Text(stringResource(R.string.settings_keep_log))
             Text(
-                "Records what the app does — a share arriving, a link resolving, a " +
-                    "post failing — so a problem can be looked at afterwards. Access " +
-                    "tokens and post text are never written down.",
+                stringResource(R.string.settings_keep_log_detail),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -771,7 +813,11 @@ private fun DiagnosticsSection(state: SettingsState, viewModel: SettingsViewMode
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = if (state.logSizeBytes == 0L) "Nothing logged yet" else "Log: ${formatSize(state.logSizeBytes)}",
+            text = if (state.logSizeBytes == 0L) {
+                stringResource(R.string.settings_nothing_logged)
+            } else {
+                stringResource(R.string.settings_log_size, formatSize(context, state.logSizeBytes))
+            },
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
@@ -784,10 +830,10 @@ private fun DiagnosticsSection(state: SettingsState, viewModel: SettingsViewMode
             enabled = state.logSizeBytes > 0,
         ) {
             Icon(Icons.Default.Share, contentDescription = null)
-            Text("Send log", modifier = Modifier.padding(start = 8.dp))
+            Text(stringResource(R.string.settings_send_log), modifier = Modifier.padding(start = 8.dp))
         }
         TextButton(onClick = viewModel::clearLog, enabled = state.logSizeBytes > 0) {
-            Text("Clear")
+            Text(stringResource(R.string.settings_clear_log))
         }
     }
 }
@@ -808,15 +854,26 @@ private fun shareLog(context: Context, file: File) {
         clipData = ClipData.newRawUri(file.name, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(send, "Send the log"))
+    context.startActivity(Intent.createChooser(send, context.getString(R.string.settings_send_log_chooser)))
 }
 
 /** Bytes as something a person reads at a glance. */
-private fun formatSize(bytes: Long): String = when {
+private fun formatSize(context: Context, bytes: Long): String = when {
     bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024))
     bytes >= 1024 -> "${bytes / 1024} KB"
-    else -> "$bytes bytes"
+    else -> context.resources.getQuantityString(R.plurals.settings_size_bytes, bytes.toInt(), bytes.toInt())
 }
+
+/** How a cleanup rule's treatment reads in its one-line summary. */
+@get:StringRes
+private val TreatmentKind.label: Int
+    get() = when (this) {
+        TreatmentKind.FILL -> R.string.settings_treatment_fill
+        TreatmentKind.CROP_AWAY -> R.string.settings_treatment_crop_away
+        TreatmentKind.BLUR -> R.string.settings_treatment_blur
+        TreatmentKind.PIXELATE -> R.string.settings_treatment_pixelate
+        TreatmentKind.AI_ERASE -> R.string.settings_treatment_ai_erase
+    }
 
 /**
  * Which sources a template's placeholders are filled from. Unticking one keeps
@@ -827,7 +884,7 @@ private fun formatSize(bytes: Long): String = when {
 @Composable
 private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSource>) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Fill placeholders from", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.settings_fill_placeholders_from), style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ContentSource.entries.forEach { source ->
                 val on = source !in excluded
@@ -844,8 +901,7 @@ private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSou
             }
         }
         Text(
-            "For posts from a ticked source, placeholders such as {caption} are filled " +
-                "using their recipes in Placeholders & sources. From an unticked one they stay empty.",
+            stringResource(R.string.settings_fill_placeholders_detail),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -861,11 +917,11 @@ private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSou
 @Composable
 private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange: (List<String>) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Hashtags", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.settings_template_hashtags), style = MaterialTheme.typography.labelMedium)
         val offered = Hashtags.sortedAlphabetically(Hashtags.union(list, picked))
         if (offered.isEmpty()) {
             Text(
-                "The hashtag list is empty — add some in Settings → Hashtags.",
+                stringResource(R.string.settings_hashtag_list_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -879,7 +935,7 @@ private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange:
                     onClick = {
                         onChange(if (on) picked.filterNot { it.equals(tag, ignoreCase = true) } else picked + tag)
                     },
-                    label = { Text(if (listed) tag else "$tag (not on the list)") },
+                    label = { Text(if (listed) tag else stringResource(R.string.settings_hashtag_not_listed, tag)) },
                     leadingIcon = if (on) {
                         { Icon(Icons.Default.Check, contentDescription = null) }
                     } else {
@@ -889,7 +945,7 @@ private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange:
             }
         }
         Text(
-            "Ticked ones start ticked in the editor and fill {tags}.",
+            stringResource(R.string.settings_template_hashtags_detail),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

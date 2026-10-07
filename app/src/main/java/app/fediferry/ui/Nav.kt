@@ -19,6 +19,8 @@
  */
 package app.fediferry.ui
 
+import app.fediferry.ui.queue.QueuedPostScreen
+import android.net.Uri
 import app.fediferry.ui.queue.QueueScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +43,7 @@ import androidx.navigation.NavController
 object Routes {
     const val INBOX = "inbox"
     const val QUEUE = "queue"
+    const val QUEUED_POST = "queue/{accountId}/{statusId}"
     const val SOURCES = "sources"
     const val CHANNEL = "channel/{sourceId}"
     const val SETTINGS = "settings"
@@ -53,6 +56,8 @@ object Routes {
     fun crop(itemId: String) = "crop/$itemId"
     fun cleanup(itemId: String) = "cleanup/$itemId"
     fun channel(sourceId: String) = "channel/$sourceId"
+    /** An account id holds a slash ("instance/acct"), so it travels encoded. */
+    fun queuedPost(accountId: String, statusId: String) = "queue/${Uri.encode(accountId)}/${Uri.encode(statusId)}"
     fun settingsPage(page: SettingsPage) = "settings/${page.route}"
 }
 
@@ -90,8 +95,22 @@ fun FediFerryNavHost(
         }
         composable(Routes.QUEUE) {
             QueueScreen(
+                onOpenPost = { navController.navigate(Routes.queuedPost(it.account.id, it.status.id)) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(
+            route = Routes.QUEUED_POST,
+            arguments = listOf(
+                navArgument("accountId") { type = NavType.StringType },
+                navArgument("statusId") { type = NavType.StringType },
+            ),
+        ) { entry ->
+            QueuedPostScreen(
+                accountId = entry.arguments?.getString("accountId").orEmpty(),
+                statusId = entry.arguments?.getString("statusId").orEmpty(),
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.SOURCES) {

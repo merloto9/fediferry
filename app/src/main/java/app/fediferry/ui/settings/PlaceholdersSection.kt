@@ -57,10 +57,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.module.Modules
@@ -74,8 +76,7 @@ import app.fediferry.template.TemplateEngine
 @Composable
 internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel) {
     Text(
-        "The hashtags you post with, one list for everything. Each template ticks the ones " +
-            "its topic uses; the editor shows the whole list, so any post can take more.",
+        stringResource(R.string.placeholders_hashtags_intro),
         style = MaterialTheme.typography.bodySmall,
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -89,7 +90,7 @@ internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel)
                 trailingIcon = {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Remove $tag",
+                        contentDescription = stringResource(R.string.placeholders_remove_hashtag, tag),
                         modifier = Modifier
                             .size(InputChipDefaults.IconSize)
                             .clip(CircleShape)
@@ -107,24 +108,22 @@ internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel)
         OutlinedTextField(
             value = typed,
             onValueChange = { typed = it },
-            label = { Text("New hashtag") },
-            placeholder = { Text("#politics") },
+            label = { Text(stringResource(R.string.placeholders_new_hashtag)) },
+            placeholder = { Text(stringResource(R.string.placeholders_new_hashtag_example)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { add() }),
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = ::add, enabled = Hashtags.normalize(typed) != null) {
-            Icon(Icons.Default.Add, contentDescription = "Add hashtag")
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.placeholders_add_hashtag))
         }
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("Add new hashtags when a post is sent")
+            Text(stringResource(R.string.placeholders_remember_sent))
             Text(
-                "Every hashtag a sent post carried that is not on the list yet joins it — " +
-                    "typed in the editor, added by a source, or written into the text. Only " +
-                    "posts that actually went out count.",
+                stringResource(R.string.placeholders_remember_sent_explain),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -145,14 +144,13 @@ internal fun HashtagsSection(state: SettingsState, viewModel: SettingsViewModel)
 @Composable
 internal fun PlaceholdersSection(state: SettingsState, viewModel: SettingsViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Placeholders", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.placeholders_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         IconButton(onClick = viewModel::newPlaceholderKey) {
-            Icon(Icons.Default.Add, contentDescription = "New placeholder")
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.placeholders_new))
         }
     }
     Text(
-        "Names a template body can use. What each one says is set per source under Source " +
-            "modules. {link} and {date} are built in and always filled from the share.",
+        stringResource(R.string.placeholders_intro),
         style = MaterialTheme.typography.bodySmall,
     )
 
@@ -175,10 +173,7 @@ private fun ReservedTagsCard() {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("{tags}", style = MaterialTheme.typography.titleSmall, fontFamily = FontFamily.Monospace)
             Text(
-                "Reserved. Becomes the post's hashtags when it is sent — the template's picks " +
-                    "plus any a source adds — and stays as {tags} in the editor until then, so " +
-                    "the hashtags can still change. It cannot be renamed or deleted; each " +
-                    "source's hashtags are set below, under Source modules.",
+                stringResource(R.string.placeholders_tags_reserved),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -190,10 +185,10 @@ private fun PlaceholderNameCard(key: PlaceholderKey, takenNames: Set<String>, vi
     var name by remember(key) { mutableStateOf(key.name) }
     val trimmed = name.trim()
     val problem = when {
-        trimmed.isEmpty() -> "Give it a name"
-        trimmed in PlaceholderKey.RESERVED -> "{$trimmed} is reserved"
-        !PlaceholderKey.isValidName(trimmed) -> "Letters, digits and _ only"
-        trimmed in takenNames -> "Another placeholder is already called that"
+        trimmed.isEmpty() -> stringResource(R.string.placeholders_problem_empty)
+        trimmed in PlaceholderKey.RESERVED -> stringResource(R.string.placeholders_problem_reserved, trimmed)
+        !PlaceholderKey.isValidName(trimmed) -> stringResource(R.string.placeholders_problem_chars)
+        trimmed in takenNames -> stringResource(R.string.placeholders_problem_taken)
         else -> null
     }
     val filledBy = Modules.all.filter { key.recipeFor(it.source).isNotBlank() }.map { it.name }
@@ -203,14 +198,18 @@ private fun PlaceholderNameCard(key: PlaceholderKey, takenNames: Set<String>, vi
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name") },
+                label = { Text(stringResource(R.string.placeholders_name)) },
                 isError = problem != null,
-                supportingText = { Text(problem ?: "Write {$trimmed} in a template body") },
+                supportingText = { Text(problem ?: stringResource(R.string.placeholders_write_hint, trimmed)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                if (filledBy.isEmpty()) "No source fills it yet." else "Filled from " + filledBy.joinToString(),
+                if (filledBy.isEmpty()) {
+                    stringResource(R.string.placeholders_no_source)
+                } else {
+                    stringResource(R.string.placeholders_filled_from, filledBy.joinToString())
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -218,8 +217,8 @@ private fun PlaceholderNameCard(key: PlaceholderKey, takenNames: Set<String>, vi
                 Button(
                     onClick = { viewModel.renamePlaceholderKey(key, name) },
                     enabled = problem == null && trimmed != key.name,
-                ) { Text("Rename") }
-                TextButton(onClick = { viewModel.deletePlaceholderKey(key.id) }) { Text("Delete") }
+                ) { Text(stringResource(R.string.placeholders_rename)) }
+                TextButton(onClick = { viewModel.deletePlaceholderKey(key.id) }) { Text(stringResource(R.string.placeholders_delete)) }
             }
         }
     }
@@ -234,10 +233,9 @@ private fun PlaceholderNameCard(key: PlaceholderKey, takenNames: Set<String>, vi
  */
 @Composable
 internal fun ModulesSection(state: SettingsState, viewModel: SettingsViewModel) {
-    Text("Source modules", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.placeholders_modules_title), style = MaterialTheme.typography.titleMedium)
     Text(
-        "Each source the app can fetch from is a module of its own. Open one to see what it " +
-            "sends and to say what each placeholder takes from it.",
+        stringResource(R.string.placeholders_modules_intro),
         style = MaterialTheme.typography.bodySmall,
     )
     Modules.all.forEach { module -> ModuleCard(module, state.placeholderKeys, viewModel) }
@@ -256,21 +254,27 @@ private fun ModuleCard(module: SourceModule, keys: List<PlaceholderKey>, viewMod
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(module.name, style = MaterialTheme.typography.titleSmall)
-                    Text(module.summary, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(module.summary), style = MaterialTheme.typography.bodySmall)
                 }
                 IconButton(onClick = { open = !open }) {
                     Icon(
                         if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (open) "Close ${module.name}" else "Open ${module.name}",
+                        contentDescription = stringResource(
+                            if (open) R.string.placeholders_module_close else R.string.placeholders_module_open,
+                            module.name,
+                        ),
                     )
                 }
             }
             if (!open) return@Column
 
-            Text("Recognises", style = MaterialTheme.typography.labelMedium)
-            Text(module.recognises.joinToString("\n"), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+            Text(stringResource(R.string.placeholders_recognises), style = MaterialTheme.typography.labelMedium)
+            if (module.recognises.isNotEmpty()) {
+                Text(module.recognises.joinToString("\n"), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+            }
+            module.recognisesNote?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
 
-            Text("Sends", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.placeholders_sends), style = MaterialTheme.typography.labelMedium)
             module.fields.forEach { field ->
                 Row {
                     Text(
@@ -279,7 +283,7 @@ private fun ModuleCard(module: SourceModule, keys: List<PlaceholderKey>, viewMod
                         fontFamily = FontFamily.Monospace,
                     )
                     Text(
-                        field.description,
+                        stringResource(field.description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -287,11 +291,9 @@ private fun ModuleCard(module: SourceModule, keys: List<PlaceholderKey>, viewMod
             }
 
             HorizontalDivider()
-            Text("What each placeholder takes from ${module.name}", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.placeholders_takes_from, module.name), style = MaterialTheme.typography.labelMedium)
             Text(
-                "Written with the fields above. Empty means the placeholder is empty for " +
-                    "${module.name} posts. For {tags}, whatever this comes to is split into " +
-                    "hashtags and ticked in the editor, next to the template's.",
+                stringResource(R.string.placeholders_recipe_explain, module.name),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -302,10 +304,26 @@ private fun ModuleCard(module: SourceModule, keys: List<PlaceholderKey>, viewMod
                     value = recipe,
                     onValueChange = { draft = draft + (key.id to it) },
                     label = { Text("{${key.name}}", fontFamily = FontFamily.Monospace) },
-                    placeholder = { Text(if (key.isTags) "No hashtags from ${module.name}" else "Empty") },
+                    placeholder = {
+                        Text(
+                            if (key.isTags) {
+                                stringResource(R.string.placeholders_no_tags_from, module.name)
+                            } else {
+                                stringResource(R.string.placeholders_empty)
+                            },
+                        )
+                    },
                     isError = unknown.isNotEmpty(),
                     supportingText = if (unknown.isNotEmpty()) {
-                        { Text(unknown.joinToString { "{$it}" } + " — not something ${module.name} sends") }
+                        {
+                            Text(
+                                stringResource(
+                                    R.string.placeholders_unknown_fields,
+                                    unknown.joinToString { "{$it}" },
+                                    module.name,
+                                ),
+                            )
+                        }
                     } else {
                         null
                     },
@@ -321,12 +339,12 @@ private fun ModuleCard(module: SourceModule, keys: List<PlaceholderKey>, viewMod
                 }
             }
             if (keys.isEmpty()) {
-                Text("No placeholders defined yet.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.placeholders_none_defined), style = MaterialTheme.typography.bodySmall)
             }
             Button(
                 onClick = { viewModel.saveRecipes(module.source, draft) },
                 enabled = draft != saved,
-            ) { Text("Save ${module.name}") }
+            ) { Text(stringResource(R.string.placeholders_save_module, module.name)) }
         }
     }
 }

@@ -19,6 +19,8 @@
  */
 package app.fediferry
 
+import app.fediferry.i18n.AppLocale
+import android.content.Context
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -35,6 +37,11 @@ import app.fediferry.ui.FediFerryNavHost
 import app.fediferry.ui.theme.FediFerryTheme
 
 class MainActivity : ComponentActivity() {
+
+    // Before Android 13 the app's own language choice is applied here.
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
 
     /** Item to open the editor on, set by a Compose-mode share. */
     private val editItemId = mutableStateOf<String?>(null)

@@ -27,6 +27,7 @@ import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
 import app.fediferry.mastodon.MastodonException
 import app.fediferry.mastodon.ScheduledStatus
+import app.fediferry.R
 import app.fediferry.work.ScheduleFormat
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -35,7 +36,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
 
 /** One post Mastodon holds for later, and whose it is. */
 data class QueuedPost(val account: Account, val status: ScheduledStatus, val at: Long)
@@ -68,7 +68,7 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
     private val tokens = ServiceLocator.tokens(app)
     private val client = ServiceLocator.mastodon(app)
     private val auth = ServiceLocator.auth(app)
-    private val repo = ServiceLocator.items(app)
+    private val actions = ScheduledActions(app)
 
     private val _state = MutableStateFlow(QueueState())
     val state: StateFlow<QueueState> = _state
@@ -90,7 +90,7 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun load(account: Account): Result<List<QueuedPost>> = runCatching {
-        val token = tokens.get(account.id) ?: throw MastodonException("No access token", code = 401)
+        val token = tokens.get(account.id) ?: throw MastodonException(getApplication<Application>().getString(R.string.queue_no_token), code = 401)
         client.scheduledStatuses(account.instance, token).map { status ->
             QueuedPost(account, status, ScheduleFormat.parse(status.scheduledAt) ?: 0L)
         }
@@ -100,58 +100,29 @@ class QueueViewModel(app: Application) : AndroidViewModel(app) {
         val code = (error as? MastodonException)?.code
         if (code == 401 || code == 403) return QueueProblem.NeedsReconnect
         DebugLog.w(LOG, "Could not read the scheduled posts", error)
-        return QueueProblem.Failed(error.message ?: "Could not reach the server")
+        return QueueProblem.Failed(error.message ?: getApplication<Application>().getString(R.string.queue_unreachable))
     }
 
     /** Signs in again, asking for the permission to read scheduled posts. */
     fun reconnect(account: Account) = viewModelScope.launch {
         runCatching { auth.beginAuthorization(account.instance) }
-            .onFailure { _messages.tryEmit(it.message ?: "Could not start the sign-in") }
+            .onFailure { _messages.tryEmit(it.message ?: getApplication<Application>().getString(R.string.queue_sign_in_failed)) }
     }
 
-    fun reschedule(post: QueuedPost, at: Long) = change(post, "Moved to ${ScheduleFormat.whenText(at)}") { token ->
-        client.reschedule(post.account.instance, token, post.status.id, Instant.ofEpochMilli(at).toString())
-    }
+    fun reschedule(post: QueuedPost, at: Long) = act { actions.reschedule(post, at) }
 
-    fun cancel(post: QueuedPost) = change(post, "Cancelled. Mastodon won't post it.") { token ->
-        client.cancelScheduled(post.account.instance, token, post.status.id)
-    }
+    fun cancel(post: QueuedPost) = act { actions.cancel(post) }
 
-    /**
-     * Copies a queued post into a new inbox draft. With [cancelAfter], the
-     * scheduled post is cancelled too — but only once the draft is safely
-     * made, so nothing is lost if the copy fails.
-     */
     fun makeDraft(post: QueuedPost, cancelAfter: Boolean) = viewModelScope.launch {
         _state.value = _state.value.copy(drafting = true)
-        val draft = repo.draftFromScheduled(post.account.id, post.status)
-        val message = draft.fold(
-            onSuccess = {
-                if (!cancelAfter) {
-                    "Draft made. It's in the inbox; the scheduled post stays."
-                } else {
-                    runCatching {
-                        val token = tokens.get(post.account.id) ?: throw MastodonException("No access token — reconnect")
-                        client.cancelScheduled(post.account.instance, token, post.status.id)
-                    }.fold(
-                        { "Draft made and the scheduled post cancelled. Edit it in the inbox." },
-                        { "Draft made, but the scheduled post couldn't be cancelled: ${it.message}" },
-                    )
-                }
-            },
-            onFailure = { "Couldn't make a draft: ${it.message}" },
-        )
+        val outcome = actions.makeDraft(post, cancelAfter)
         _state.value = _state.value.copy(drafting = false)
-        _messages.tryEmit(message)
+        _messages.tryEmit(outcome.message)
         refresh()
     }
 
-    private fun change(post: QueuedPost, done: String, call: suspend (String) -> Unit) = viewModelScope.launch {
-        val result = runCatching {
-            val token = tokens.get(post.account.id) ?: throw MastodonException("No access token — reconnect")
-            call(token)
-        }
-        _messages.tryEmit(result.fold({ done }, { it.message ?: "That didn't work" }))
+    private fun act(call: suspend () -> ScheduledActions.Outcome) = viewModelScope.launch {
+        _messages.tryEmit(call().message)
         refresh()
     }
 

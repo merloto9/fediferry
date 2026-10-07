@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Editor screen -->
+    <string name="editor_title">Beitrag bearbeiten</string>
+    <string name="editor_save_and_back">Speichern und zurück</string>
+    <string name="editor_discard">Verwerfen</string>
+    <string name="editor_item_gone">Dieser Eintrag ist nicht mehr da</string>
+    <string name="editor_trim">Zuschneiden</string>
+    <string name="editor_clean_up">Bereinigen</string>
+    <string name="editor_undo_edits">Änderungen rückgängig</string>
+    <string name="editor_adjust_hashtags">Hashtags anpassen</string>
+    <string name="editor_close">Schließen</string>
+    <string name="editor_open">Öffnen</string>
+    <string name="editor_post_text">Beitragstext</string>
+    <string name="editor_placeholder_help">Welche Platzhalter kann ich verwenden?</string>
+    <string name="editor_alt_text">Bildbeschreibung</string>
+    <string name="editor_alt_text_busy">Das KI-Modell beschreibt das Bild …</string>
+    <string name="editor_alt_text_failed">Die automatische Beschreibung ist fehlgeschlagen – der Beitrag geht ohne raus.</string>
+    <string name="editor_alt_text_hint">Für Menschen, die das Bild nicht sehen können. Beschreibe, was es zeigt, auch den Text darin. Screenreader lesen das vor.</string>
+    <string name="editor_regenerate_alt_text">Bildbeschreibung neu erzeugen</string>
+    <string name="editor_save_draft">Entwurf speichern</string>
+    <string name="editor_post">Posten</string>
+    <string name="editor_tags_empty">{tags} ist leer – keine Hashtags ausgewählt, daher fällt die Zeile weg.</string>
+    <string name="editor_tags_becomes">{tags} wird beim Senden zu %1$s.</string>
+    <string name="editor_tags_missing">Der Text enthält kein {tags}, daher werden die ausgewählten Hashtags nicht gepostet.</string>
+    <string name="editor_template">Vorlage: %1$s</string>
+    <string name="editor_no_account">Kein Konto verbunden – füge vor dem Posten eins unter Einstellungen → Mastodon-Konto hinzu.</string>
+    <string name="editor_account">Konto: @%1$s</string>
+    <string name="editor_link_warning_title">Dieser Link verrät eventuell, wer ihn geteilt hat</string>
+    <string name="editor_link_warning_body">Er wurde mit Angaben zum Absender geteilt, und ein bereinigter Link, der zum selben Beitrag führt, ließ sich nicht bestätigen. Deshalb wird er so gepostet, wie er geteilt wurde.</string>
+    <string name="editor_remove_link">Link aus dem Beitrag entfernen</string>
+    <string name="editor_stack">Stapel: %1$s</string>
+    <string name="editor_stack_new">Neu</string>
+    <string name="editor_change_stack">Stapel ändern</string>
+    <string name="editor_stack_none">Neu – auf keinem Stapel</string>
+    <!-- Editor messages -->
+    <string name="editor_no_image">Kein Bild zum Beschreiben</string>
+    <string name="editor_alt_text_error">Bildbeschreibung fehlgeschlagen: %1$s</string>
+    <string name="editor_original_restored">Ursprünglicher Screenshot wiederhergestellt</string>
+    <string name="editor_connect_account">Verbinde zuerst ein Mastodon-Konto</string>
+
+    <!-- Hashtag panel -->
+    <string name="hashtags_title">Hashtags</string>
+    <string name="hashtags_explain">Die angehakten ersetzen beim Senden {tags}. Die Vorlage legt fest, welche anfangs angehakt sind.</string>
+    <string name="hashtags_none_yet">Noch keine Hashtags – füge welche unter Einstellungen → Hashtags hinzu oder tippe unten einen ein.</string>
+    <string name="hashtags_add_source">Hashtags von %1$s hinzufügen</string>
+    <string name="hashtags_source_none">Keine für diesen Beitrag – das {tags}-Rezept von %1$s unter Einstellungen → Platzhalter &amp; Quellen liefert nichts.</string>
+    <string name="hashtags_another">Weiterer Hashtag für diesen Beitrag</string>
+    <string name="hashtags_example">#politik</string>
+    <string name="hashtags_joins_settings">Kommt nach dem Senden zu Einstellungen → Hashtags.</string>
+    <string name="hashtags_this_post_only">Nur für diesen Beitrag.</string>
+    <string name="hashtags_add">Hashtag hinzufügen</string>
+
+    <!-- Post options: visibility and alt text -->
+    <string name="options_visibility">Sichtbarkeit</string>
+    <string name="options_visibility_public">Öffentlich</string>
+    <string name="options_visibility_unlisted">Öffentlich (still)</string>
+    <string name="options_visibility_private">Nur Follower</string>
+    <string name="options_visibility_direct">Private Erwähnung</string>
+    <string name="options_visibility_public_explain">Alle können ihn sehen. Er erscheint in deinem Profil, in den Startseiten deiner Follower, in den öffentlichen Timelines und unter seinen Hashtags, und er kann geteilt werden.</string>
+    <string name="options_visibility_unlisted_explain">Alle können ihn sehen und teilen, und deine Follower bekommen ihn auf ihre Startseite – aber er erscheint nicht in den öffentlichen Timelines, Trends und Hashtag-Suchen. Gut, um die lokale Timeline nicht mit Memes zu fluten.</string>
+    <string name="options_visibility_private_explain">Nur deine Follower und alle, die im Text @erwähnt werden, können ihn sehen. Er kann nicht geteilt werden, und wer dir nicht folgt, sieht in deinem Profil nichts davon.</string>
+    <string name="options_visibility_direct_explain">Nur die im Text @erwähnten Konten können ihn sehen. Ohne Erwähnung sieht ihn niemand außer dir. Die Admins deines Servers können ihn trotzdem lesen – er ist nicht Ende-zu-Ende-verschlüsselt.</string>
+    <string name="options_no_mention_warning">Der Text erwähnt noch niemanden, daher würde dieser Beitrag niemanden erreichen.</string>
+    <string name="options_alt_text">Bildbeschreibung</string>
+    <string name="options_alt_text_explain">Eine Beschreibung des Bildes für Menschen, die es nicht sehen können. Screenreader lesen sie vor, und sie steckt hinter dem ALT-Abzeichen am Bild.</string>
+    <string name="options_alt_none">Keine</string>
+    <string name="options_alt_static">Fester Text</string>
+    <string name="options_alt_vision">Generiert</string>
+    <string name="options_alt_none_explain">Beiträge gehen ohne Beschreibung raus. Wer einen Screenreader nutzt, hört nur, dass da ein Bild ist, und viele auf Mastodon überspringen oder meiden Beiträge ohne Beschreibung. Im Editor kannst du trotzdem eine schreiben.</string>
+    <string name="options_alt_static_explain">Jeder Beitrag bekommt dieselbe Beschreibung, die du unten einträgst. Praktisch als Notlösung, aber sie kann nicht sagen, was ein bestimmtes Meme zeigt – bearbeite sie im Editor, wenn es darauf ankommt.</string>
+    <string name="options_alt_vision_explain">Das Bild wird an das KI-Modell geschickt, das unter Einstellungen → Bildbeschreibung eingerichtet ist, und seine Antwort wird zur Beschreibung. Prüfe sie vor dem Posten im Editor; beim sofortigen Posten geht sie ungelesen raus. Schlägt das Modell fehl, geht der Beitrag ohne Beschreibung raus.</string>
+    <string name="options_no_model">Noch kein Modell eingerichtet – trag es unter Einstellungen → Bildbeschreibung ein, sonst geht jeder Beitrag mit dieser Vorlage ohne Beschreibung raus.</string>
+
+    <!-- Content warning -->
+    <string name="cw_label">Inhaltswarnung</string>
+    <string name="cw_pick">Inhaltswarnung auswählen</string>
+    <string name="cw_clear">Leeren</string>
+    <string name="cw_none">Keine Warnung – der Beitrag wird unverdeckt angezeigt.</string>
+    <string name="cw_in_use">Verwendet</string>
+
+    <!-- Loading -->
+    <string name="loading_slow">Läuft noch – der Server lässt sich Zeit.</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_inbox">Eingang</string>
+    <string name="nav_queue">Geplant</string>
+    <string name="nav_sources">Quellen</string>
+</resources>

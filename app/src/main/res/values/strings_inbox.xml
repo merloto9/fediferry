@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Inbox -->
+    <string name="inbox_title">Inbox</string>
+    <plurals name="inbox_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="inbox_clear_selection">Clear selection</string>
+    <string name="inbox_schedule_post">Schedule post</string>
+    <string name="inbox_move_to_stack">Move to stack</string>
+    <string name="inbox_delete_selected">Delete selected</string>
+    <string name="inbox_new_stack">New stack</string>
+    <string name="inbox_rename_stack">Rename stack</string>
+    <string name="inbox_settings">Settings</string>
+    <string name="inbox_section_new">New</string>
+    <string name="inbox_new_empty">Nothing new. Shared posts land here.</string>
+    <string name="inbox_stack_empty">Empty. Select posts with a long press, then move them here.</string>
+    <string name="inbox_shared_image">Shared image</string>
+    <string name="inbox_text_only">Text only</string>
+    <string name="inbox_no_text">(no text)</string>
+    <string name="inbox_status_draft">Draft</string>
+    <string name="inbox_status_queued">Queued</string>
+    <string name="inbox_status_sending">Sending</string>
+    <string name="inbox_status_posted">Posted</string>
+    <string name="inbox_status_failed">Failed</string>
+    <string name="inbox_empty_title">Nothing saved yet</string>
+    <string name="inbox_empty_body">Screenshot a meme, share it here, and pick %1$s, %2$s, or %3$s.</string>
+    <string name="inbox_section_open">Open %1$s</string>
+    <string name="inbox_section_fold">Fold %1$s</string>
+    <string name="inbox_stack_actions">Stack actions for %1$s</string>
+    <string name="inbox_rename">Rename</string>
+    <string name="inbox_delete_stack">Delete stack — posts go back to New</string>
+    <string name="inbox_move_to">Move to</string>
+    <string name="inbox_no_stack">On no stack</string>
+    <string name="inbox_new_stack_more">New stack…</string>
+    <string name="inbox_stack_name">Name</string>
+    <string name="inbox_stack_name_hint">Ready to post</string>
+    <string name="inbox_create">Create</string>
+    <string name="inbox_cancel">Cancel</string>
+
+    <!-- Cleaning the links of posts shared before 0.17.1 -->
+    <string name="oldlinks_none_title">Links in the inbox</string>
+    <string name="oldlinks_none_body">No post in the inbox has a Pinterest or Reddit link to check.</string>
+    <string name="oldlinks_ok">OK</string>
+    <string name="oldlinks_offer_title">Clean older links?</string>
+    <plurals name="oldlinks_offer_body">
+        <item quantity="one">%1$d post in the inbox has %2$s links, in the shared link or the text. Links from before FediFerry 0.17.1, or added by hand, may still say who shared them. Check them now? Each link is tested, and one that can\'t be confirmed is kept as it is.\n\nYou can do this later in Settings → Sharing &amp; posting.</item>
+        <item quantity="other">%1$d posts in the inbox have %2$s links, in the shared link or the text. Links from before FediFerry 0.17.1, or added by hand, may still say who shared them. Check them now? Each link is tested, and one that can\'t be confirmed is kept as it is.\n\nYou can do this later in Settings → Sharing &amp; posting.</item>
+    </plurals>
+    <string name="oldlinks_services_pair">%1$s and %2$s</string>
+    <string name="oldlinks_clean">Clean links</string>
+    <string name="oldlinks_not_now">Not now</string>
+    <string name="oldlinks_running_title">Cleaning links</string>
+    <string name="oldlinks_looking">Looking at the inbox…</string>
+    <string name="oldlinks_checking">Checking post %1$d of %2$d</string>
+    <string name="oldlinks_done_title">Links checked</string>
+    <plurals name="oldlinks_cleaned">
+        <item quantity="one">%1$d link cleaned.</item>
+        <item quantity="other">%1$d links cleaned.</item>
+    </plurals>
+    <plurals name="oldlinks_kept">
+        <item quantity="one">%1$d link couldn\'t be confirmed and was kept as shared, so it may still say who shared it.</item>
+        <item quantity="other">%1$d links couldn\'t be confirmed and were kept as shared, so they may still say who shared them.</item>
+    </plurals>
+    <plurals name="oldlinks_already_clean">
+        <item quantity="one">%1$d link already clean.</item>
+        <item quantity="other">%1$d links already clean.</item>
+    </plurals>
+    <string name="oldlinks_nothing">Nothing needed changing.</string>
+
+    <!-- Sources -->
+    <string name="sources_title">Sources</string>
+    <string name="sources_settings">Settings</string>
+    <string name="sources_checking_title">Checking @%1$s</string>
+    <string name="sources_checking_detail">Fetching the channel from YouTube to make sure it has public community posts, and to learn its name.</string>
+    <string name="sources_add_channel">Add a channel</string>
+    <string name="sources_empty_title">No channels yet</string>
+    <string name="sources_empty_body">Add a YouTube channel to browse its community posts and pick a picture straight into the editor.</string>
+    <string name="sources_remove_channel">Remove channel</string>
+    <string name="sources_handle_label">Handle or channel URL</string>
+    <string name="sources_public_only">Only channels with public community posts can be shown.</string>
+    <string name="sources_add">Add</string>
+    <string name="sources_cancel">Cancel</string>
+    <string name="sources_enter_handle">Enter a channel handle like @heuteshow</string>
+    <string name="sources_already_here">@%1$s is already here</string>
+    <string name="sources_add_failed">Could not add that channel</string>
+    <string name="sources_channel">Channel</string>
+    <string name="sources_back">Back</string>
+    <string name="sources_reload">Reload</string>
+    <string name="sources_fetching_title">Fetching community posts</string>
+    <string name="sources_fetching_detail">Asking YouTube for the latest posts from %1$s. Only the ones with pictures are kept.</string>
+    <string name="sources_this_channel">this channel</string>
+    <string name="sources_try_again">Try again</string>
+    <string name="sources_no_picture_posts">No posts with pictures here</string>
+    <string name="sources_downloading_title">Downloading the picture</string>
+    <string name="sources_downloading_detail">Fetching it from YouTube at full size and keeping a copy on this phone, so the editor can open it.</string>
+    <string name="sources_loading_picture">Loading picture…</string>
+    <string name="sources_post_image">Post image</string>
+    <plurals name="sources_pictures_tap_one">
+        <item quantity="one">%1$d picture — tap it</item>
+        <item quantity="other">%1$d pictures — tap one</item>
+    </plurals>
+    <string name="sources_channel_gone">That channel is gone</string>
+    <string name="sources_load_failed">Could not load posts</string>
+    <string name="sources_pick_failed">Could not use that picture: %1$s</string>
+
+    <!-- Trimming a screenshot -->
+    <string name="crop_title">Trim the screenshot</string>
+    <string name="crop_skip">Skip</string>
+    <string name="crop_no_image">No image to trim</string>
+    <string name="crop_hint_suggested">Drag the corners if this missed. The original is kept, so this can be undone.</string>
+    <string name="crop_hint_none">Nothing obvious to trim — drag the corners to crop by hand.</string>
+    <string name="crop_suggested">Suggested</string>
+    <string name="crop_whole_image">Whole image</string>
+    <string name="crop_trimming">Trimming…</string>
+    <string name="crop_use_this">Use this</string>
+    <string name="crop_image_description">Screenshot being trimmed</string>
+
+    <!-- Image clean-up -->
+    <string name="cleanup_title">Clean up</string>
+    <string name="cleanup_skip">Skip</string>
+    <string name="cleanup_no_image">No image to clean up</string>
+    <string name="cleanup_hint">Drag over anything that should go. The treatment applies to the next box you draw, so different things can be handled differently.</string>
+    <string name="cleanup_clear">Clear</string>
+    <plurals name="cleanup_areas">
+        <item quantity="one">%1$d area</item>
+        <item quantity="other">%1$d areas</item>
+    </plurals>
+    <string name="cleanup_applying">Applying…</string>
+    <string name="cleanup_use_this">Use this</string>
+    <string name="cleanup_ai_title">Erasing with the image model</string>
+    <string name="cleanup_ai_detail">The picture and the areas you marked have been sent to your image model. Waiting for it to send back the cleaned-up version.</string>
+    <string name="cleanup_treatment_fill">Fill in</string>
+    <string name="cleanup_treatment_crop_away">Crop away</string>
+    <string name="cleanup_treatment_blur">Blur</string>
+    <string name="cleanup_treatment_pixelate">Pixelate</string>
+    <string name="cleanup_treatment_ai_erase">Erase with AI</string>
+    <string name="cleanup_no_model">No image model is set up, so these areas will be filled in from their surroundings instead. Add one in Settings → Image clean-up.</string>
+    <string name="cleanup_instruction_label">Tell the model what to do</string>
+    <string name="cleanup_instruction_scope">Applies to this image only. The default lives in Settings → Image clean-up.</string>
+    <string name="cleanup_profile">Profile: %1$s</string>
+    <string name="cleanup_profile_none">none</string>
+    <string name="cleanup_new_profile_more">New profile…</string>
+    <string name="cleanup_remember">Remember</string>
+    <string name="cleanup_new_profile">New profile</string>
+    <string name="cleanup_name">Name</string>
+    <string name="cleanup_create">Create</string>
+    <string name="cleanup_cancel">Cancel</string>
+    <string name="cleanup_image_description">Image being cleaned up</string>
+    <string name="cleanup_filled_locally">Filled in locally instead — %1$s</string>
+    <string name="cleanup_failed">Could not clean up: %1$s</string>
+</resources>

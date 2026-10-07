@@ -23,66 +23,65 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.annotation.StringRes
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.Visibility
 
 /** The names Mastodon's own apps use, so the choice reads the same in both places. */
-val Visibility.label: String
+@get:StringRes
+val Visibility.labelRes: Int
     get() = when (this) {
-        Visibility.PUBLIC -> "Public"
-        Visibility.UNLISTED -> "Quiet public"
-        Visibility.PRIVATE -> "Followers only"
-        Visibility.DIRECT -> "Private mention"
+        Visibility.PUBLIC -> R.string.options_visibility_public
+        Visibility.UNLISTED -> R.string.options_visibility_unlisted
+        Visibility.PRIVATE -> R.string.options_visibility_private
+        Visibility.DIRECT -> R.string.options_visibility_direct
+    }
+
+val Visibility.label: String
+    @Composable get() = stringResource(labelRes)
+
+@get:StringRes
+val Visibility.explanationRes: Int
+    get() = when (this) {
+        Visibility.PUBLIC -> R.string.options_visibility_public_explain
+        Visibility.UNLISTED -> R.string.options_visibility_unlisted_explain
+        Visibility.PRIVATE -> R.string.options_visibility_private_explain
+        Visibility.DIRECT -> R.string.options_visibility_direct_explain
     }
 
 val Visibility.explanation: String
+    @Composable get() = stringResource(explanationRes)
+
+@get:StringRes
+val AltTextMode.labelRes: Int
     get() = when (this) {
-        Visibility.PUBLIC ->
-            "Anyone can see it. It appears on your profile, in your followers' home " +
-                "feeds, on the public timelines and under its hashtags, and it can be boosted."
-        Visibility.UNLISTED ->
-            "Anyone can see it and boost it, and your followers get it in their home " +
-                "feeds — but it stays off the public timelines, trends and hashtag " +
-                "searches. Good for not flooding the local feed with memes."
-        Visibility.PRIVATE ->
-            "Only your followers and anyone @mentioned in the text can see it. It " +
-                "cannot be boosted, and people who are not following you see nothing on your profile."
-        Visibility.DIRECT ->
-            "Only the accounts @mentioned in the text can see it. Without a mention, " +
-                "nobody but you will. Your server's admins can still read it — it is " +
-                "not end-to-end encrypted."
+        AltTextMode.NONE -> R.string.options_alt_none
+        AltTextMode.STATIC -> R.string.options_alt_static
+        AltTextMode.VISION -> R.string.options_alt_vision
     }
 
 val AltTextMode.label: String
+    @Composable get() = stringResource(labelRes)
+
+@get:StringRes
+val AltTextMode.explanationRes: Int
     get() = when (this) {
-        AltTextMode.NONE -> "None"
-        AltTextMode.STATIC -> "Fixed text"
-        AltTextMode.VISION -> "Generated"
+        AltTextMode.NONE -> R.string.options_alt_none_explain
+        AltTextMode.STATIC -> R.string.options_alt_static_explain
+        AltTextMode.VISION -> R.string.options_alt_vision_explain
     }
 
 val AltTextMode.explanation: String
-    get() = when (this) {
-        AltTextMode.NONE ->
-            "Posts go out without a description. People using a screen reader hear " +
-                "only that there is an image, and many on Mastodon skip or avoid posts " +
-                "without one. You can still write one in the editor."
-        AltTextMode.STATIC ->
-            "Every post gets the same description, written below. Handy as a " +
-                "fallback, but it cannot say what a particular meme shows — edit it in " +
-                "the editor when it matters."
-        AltTextMode.VISION ->
-            "The picture is sent to the image-describing model set up under " +
-                "Settings → Alt text, and its answer becomes the description. Check it " +
-                "in the editor before posting; a post-now share sends it unread. If " +
-                "the model fails, the post goes out without one."
-    }
+    @Composable get() = stringResource(explanationRes)
 
 /**
  * Visibility chips with the chosen one explained underneath. Wraps, since four
@@ -97,7 +96,7 @@ fun VisibilityPicker(
     onSelect: (Visibility) -> Unit,
     text: String,
     modifier: Modifier = Modifier,
-    title: String = "Visibility",
+    title: String = stringResource(R.string.options_visibility),
     titleStyle: TextStyle = MaterialTheme.typography.labelLarge,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -114,7 +113,7 @@ fun VisibilityPicker(
         Explanation(selected.explanation)
         if (selected == Visibility.DIRECT && !MENTION.containsMatchIn(text)) {
             Explanation(
-                "The text mentions no one yet, so this post would reach nobody.",
+                stringResource(R.string.options_no_mention_warning),
                 warning = true,
             )
         }
@@ -131,10 +130,9 @@ fun AltTextModePicker(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Alt text", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.options_alt_text), style = MaterialTheme.typography.labelMedium)
         Explanation(
-            "A description of the picture for people who cannot see it. Screen readers " +
-                "read it aloud, and it shows behind the ALT badge on the image.",
+            stringResource(R.string.options_alt_text_explain),
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AltTextMode.entries.forEach { mode ->
@@ -148,8 +146,7 @@ fun AltTextModePicker(
         Explanation(selected.explanation)
         if (selected == AltTextMode.VISION && !visionConfigured) {
             Explanation(
-                "No model is set up yet — fill in Settings → Alt text, or every " +
-                    "post from this template goes out without a description.",
+                stringResource(R.string.options_no_model),
                 warning = true,
             )
         }

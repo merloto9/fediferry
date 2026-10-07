@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Settings → Appearance -->
+    <string name="appearance_theme">Theme</string>
+    <string name="appearance_system">System</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="appearance_theme_system_explain">Light or dark, as the phone is set.</string>
+    <string name="appearance_theme_light_explain">Always light.</string>
+    <string name="appearance_theme_dark_explain">Always dark.</string>
+    <string name="appearance_colours">Colours</string>
+    <string name="appearance_colours_wallpaper">Wallpaper</string>
+    <string name="appearance_colours_app_explain">FediFerry\'s own green, with every text colour checked to stand out from what it sits on.</string>
+    <string name="appearance_colours_app_explain_no_wallpaper">FediFerry\'s own green, with every text colour checked to stand out from what it sits on. Wallpaper colours need Android 12.</string>
+    <string name="appearance_colours_wallpaper_explain">Colours taken from your wallpaper, as other apps on this phone use. They come with no contrast guarantee, and any that come out red are swapped for FediFerry\'s own: red is kept for warnings.</string>
+    <string name="appearance_contrast">Contrast</string>
+    <string name="appearance_contrast_standard">Standard</string>
+    <string name="appearance_contrast_high">High</string>
+    <string name="appearance_contrast_system_explain">Follows Settings → Accessibility → Colour and motion → Contrast: medium or high there means high here.</string>
+    <string name="appearance_contrast_system_unavailable">This Android version has no contrast setting, so this is Standard.</string>
+    <string name="appearance_contrast_standard_explain">Text at least 4.5 times as bright or dark as its background.</string>
+    <string name="appearance_contrast_high_explain">Text at least 7 times as bright or dark as its background, and firmer outlines. Always uses FediFerry\'s own colours.</string>
+
+    <!-- Settings → AI models -->
+    <string name="models_none">No model yet.</string>
+    <string name="models_add">Add a model</string>
+    <string name="models_default">Default</string>
+    <string name="models_name">Name</string>
+    <string name="models_name_hint">What you call it, e.g. Gemini Flash</string>
+    <string name="models_endpoint">Endpoint URL</string>
+    <string name="models_endpoint_invalid">Not a web address — it should start with https://</string>
+    <string name="models_model">Model</string>
+    <string name="models_api_key">API key</string>
+    <string name="models_key_saved_hint">Saved — type to replace</string>
+    <string name="models_key_none">None</string>
+    <string name="models_key_stored">Stored encrypted on this phone. It is never shown again.</string>
+    <string name="models_request_format">Request format</string>
+    <string name="models_mask_marks">Mask marks the area to replace as</string>
+    <string name="models_mask_transparent">Transparent</string>
+    <string name="models_mask_white">White</string>
+    <string name="models_save">Save</string>
+    <string name="models_test">Test</string>
+    <string name="models_testing">Testing…</string>
+    <string name="models_make_default">Make default</string>
+    <string name="models_delete">Delete</string>
+    <string name="models_save_first">Save first to test the changes.</string>
+    <string name="models_sending_test">Sending a tiny test picture…</string>
+    <string name="models_report_detail">%1$s: %2$s</string>
+
+    <!-- Settings → Hashtags -->
+    <string name="placeholders_hashtags_intro">The hashtags you post with, one list for everything. Each template ticks the ones its topic uses; the editor shows the whole list, so any post can take more.</string>
+    <string name="placeholders_remove_hashtag">Remove %1$s</string>
+    <string name="placeholders_new_hashtag">New hashtag</string>
+    <string name="placeholders_new_hashtag_example">#politics</string>
+    <string name="placeholders_add_hashtag">Add hashtag</string>
+    <string name="placeholders_remember_sent">Add new hashtags when a post is sent</string>
+    <string name="placeholders_remember_sent_explain">Every hashtag a sent post carried that is not on the list yet joins it — typed in the editor, added by a source, or written into the text. Only posts that actually went out count.</string>
+
+    <!-- Settings → Placeholders -->
+    <string name="placeholders_title">Placeholders</string>
+    <string name="placeholders_new">New placeholder</string>
+    <string name="placeholders_intro">Names a template body can use. What each one says is set per source under Source modules. {link} and {date} are built in and always filled from the share.</string>
+    <string name="placeholders_tags_reserved">Reserved. Becomes the post\'s hashtags when it is sent — the template\'s picks plus any a source adds — and stays as {tags} in the editor until then, so the hashtags can still change. It cannot be renamed or deleted; each source\'s hashtags are set below, under Source modules.</string>
+    <string name="placeholders_problem_empty">Give it a name</string>
+    <string name="placeholders_problem_reserved">{%1$s} is reserved</string>
+    <string name="placeholders_problem_chars">Letters, digits and _ only</string>
+    <string name="placeholders_problem_taken">Another placeholder is already called that</string>
+    <string name="placeholders_name">Name</string>
+    <string name="placeholders_write_hint">Write {%1$s} in a template body</string>
+    <string name="placeholders_no_source">No source fills it yet.</string>
+    <string name="placeholders_filled_from">Filled from %1$s</string>
+    <string name="placeholders_rename">Rename</string>
+    <string name="placeholders_delete">Delete</string>
+
+    <!-- Settings → Source modules -->
+    <string name="placeholders_modules_title">Source modules</string>
+    <string name="placeholders_modules_intro">Each source the app can fetch from is a module of its own. Open one to see what it sends and to say what each placeholder takes from it.</string>
+    <string name="placeholders_module_open">Open %1$s</string>
+    <string name="placeholders_module_close">Close %1$s</string>
+    <string name="placeholders_recognises">Recognises</string>
+    <string name="placeholders_sends">Sends</string>
+    <string name="placeholders_takes_from">What each placeholder takes from %1$s</string>
+    <string name="placeholders_recipe_explain">Written with the fields above. Empty means the placeholder is empty for %1$s posts. For {tags}, whatever this comes to is split into hashtags and ticked in the editor, next to the template\'s.</string>
+    <string name="placeholders_no_tags_from">No hashtags from %1$s</string>
+    <string name="placeholders_empty">Empty</string>
+    <string name="placeholders_unknown_fields">%1$s — not something %2$s sends</string>
+    <string name="placeholders_none_defined">No placeholders defined yet.</string>
+    <string name="placeholders_save_module">Save %1$s</string>
+
+    <!-- Placeholder help dialog -->
+    <string name="help_title">Placeholders</string>
+    <string name="help_tags_what">The post\'s hashtags: the template\'s picks, plus any a source adds. Filled when the post is sent, so it stays {tags} in the editor — change the hashtags with Adjust Hashtags next to the template.</string>
+    <string name="help_tags_empty">Empty when no hashtags are picked.</string>
+    <string name="help_link_what">The permalink of the post that was shared.</string>
+    <string name="help_link_empty">Empty unless a link came with the share. Instagram\'s share sheet sends one; a plain screenshot does not.</string>
+    <string name="help_date_what">Today\'s date, as yyyy-MM-dd.</string>
+    <string name="help_date_empty">Never empty.</string>
+    <string name="help_custom_unmapped">Defined in Settings → Placeholders &amp; sources, but no source fills it yet.</string>
+    <string name="help_custom_mapped_item">%1$s: %2$s</string>
+    <string name="help_custom_empty">Empty for screenshots and unfetched links, and for any source a template has unticked.</string>
+    <string name="help_custom_empty_unmapped">Empty for screenshots and unfetched links, and for %1$s, and for any source a template has unticked.</string>
+    <string name="help_intro">Anything in braces is replaced when the post is written.</string>
+    <string name="help_empty_lines_title">Empty lines disappear</string>
+    <string name="help_empty_lines">If every placeholder on a line comes back empty, the whole line is dropped — so a template ending in \"via {link}\" posts nothing at all when there was no link, rather than a dangling \"via\".</string>
+    <string name="help_example">Example</string>
+    <string name="help_unknown">An unknown placeholder is left exactly as typed, so a mistake shows up instead of vanishing.</string>
+    <string name="help_close">Close</string>
+
+    <!-- Model picker -->
+    <string name="modelpicker_current">Model: %1$s</string>
+    <string name="modelpicker_change">Change model</string>
+    <string name="modelpicker_default_item">%1$s  (default)</string>
+</resources>

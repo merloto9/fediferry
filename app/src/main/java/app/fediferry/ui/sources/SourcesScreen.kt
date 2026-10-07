@@ -57,8 +57,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.R
 import app.fediferry.ui.LoadingOverlay
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
@@ -86,9 +88,8 @@ fun SourcesScreen(
 
     state.adding?.let { handle ->
         LoadingOverlay(
-            title = "Checking @$handle",
-            detail = "Fetching the channel from YouTube to make sure it has public " +
-                "community posts, and to learn its name.",
+            title = stringResource(R.string.sources_checking_title, handle),
+            detail = stringResource(R.string.sources_checking_detail),
             icon = Icons.Outlined.Subscriptions,
         )
     }
@@ -108,17 +109,17 @@ fun SourcesScreen(
         bottomBar = { SpaceBar(Space.SOURCES, onSwitchSpace) },
         topBar = {
             TopAppBar(
-                title = { Text("Sources") },
+                title = { Text(stringResource(R.string.sources_title)) },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.sources_settings))
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { adding = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add a channel")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.sources_add_channel))
             }
         },
     ) { padding ->
@@ -128,10 +129,9 @@ fun SourcesScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No channels yet", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.sources_empty_title), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Add a YouTube channel to browse its community posts and pick " +
-                            "a picture straight into the editor.",
+                        stringResource(R.string.sources_empty_body),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp),
                     )
@@ -162,7 +162,7 @@ fun SourcesScreen(
                             )
                         }
                         IconButton(onClick = { viewModel.remove(source.id) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Remove channel")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.sources_remove_channel))
                         }
                     }
                 }
@@ -179,24 +179,24 @@ private fun AddChannelDialog(
     var input by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a channel") },
+        title = { Text(stringResource(R.string.sources_add_channel)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it },
-                    label = { Text("Handle or channel URL") },
+                    label = { Text(stringResource(R.string.sources_handle_label)) },
                     placeholder = { Text("@heuteshow") },
                     singleLine = true,
                 )
                 Text(
-                    "Only channels with public community posts can be shown.",
+                    stringResource(R.string.sources_public_only),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(input) }) { Text("Add") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onConfirm(input) }) { Text(stringResource(R.string.sources_add)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.sources_cancel)) } },
     )
 }

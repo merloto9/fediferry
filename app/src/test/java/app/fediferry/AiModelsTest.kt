@@ -20,6 +20,10 @@
 package app.fediferry
 
 import app.fediferry.ai.ModelTester
+import app.fediferry.ai.ReportDetail
+import app.fediferry.ai.ReportText
+import app.fediferry.ai.ReportText.Raw
+import app.fediferry.ai.ReportText.Res
 import app.fediferry.data.AiModels
 import app.fediferry.data.Settings
 import app.fediferry.data.model.AiKind
@@ -30,6 +34,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiModelsTest {
+
+    /** Label to value, for looking a line up by the label's resource. */
+    private fun List<ReportDetail>.byLabel(): Map<ReportText, ReportText> = associate { it.label to it.value }
 
     private fun model(id: String, default: Boolean = false, name: String = id) =
         AiModel(id = id, kind = AiKind.ALT_TEXT, name = name, endpoint = "https://x/v1/chat/completions", model = "m-$id", isDefault = default)
@@ -111,11 +118,21 @@ class AiModelsTest {
             "finish_reason":"stop"}],"usage":{"prompt_tokens":270,"completion_tokens":612,"total_tokens":882,
             "completion_tokens_details":{"reasoning_tokens":604}}}"""
 
-        val details = ModelTester.replyDetails(body).toMap()
+        val details = ModelTester.replyDetails(body).byLabel()
 
-        assertEquals("gemini-3.8-flash", details["Model the server ran"])
-        assertEquals("270 in · 612 out · 604 of them thinking · 882 in all", details["Tokens"])
-        assertEquals("it was done", details["Stopped because"])
+        assertEquals(Raw("gemini-3.8-flash"), details[Res(R.string.extra_test_model_ran)])
+        assertEquals(
+            ReportText.Joined(
+                listOf(
+                    Res(R.string.extra_test_tokens_in, listOf("270")),
+                    Res(R.string.extra_test_tokens_out, listOf("612")),
+                    Res(R.string.extra_test_tokens_thinking, listOf("604")),
+                    Res(R.string.extra_test_tokens_total, listOf("882")),
+                ),
+            ),
+            details[Res(R.string.extra_test_tokens)],
+        )
+        assertEquals(Res(R.string.extra_test_stopped_done), details[Res(R.string.extra_test_stopped)])
     }
 
     @Test
@@ -129,20 +146,20 @@ class AiModelsTest {
             "X-RateLimit-Reset-Tokens" to "1.764s",
         )
 
-        val limits = ModelTester.rateLimits(headers).toMap()
+        val limits = ModelTester.rateLimits(headers).byLabel()
 
-        assertEquals("499 of 500 left, resets in 120ms", limits["Requests"])
-        assertEquals("29118 of 30000 left, resets in 1.764s", limits["Tokens"])
+        assertEquals(Res(R.string.extra_test_left_of_reset, listOf("499", "500", "120ms")), limits[Res(R.string.extra_test_requests)])
+        assertEquals(Res(R.string.extra_test_left_of_reset, listOf("29118", "30000", "1.764s")), limits[Res(R.string.extra_test_tokens)])
     }
 
     @Test
     fun `reads a refusal's retry-after and the IETF draft headers`() {
         val limits = ModelTester.rateLimits(
             mapOf("retry-after" to "30", "RateLimit-Limit" to "60", "RateLimit-Remaining" to "0", "RateLimit-Reset" to "30"),
-        ).toMap()
+        ).byLabel()
 
-        assertEquals("30s", limits["Try again after"])
-        assertEquals("0 of 60 left, resets in 30s", limits["Rate limit"])
+        assertEquals(Raw("30s"), limits[Res(R.string.extra_test_retry_after)])
+        assertEquals(Res(R.string.extra_test_left_of_reset, listOf("0", "60", "30s")), limits[Res(R.string.extra_test_rate_limit)])
     }
 
     @Test
@@ -168,11 +185,14 @@ class AiModelsTest {
         val m = model("a").copy(endpoint = "https://generativelanguage.oogleapis.com/v1beta/openai/chat/completions")
 
         assertEquals(
-            "There is no server called generativelanguage.oogleapis.com — check the address.",
+            Res(R.string.extra_test_no_server, listOf("generativelanguage.oogleapis.com")),
             ModelTester.explain(java.net.UnknownHostException("nope"), m),
         )
-        assertTrue(ModelTester.explain(java.io.IOException("x", java.net.ConnectException("refused")), m).startsWith("Could not reach"))
-        assertEquals("quota exceeded", ModelTester.explain(IllegalStateException("quota exceeded"), m))
+        assertEquals(
+            R.string.extra_test_unreachable,
+            (ModelTester.explain(java.io.IOException("x", java.net.ConnectException("refused")), m) as Res).id,
+        )
+        assertEquals(Raw("quota exceeded"), ModelTester.explain(IllegalStateException("quota exceeded"), m))
     }
 }
 

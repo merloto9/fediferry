@@ -28,7 +28,10 @@ import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-/** How scheduled times are picked and said, in the phone's own time zone. */
+/**
+ * The arithmetic of scheduled times, in the phone's own time zone. The words
+ * around them — "today at", "tomorrow" — come from `ScheduleWords`.
+ */
 object ScheduleFormat {
 
     /**
@@ -48,33 +51,20 @@ object ScheduleFormat {
     /** Mastodon's ISO 8601 timestamp back to epoch millis; null if unreadable. */
     fun parse(iso: String): Long? = runCatching { Instant.parse(iso).toEpochMilli() }.getOrNull()
 
-    /** "today at 14:00", "tomorrow at 09:30", "on Fri 3 Oct at 14:00". */
-    fun whenText(
-        at: Long,
-        now: Long = System.currentTimeMillis(),
-        zone: ZoneId = ZoneId.systemDefault(),
-        locale: Locale = Locale.getDefault(),
-    ): String {
-        val time = timeText(at, zone, locale)
-        return when (val day = dayOffset(at, now, zone)) {
-            0L -> "today at $time"
-            1L -> "tomorrow at $time"
-            else -> "on ${shortDate(at, zone, locale, withYear = day > 300)} at $time"
-        }
-    }
+    /** Whole days from [now] to [at] by the calendar: 0 today, 1 tomorrow. */
+    fun dayOffset(at: Long, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Long =
+        ChronoUnit.DAYS.between(
+            Instant.ofEpochMilli(now).atZone(zone).toLocalDate(),
+            Instant.ofEpochMilli(at).atZone(zone).toLocalDate(),
+        )
 
-    /** A day heading in the queue: "Today", "Tomorrow", "Friday, 3 October". */
-    fun dayHeading(
-        at: Long,
-        now: Long = System.currentTimeMillis(),
-        zone: ZoneId = ZoneId.systemDefault(),
-        locale: Locale = Locale.getDefault(),
-    ): String = when (val day = dayOffset(at, now, zone)) {
-        0L -> "Today"
-        1L -> "Tomorrow"
-        else -> DateTimeFormatter.ofPattern(if (day > 300) "EEEE, d MMMM yyyy" else "EEEE, d MMMM", locale)
-            .format(Instant.ofEpochMilli(at).atZone(zone))
-    }
+    /** Whether [at] is far enough off for its date to need the year. */
+    fun needsYear(at: Long, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean =
+        dayOffset(at, now, zone) > 300
+
+    /** [at] as a date in [pattern] — a locale's own pattern, see `ScheduleWords`. */
+    fun dateText(at: Long, pattern: String, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): String =
+        DateTimeFormatter.ofPattern(pattern, locale).format(Instant.ofEpochMilli(at).atZone(zone))
 
     fun timeText(at: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
@@ -83,13 +73,4 @@ object ScheduleFormat {
     /** The same instant as [date] at [hour]:[minute] in [zone]. */
     fun combine(date: LocalDate, hour: Int, minute: Int, zone: ZoneId = ZoneId.systemDefault()): Long =
         ZonedDateTime.of(date, java.time.LocalTime.of(hour, minute), zone).toInstant().toEpochMilli()
-
-    private fun shortDate(at: Long, zone: ZoneId, locale: Locale, withYear: Boolean): String =
-        DateTimeFormatter.ofPattern(if (withYear) "EEE d MMM yyyy" else "EEE d MMM", locale)
-            .format(Instant.ofEpochMilli(at).atZone(zone))
-
-    private fun dayOffset(at: Long, now: Long, zone: ZoneId): Long = ChronoUnit.DAYS.between(
-        Instant.ofEpochMilli(now).atZone(zone).toLocalDate(),
-        Instant.ofEpochMilli(at).atZone(zone).toLocalDate(),
-    )
 }

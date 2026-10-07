@@ -22,6 +22,7 @@ package app.fediferry.ui.crop
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.R
 import app.fediferry.data.model.Item
 import app.fediferry.di.ServiceLocator
 import app.fediferry.media.ScreenshotAnalyzer
@@ -125,7 +126,7 @@ class CropViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         val item = s.item ?: return@launch
         if (s.imageWidth <= 0 || s.imageHeight <= 0) {
-            _state.update { it.copy(message = "Could not read the image size") }
+            _state.update { it.copy(message = getApplication<Application>().getString(R.string.extra_crop_no_size)) }
             return@launch
         }
         if (s.crop.isWholeImage) {
@@ -137,7 +138,7 @@ class CropViewModel(app: Application) : AndroidViewModel(app) {
         repo.applyCrop(item, s.crop.toPixels(s.imageWidth, s.imageHeight)).fold(
             onSuccess = { onDone(it.id) },
             onFailure = { e ->
-                _state.update { it.copy(applying = false, message = "Could not crop: ${e.message}") }
+                _state.update { it.copy(applying = false, message = getApplication<Application>().getString(R.string.extra_crop_failed, e.message.orEmpty())) }
             },
         )
     }

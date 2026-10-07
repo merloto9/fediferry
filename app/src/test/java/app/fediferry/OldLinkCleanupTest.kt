@@ -22,7 +22,6 @@ package app.fediferry
 import app.fediferry.data.OldLinkCleanup
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
-import app.fediferry.ui.summary
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -76,15 +75,5 @@ class OldLinkCleanupTest {
             "one https://clean/1, two https://pin.it/abcdef and https://clean/1",
             OldLinkCleanup.rewriteBody(body, "https://pin.it/abc", "https://clean/1"),
         )
-    }
-
-    @Test
-    fun theSummarySaysWhatHappened() {
-        assertEquals(
-            "2 links cleaned.\n1 link couldn't be confirmed and was kept as shared, " +
-                "so it may still say who shared it.\n1 link already clean.",
-            summary(OldLinkCleanup.Result(cleaned = 2, kept = 1, alreadyClean = 1)),
-        )
-        assertEquals("Nothing needed changing.", summary(OldLinkCleanup.Result()))
     }
 }

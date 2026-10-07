@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- KI-Modell-Test (Einstellungen → KI-Modelle) -->
+    <string name="extra_test_bad_endpoint">„%1$s“ ist keine Webadresse. Sie sollte etwa so aussehen: https://api.example.com/v1/chat/completions, ohne Leerzeichen.</string>
+    <string name="extra_test_works">Es funktioniert.</string>
+    <string name="extra_test_answer">Antwort</string>
+    <string name="extra_test_edited_picture">ein bearbeitetes Bild, %1$d KB</string>
+    <string name="extra_test_response_time">Antwortzeit</string>
+    <string name="extra_test_millis">%1$d ms</string>
+    <plurals name="extra_test_millis_asked">
+        <item quantity="one">%1$d ms (%2$d-mal gefragt)</item>
+        <item quantity="other">%1$d ms (%2$d-mal gefragt)</item>
+    </plurals>
+    <string name="extra_test_in_list">In der Modellliste des Servers</string>
+    <string name="extra_test_listed_yes">ja</string>
+    <plurals name="extra_test_listed_no">
+        <item quantity="one">nein – %1$d Modell wird angeboten; prüf die Schreibweise von „%2$s“</item>
+        <item quantity="other">nein – %1$d Modelle werden angeboten; prüf die Schreibweise von „%2$s“</item>
+    </plurals>
+    <string name="extra_test_no_server">Es gibt keinen Server namens %1$s – prüf die Adresse.</string>
+    <string name="extra_test_unreachable">%1$s ist nicht erreichbar – prüf die Adresse und die Verbindung des Handys.</string>
+    <string name="extra_test_timeout">%1$s hat nicht rechtzeitig geantwortet.</string>
+    <string name="extra_test_ssl">Die sichere Verbindung zu %1$s ist fehlgeschlagen: %2$s</string>
+    <string name="extra_test_model_ran">Vom Server genutztes Modell</string>
+    <string name="extra_test_tokens">Tokens</string>
+    <string name="extra_test_tokens_in">%1$s Eingabe</string>
+    <string name="extra_test_tokens_out">%1$s Ausgabe</string>
+    <string name="extra_test_tokens_thinking">davon %1$s zum Nachdenken</string>
+    <string name="extra_test_tokens_total">%1$s insgesamt</string>
+    <string name="extra_test_stopped">Beendet, weil</string>
+    <string name="extra_test_stopped_done">es fertig war</string>
+    <string name="extra_test_requests">Anfragen</string>
+    <string name="extra_test_rate_limit">Ratenlimit</string>
+    <string name="extra_test_retry_after">Erneut versuchen nach</string>
+    <string name="extra_test_left">%1$s übrig</string>
+    <string name="extra_test_left_of">%1$s von %2$s übrig</string>
+    <string name="extra_test_left_reset">%1$s übrig, wieder voll in %2$s</string>
+    <string name="extra_test_left_of_reset">%1$s von %2$s übrig, wieder voll in %3$s</string>
+
+    <!-- Quellmodule (Einstellungen → Platzhalter & Quellen) -->
+    <string name="extra_module_ninegag_summary">Holt das Bild oder Video hinter einem geteilten Beitrag – animierte Beiträge als Video, nicht als Standbild.</string>
+    <string name="extra_field_ninegag_title">Der Titel des Beitrags – meist der Witz selbst.</string>
+    <string name="extra_field_ninegag_description">Der Text unter dem Titel. Bei den meisten Beiträgen leer.</string>
+    <string name="extra_field_ninegag_hashtags">Die Tags des Beitrags als Hashtags, z. B. #meme #funny.</string>
+    <string name="extra_field_ninegag_section">Die Rubrik oder Nutzerseite, wo der Beitrag erschienen ist.</string>
+    <string name="extra_field_ninegag_author">Der 9GAG-Nutzername der Person, die ihn gepostet hat.</string>
+    <string name="extra_field_ninegag_alt">9GAGs eigene Beschreibung des Bilds.</string>
+    <string name="extra_module_pinterest_summary">Holt das Bild eines geteilten Pins in voller Größe. Für Video-Pins bleibt der Screenshot.</string>
+    <string name="extra_field_pinterest_title">Der Titel des Pins, ohne den Schlagwort-Anhang, den Pinterest für Suchmaschinen anfügt.</string>
+    <string name="extra_field_pinterest_description">Die Beschreibung des Pins – oft Pinterests eigener Standardsatz statt der Worte der Person, die gepinnt hat.</string>
+    <string name="extra_module_reddit_summary">Holt das Bild eines geteilten Beitrags, das erste Bild einer Galerie, ein GIF als Video oder ein Video mit Ton.</string>
+    <string name="extra_field_reddit_title">Der Titel des Beitrags.</string>
+    <string name="extra_field_reddit_subreddit">Das Subreddit, in dem er gepostet wurde, ohne das r/.</string>
+    <string name="extra_module_youtube_summary">Folgt Kanälen im Bereich Quellen; wählst du das Bild eines Community-Beitrags, öffnet es sich im Editor.</string>
+    <string name="extra_module_youtube_recognises">Kanäle, die du unter Quellen hinzufügst – keine geteilten Links</string>
+    <string name="extra_field_youtube_text">Der Text des Community-Beitrags.</string>
+    <string name="extra_field_youtube_channel">Der Name des Kanals.</string>
+
+    <!-- Gruppen der Inhaltswarnungs-Vorlagen -->
+    <string name="extra_cw_group_violence">Gewalt &amp; Tod</string>
+    <string name="extra_cw_group_mental_health">Psychische Gesundheit</string>
+    <string name="extra_cw_group_sexuality">Sexualität &amp; Körper</string>
+    <string name="extra_cw_group_hate">Hass &amp; Diskriminierung</string>
+    <string name="extra_cw_group_substances">Substanzen &amp; Essen</string>
+    <string name="extra_cw_group_triggers">Reize &amp; Phobien</string>
+    <string name="extra_cw_group_context">Tiere, Ton &amp; Kontext</string>
+
+    <!-- Zuschneiden -->
+    <string name="extra_crop_no_size">Die Bildgröße ließ sich nicht lesen</string>
+    <string name="extra_crop_failed">Zuschneiden fehlgeschlagen: %1$s</string>
+</resources>

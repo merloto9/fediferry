@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Eingang -->
+    <string name="inbox_title">Eingang</string>
+    <plurals name="inbox_selected">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <string name="inbox_clear_selection">Auswahl aufheben</string>
+    <string name="inbox_schedule_post">Beitrag planen</string>
+    <string name="inbox_move_to_stack">Auf Stapel legen</string>
+    <string name="inbox_delete_selected">Ausgewählte löschen</string>
+    <string name="inbox_new_stack">Neuer Stapel</string>
+    <string name="inbox_rename_stack">Stapel umbenennen</string>
+    <string name="inbox_settings">Einstellungen</string>
+    <string name="inbox_section_new">Neu</string>
+    <string name="inbox_new_empty">Nichts Neues. Geteilte Beiträge landen hier.</string>
+    <string name="inbox_stack_empty">Leer. Wähle Beiträge mit langem Drücken aus und lege sie dann hierher.</string>
+    <string name="inbox_shared_image">Geteiltes Bild</string>
+    <string name="inbox_text_only">Nur Text</string>
+    <string name="inbox_no_text">(kein Text)</string>
+    <string name="inbox_status_draft">Entwurf</string>
+    <string name="inbox_status_queued">Wartet</string>
+    <string name="inbox_status_sending">Wird gesendet</string>
+    <string name="inbox_status_posted">Gepostet</string>
+    <string name="inbox_status_failed">Fehlgeschlagen</string>
+    <string name="inbox_empty_title">Noch nichts gespeichert</string>
+    <string name="inbox_empty_body">Mach einen Screenshot von einem Meme, teile ihn hierher und wähle „%1$s“, „%2$s“ oder „%3$s“.</string>
+    <string name="inbox_section_open">%1$s aufklappen</string>
+    <string name="inbox_section_fold">%1$s einklappen</string>
+    <string name="inbox_stack_actions">Aktionen für Stapel %1$s</string>
+    <string name="inbox_rename">Umbenennen</string>
+    <string name="inbox_delete_stack">Stapel löschen – Beiträge gehen zurück zu Neu</string>
+    <string name="inbox_move_to">Verschieben nach</string>
+    <string name="inbox_no_stack">Auf keinem Stapel</string>
+    <string name="inbox_new_stack_more">Neuer Stapel…</string>
+    <string name="inbox_stack_name">Name</string>
+    <string name="inbox_stack_name_hint">Bereit zum Posten</string>
+    <string name="inbox_create">Erstellen</string>
+    <string name="inbox_cancel">Abbrechen</string>
+
+    <!-- Links von Beiträgen aus der Zeit vor 0.17.1 bereinigen -->
+    <string name="oldlinks_none_title">Links im Eingang</string>
+    <string name="oldlinks_none_body">Kein Beitrag im Eingang hat einen Pinterest- oder Reddit-Link, der zu prüfen wäre.</string>
+    <string name="oldlinks_ok">OK</string>
+    <string name="oldlinks_offer_title">Ältere Links bereinigen?</string>
+    <plurals name="oldlinks_offer_body">
+        <item quantity="one">%1$d Beitrag im Eingang hat Links von %2$s, im geteilten Link oder im Text. Links von vor FediFerry 0.17.1 oder von Hand eingefügte verraten vielleicht noch, wer sie geteilt hat. Jetzt prüfen? Jeder Link wird getestet, und einer, der sich nicht bestätigen lässt, bleibt, wie er ist.\n\nDu kannst das auch später unter Einstellungen → Teilen &amp; Posten erledigen.</item>
+        <item quantity="other">%1$d Beiträge im Eingang haben Links von %2$s, im geteilten Link oder im Text. Links von vor FediFerry 0.17.1 oder von Hand eingefügte verraten vielleicht noch, wer sie geteilt hat. Jetzt prüfen? Jeder Link wird getestet, und einer, der sich nicht bestätigen lässt, bleibt, wie er ist.\n\nDu kannst das auch später unter Einstellungen → Teilen &amp; Posten erledigen.</item>
+    </plurals>
+    <string name="oldlinks_services_pair">%1$s und %2$s</string>
+    <string name="oldlinks_clean">Links bereinigen</string>
+    <string name="oldlinks_not_now">Nicht jetzt</string>
+    <string name="oldlinks_running_title">Links werden bereinigt</string>
+    <string name="oldlinks_looking">Eingang wird durchgesehen…</string>
+    <string name="oldlinks_checking">Prüfe Beitrag %1$d von %2$d</string>
+    <string name="oldlinks_done_title">Links geprüft</string>
+    <plurals name="oldlinks_cleaned">
+        <item quantity="one">%1$d Link bereinigt.</item>
+        <item quantity="other">%1$d Links bereinigt.</item>
+    </plurals>
+    <plurals name="oldlinks_kept">
+        <item quantity="one">%1$d Link ließ sich nicht bestätigen und bleibt wie geteilt, verrät also vielleicht noch, wer ihn geteilt hat.</item>
+        <item quantity="other">%1$d Links ließen sich nicht bestätigen und bleiben wie geteilt, verraten also vielleicht noch, wer sie geteilt hat.</item>
+    </plurals>
+    <plurals name="oldlinks_already_clean">
+        <item quantity="one">%1$d Link war schon sauber.</item>
+        <item quantity="other">%1$d Links waren schon sauber.</item>
+    </plurals>
+    <string name="oldlinks_nothing">Es musste nichts geändert werden.</string>
+
+    <!-- Quellen -->
+    <string name="sources_title">Quellen</string>
+    <string name="sources_settings">Einstellungen</string>
+    <string name="sources_checking_title">Prüfe @%1$s</string>
+    <string name="sources_checking_detail">Der Kanal wird von YouTube abgerufen, um sicherzugehen, dass er öffentliche Community-Beiträge hat, und um seinen Namen zu erfahren.</string>
+    <string name="sources_add_channel">Kanal hinzufügen</string>
+    <string name="sources_empty_title">Noch keine Kanäle</string>
+    <string name="sources_empty_body">Füge einen YouTube-Kanal hinzu, um seine Community-Beiträge zu durchstöbern und ein Bild direkt in den Editor zu übernehmen.</string>
+    <string name="sources_remove_channel">Kanal entfernen</string>
+    <string name="sources_handle_label">Handle oder Kanal-URL</string>
+    <string name="sources_public_only">Nur Kanäle mit öffentlichen Community-Beiträgen können angezeigt werden.</string>
+    <string name="sources_add">Hinzufügen</string>
+    <string name="sources_cancel">Abbrechen</string>
+    <string name="sources_enter_handle">Gib ein Kanal-Handle wie @heuteshow ein</string>
+    <string name="sources_already_here">@%1$s ist schon da</string>
+    <string name="sources_add_failed">Dieser Kanal konnte nicht hinzugefügt werden</string>
+    <string name="sources_channel">Kanal</string>
+    <string name="sources_back">Zurück</string>
+    <string name="sources_reload">Neu laden</string>
+    <string name="sources_fetching_title">Community-Beiträge werden abgerufen</string>
+    <string name="sources_fetching_detail">YouTube wird nach den neuesten Beiträgen von %1$s gefragt. Nur die mit Bildern werden behalten.</string>
+    <string name="sources_this_channel">diesem Kanal</string>
+    <string name="sources_try_again">Erneut versuchen</string>
+    <string name="sources_no_picture_posts">Hier gibt es keine Beiträge mit Bildern</string>
+    <string name="sources_downloading_title">Bild wird heruntergeladen</string>
+    <string name="sources_downloading_detail">Es wird in voller Größe von YouTube geholt und als Kopie auf diesem Handy gespeichert, damit der Editor es öffnen kann.</string>
+    <string name="sources_loading_picture">Bild wird geladen…</string>
+    <string name="sources_post_image">Bild des Beitrags</string>
+    <plurals name="sources_pictures_tap_one">
+        <item quantity="one">%1$d Bild – tippe darauf</item>
+        <item quantity="other">%1$d Bilder – tippe auf eins</item>
+    </plurals>
+    <string name="sources_channel_gone">Diesen Kanal gibt es nicht mehr</string>
+    <string name="sources_load_failed">Beiträge konnten nicht geladen werden</string>
+    <string name="sources_pick_failed">Dieses Bild ließ sich nicht verwenden: %1$s</string>
+
+    <!-- Screenshot zuschneiden -->
+    <string name="crop_title">Screenshot zuschneiden</string>
+    <string name="crop_skip">Überspringen</string>
+    <string name="crop_no_image">Kein Bild zum Zuschneiden</string>
+    <string name="crop_hint_suggested">Zieh an den Ecken, falls das danebenliegt. Das Original bleibt erhalten, du kannst es also rückgängig machen.</string>
+    <string name="crop_hint_none">Nichts Offensichtliches zum Zuschneiden – zieh an den Ecken, um von Hand zuzuschneiden.</string>
+    <string name="crop_suggested">Vorschlag</string>
+    <string name="crop_whole_image">Ganzes Bild</string>
+    <string name="crop_trimming">Wird zugeschnitten…</string>
+    <string name="crop_use_this">Übernehmen</string>
+    <string name="crop_image_description">Screenshot, der zugeschnitten wird</string>
+
+    <!-- Bild bereinigen -->
+    <string name="cleanup_title">Bereinigen</string>
+    <string name="cleanup_skip">Überspringen</string>
+    <string name="cleanup_no_image">Kein Bild zum Bereinigen</string>
+    <string name="cleanup_hint">Zieh über alles, was weg soll. Die Behandlung gilt für den nächsten Rahmen, den du ziehst, so lässt sich Verschiedenes unterschiedlich behandeln.</string>
+    <string name="cleanup_clear">Zurücksetzen</string>
+    <plurals name="cleanup_areas">
+        <item quantity="one">%1$d Bereich</item>
+        <item quantity="other">%1$d Bereiche</item>
+    </plurals>
+    <string name="cleanup_applying">Wird angewendet…</string>
+    <string name="cleanup_use_this">Übernehmen</string>
+    <string name="cleanup_ai_title">Bildmodell entfernt die Bereiche</string>
+    <string name="cleanup_ai_detail">Das Bild und die markierten Bereiche wurden an dein Bildmodell geschickt. Warte darauf, dass es die bereinigte Fassung zurückschickt.</string>
+    <string name="cleanup_treatment_fill">Auffüllen</string>
+    <string name="cleanup_treatment_crop_away">Wegschneiden</string>
+    <string name="cleanup_treatment_blur">Weichzeichnen</string>
+    <string name="cleanup_treatment_pixelate">Verpixeln</string>
+    <string name="cleanup_treatment_ai_erase">Mit KI entfernen</string>
+    <string name="cleanup_no_model">Es ist kein Bildmodell eingerichtet, daher werden diese Bereiche stattdessen aus ihrer Umgebung aufgefüllt. Füge eins hinzu unter Einstellungen → Bild bereinigen.</string>
+    <string name="cleanup_instruction_label">Sag dem Modell, was es tun soll</string>
+    <string name="cleanup_instruction_scope">Gilt nur für dieses Bild. Die Vorgabe findest du unter Einstellungen → Bild bereinigen.</string>
+    <string name="cleanup_profile">Profil: %1$s</string>
+    <string name="cleanup_profile_none">keins</string>
+    <string name="cleanup_new_profile_more">Neues Profil…</string>
+    <string name="cleanup_remember">Merken</string>
+    <string name="cleanup_new_profile">Neues Profil</string>
+    <string name="cleanup_name">Name</string>
+    <string name="cleanup_create">Erstellen</string>
+    <string name="cleanup_cancel">Abbrechen</string>
+    <string name="cleanup_image_description">Bild, das bereinigt wird</string>
+    <string name="cleanup_filled_locally">Stattdessen lokal aufgefüllt – %1$s</string>
+    <string name="cleanup_failed">Bereinigen fehlgeschlagen: %1$s</string>
+</resources>

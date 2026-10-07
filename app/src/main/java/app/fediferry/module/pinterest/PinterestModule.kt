@@ -19,6 +19,7 @@
  */
 package app.fediferry.module.pinterest
 
+import app.fediferry.R
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.SourceField
 import app.fediferry.module.SourceModule
@@ -27,12 +28,11 @@ import okhttp3.OkHttpClient
 object PinterestModule : SourceModule {
     override val source = ContentSource.PINTEREST
     override val name = "Pinterest"
-    override val summary =
-        "Fetches a shared pin's picture at full size. Video pins are left for a screenshot."
+    override val summary = R.string.extra_module_pinterest_summary
     override val recognises = listOf("pin.it/…", "pinterest.<country>/pin/…")
     override val fields = listOf(
-        SourceField("title", "The pin's title, without the keyword tail Pinterest adds for search engines."),
-        SourceField("description", "The pin's description — often Pinterest's own stock sentence rather than the pinner's."),
+        SourceField("title", R.string.extra_field_pinterest_title),
+        SourceField("description", R.string.extra_field_pinterest_description),
     )
 
     /** Nothing: a pin's text is too often Pinterest's own filler to prefill a post with. */

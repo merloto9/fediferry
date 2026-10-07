@@ -31,7 +31,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.ui.theme.ColorSource
 import app.fediferry.ui.theme.ContrastLevel
 import app.fediferry.ui.theme.ThemeMode
@@ -42,21 +44,21 @@ internal fun AppearanceSection(state: SettingsState, viewModel: SettingsViewMode
     val s = state.settings
 
     Choice(
-        title = "Theme",
+        title = stringResource(R.string.appearance_theme),
         options = ThemeMode.entries,
         selected = s.themeMode,
         label = {
             when (it) {
-                ThemeMode.SYSTEM -> "System"
-                ThemeMode.LIGHT -> "Light"
-                ThemeMode.DARK -> "Dark"
+                ThemeMode.SYSTEM -> stringResource(R.string.appearance_system)
+                ThemeMode.LIGHT -> stringResource(R.string.appearance_light)
+                ThemeMode.DARK -> stringResource(R.string.appearance_dark)
             }
         },
         explain = {
             when (it) {
-                ThemeMode.SYSTEM -> "Light or dark, as the phone is set."
-                ThemeMode.LIGHT -> "Always light."
-                ThemeMode.DARK -> "Always dark."
+                ThemeMode.SYSTEM -> stringResource(R.string.appearance_theme_system_explain)
+                ThemeMode.LIGHT -> stringResource(R.string.appearance_theme_light_explain)
+                ThemeMode.DARK -> stringResource(R.string.appearance_theme_dark_explain)
             }
         },
         onSelect = viewModel::setThemeMode,
@@ -64,25 +66,26 @@ internal fun AppearanceSection(state: SettingsState, viewModel: SettingsViewMode
 
     val wallpaperAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     Choice(
-        title = "Colours",
+        title = stringResource(R.string.appearance_colours),
         options = if (wallpaperAvailable) ColorSource.entries else listOf(ColorSource.APP),
         selected = if (wallpaperAvailable) s.colorSource else ColorSource.APP,
         label = {
             when (it) {
                 ColorSource.APP -> "FediFerry"
-                ColorSource.WALLPAPER -> "Wallpaper"
+                ColorSource.WALLPAPER -> stringResource(R.string.appearance_colours_wallpaper)
             }
         },
         explain = {
             when (it) {
                 ColorSource.APP ->
-                    "FediFerry's own green, with every text colour checked to stand out " +
-                        "from what it sits on." +
-                        if (wallpaperAvailable) "" else " Wallpaper colours need Android 12."
-                ColorSource.WALLPAPER ->
-                    "Colours taken from your wallpaper, as other apps on this phone use. They " +
-                        "come with no contrast guarantee, and any that come out red are " +
-                        "swapped for FediFerry's own: red is kept for warnings."
+                    stringResource(
+                        if (wallpaperAvailable) {
+                            R.string.appearance_colours_app_explain
+                        } else {
+                            R.string.appearance_colours_app_explain_no_wallpaper
+                        },
+                    )
+                ColorSource.WALLPAPER -> stringResource(R.string.appearance_colours_wallpaper_explain)
             }
         },
         onSelect = viewModel::setColorSource,
@@ -90,29 +93,26 @@ internal fun AppearanceSection(state: SettingsState, viewModel: SettingsViewMode
 
     val systemContrast = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
     Choice(
-        title = "Contrast",
+        title = stringResource(R.string.appearance_contrast),
         options = ContrastLevel.entries,
         selected = s.contrastLevel,
         label = {
             when (it) {
-                ContrastLevel.SYSTEM -> "System"
-                ContrastLevel.STANDARD -> "Standard"
-                ContrastLevel.HIGH -> "High"
+                ContrastLevel.SYSTEM -> stringResource(R.string.appearance_system)
+                ContrastLevel.STANDARD -> stringResource(R.string.appearance_contrast_standard)
+                ContrastLevel.HIGH -> stringResource(R.string.appearance_contrast_high)
             }
         },
         explain = {
             when (it) {
                 ContrastLevel.SYSTEM ->
                     if (systemContrast) {
-                        "Follows Settings → Accessibility → Colour and motion → Contrast: " +
-                            "medium or high there means high here."
+                        stringResource(R.string.appearance_contrast_system_explain)
                     } else {
-                        "This Android version has no contrast setting, so this is Standard."
+                        stringResource(R.string.appearance_contrast_system_unavailable)
                     }
-                ContrastLevel.STANDARD -> "Text at least 4.5 times as bright or dark as its background."
-                ContrastLevel.HIGH ->
-                    "Text at least 7 times as bright or dark as its background, and firmer " +
-                        "outlines. Always uses FediFerry's own colours."
+                ContrastLevel.STANDARD -> stringResource(R.string.appearance_contrast_standard_explain)
+                ContrastLevel.HIGH -> stringResource(R.string.appearance_contrast_high_explain)
             }
         },
         onSelect = viewModel::setContrastLevel,
@@ -125,8 +125,8 @@ private fun <T> Choice(
     title: String,
     options: List<T>,
     selected: T,
-    label: (T) -> String,
-    explain: (T) -> String,
+    label: @Composable (T) -> String,
+    explain: @Composable (T) -> String,
     onSelect: (T) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

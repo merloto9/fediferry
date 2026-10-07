@@ -19,6 +19,7 @@
  */
 package app.fediferry.module.reddit
 
+import app.fediferry.R
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.SourceField
 import app.fediferry.module.SourceModule
@@ -27,12 +28,11 @@ import okhttp3.OkHttpClient
 object RedditModule : SourceModule {
     override val source = ContentSource.REDDIT
     override val name = "Reddit"
-    override val summary =
-        "Fetches a shared post's picture, a gallery's first picture, a GIF as video, or a video with its sound."
+    override val summary = R.string.extra_module_reddit_summary
     override val recognises = listOf("reddit.com/r/…/s/…", "reddit.com/r/…/comments/…", "redd.it/…", "i.redd.it/…")
     override val fields = listOf(
-        SourceField("title", "The post's title."),
-        SourceField("subreddit", "The subreddit it was posted in, without the r/."),
+        SourceField("title", R.string.extra_field_reddit_title),
+        SourceField("subreddit", R.string.extra_field_reddit_subreddit),
     )
     override val defaultRecipes = mapOf("caption" to "{title}")
 

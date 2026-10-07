@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pages and their groups -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_page_account">Mastodon account</string>
+    <string name="settings_page_templates">Templates</string>
+    <string name="settings_page_hashtags">Hashtags</string>
+    <string name="settings_page_placeholders">Placeholders &amp; sources</string>
+    <string name="settings_page_sharing">Sharing &amp; posting</string>
+    <string name="settings_page_cleanup">Image clean-up</string>
+    <string name="settings_page_alt_text">Alt text</string>
+    <string name="settings_page_appearance">Appearance</string>
+    <string name="settings_page_diagnostics">Diagnostics</string>
+    <string name="settings_group_account">Account</string>
+    <string name="settings_group_posts">Posts</string>
+    <string name="settings_group_pictures">Pictures</string>
+    <string name="settings_group_app">App</string>
+
+    <!-- Overview summaries -->
+    <string name="settings_summary_separator">%1$s · %2$s</string>
+    <string name="settings_summary_not_connected">Not connected — nothing can be posted yet</string>
+    <string name="settings_summary_account">\@%1$s on %2$s</string>
+    <plurals name="settings_summary_account_more">
+        <item quantity="one">\@%1$s on %2$s, and %3$d more</item>
+        <item quantity="other">\@%1$s on %2$s, and %3$d more</item>
+    </plurals>
+    <plurals name="settings_summary_templates">
+        <item quantity="one">%d template</item>
+        <item quantity="other">%d templates</item>
+    </plurals>
+    <string name="settings_summary_default">%1$s · default: %2$s</string>
+    <plurals name="settings_summary_hashtags">
+        <item quantity="one">%d hashtag</item>
+        <item quantity="other">%d hashtags</item>
+    </plurals>
+    <string name="settings_summary_hashtags_remember">%1$s · new ones from sent posts join</string>
+    <string name="settings_summary_no_placeholders">No placeholders</string>
+    <plurals name="settings_summary_sources">
+        <item quantity="one">%d source</item>
+        <item quantity="other">%d sources</item>
+    </plurals>
+    <string name="settings_summary_undo">Undo %1$ds</string>
+    <string name="settings_summary_fetches_links">fetches from links</string>
+    <string name="settings_summary_screenshots_only">screenshots only</string>
+    <string name="settings_summary_trims">trims screenshots</string>
+    <plurals name="settings_summary_profiles">
+        <item quantity="one">%d profile</item>
+        <item quantity="other">%d profiles</item>
+    </plurals>
+    <string name="settings_summary_no_ai_model">no AI model</string>
+    <string name="settings_summary_no_model">No model set up</string>
+    <string name="settings_summary_model">Model: %1$s</string>
+    <plurals name="settings_summary_models">
+        <item quantity="one">%1$d model · default: %2$s</item>
+        <item quantity="other">%1$d models · default: %2$s</item>
+    </plurals>
+    <string name="settings_summary_theme_system">System theme</string>
+    <string name="settings_summary_theme_light">Light</string>
+    <string name="settings_summary_theme_dark">Dark</string>
+    <string name="settings_summary_colours_wallpaper">wallpaper colours</string>
+    <string name="settings_summary_colours_app">FediFerry colours</string>
+    <string name="settings_summary_contrast_system">system contrast</string>
+    <string name="settings_summary_contrast_standard">standard contrast</string>
+    <string name="settings_summary_contrast_high">high contrast</string>
+    <string name="settings_summary_logging">Logging · %1$s</string>
+    <string name="settings_summary_log_off">Log off</string>
+
+    <!-- Common -->
+    <string name="settings_back">Back</string>
+    <string name="settings_back_to_settings">Back to Settings</string>
+    <string name="settings_default">Default</string>
+    <string name="settings_make_default">Make default</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_delete">Delete</string>
+    <string name="settings_what_to_ask">What to ask for</string>
+
+    <!-- Account -->
+    <string name="settings_disconnect">Disconnect</string>
+    <string name="settings_instance">Instance</string>
+    <string name="settings_connect">Connect</string>
+    <string name="settings_contacting">Contacting %1$s</string>
+    <string name="settings_your_instance">your instance</string>
+    <string name="settings_contacting_detail">Registering FediFerry with the server. Its sign-in page opens in the browser as soon as it answers.</string>
+    <string name="settings_enter_instance">Enter an instance host, e.g. mastodon.social</string>
+    <string name="settings_could_not_reach">Could not reach %1$s: %2$s</string>
+
+    <!-- Templates -->
+    <string name="settings_new_template">New template</string>
+    <string name="settings_templates_intro">A template is a topic: which hashtags it ticks, and how its posts are written. Bodies can use {tags}, {link}, {date} and the placeholders from Placeholders &amp; sources.</string>
+    <string name="settings_what_can_i_use">What can I use?</string>
+    <string name="settings_template_name">Name</string>
+    <string name="settings_template_body">Body</string>
+    <plurals name="settings_template_unknown">
+        <item quantity="one">%1$s is not defined, and would be posted exactly as typed.</item>
+        <item quantity="other">%1$s are not defined, and would be posted exactly as typed.</item>
+    </plurals>
+    <string name="settings_add_source_hashtags">Add the source\'s hashtags</string>
+    <string name="settings_add_source_hashtags_detail">Ticks whatever a source\'s {tags} recipe in Placeholders &amp; sources gives — 9GAG\'s own tags, say — beside the ones above. Each post can still change it in the editor.</string>
+    <string name="settings_default_content_warning">Default content warning</string>
+    <string name="settings_default_visibility">Default visibility</string>
+    <string name="settings_fixed_description">Fixed description</string>
+    <string name="settings_fixed_description_hint">A meme</string>
+    <string name="settings_fill_placeholders_from">Fill placeholders from</string>
+    <string name="settings_fill_placeholders_detail">For posts from a ticked source, placeholders such as {caption} are filled using their recipes in Placeholders &amp; sources. From an unticked one they stay empty.</string>
+    <string name="settings_template_hashtags">Hashtags</string>
+    <string name="settings_hashtag_list_empty">The hashtag list is empty — add some in Settings → Hashtags.</string>
+    <string name="settings_hashtag_not_listed">%1$s (not on the list)</string>
+    <string name="settings_template_hashtags_detail">Ticked ones start ticked in the editor and fill {tags}.</string>
+
+    <!-- Sharing & posting -->
+    <string name="settings_resolve_links">Fetch images from shared links</string>
+    <string name="settings_resolve_links_detail">When a link is shared on its own, get the image from the service instead of waiting for a screenshot. Works for 9GAG, Pinterest and Reddit; Instagram publishes nothing to fetch.</string>
+    <string name="settings_auto_crop">Trim screenshots automatically</string>
+    <string name="settings_auto_crop_detail">Post now and Save for later cut a screenshot down to the picture when the detection is confident. The original is kept either way, so the editor can undo it.</string>
+    <string name="settings_clean_old_links">Clean older links</string>
+    <string name="settings_clean_old_links_detail">Pinterest and Reddit links shared before FediFerry 0.17.1, or added to a post\'s text by hand, may say who shared them. Check every link in the inbox now.</string>
+    <string name="settings_check">Check</string>
+    <string name="settings_undo_window">Undo window: %1$ds</string>
+    <string name="settings_undo_window_detail">How long Post now waits before sending. Zero sends immediately.</string>
+    <string name="settings_purge_never">Posted items: kept forever</string>
+    <plurals name="settings_purge_after">
+        <item quantity="one">Posted items: purged after %d day</item>
+        <item quantity="other">Posted items: purged after %d days</item>
+    </plurals>
+
+    <!-- Image clean-up -->
+    <string name="settings_cleanup_profiles">Cleanup profiles</string>
+    <string name="settings_cleanup_intro">Areas to remove from a screenshot, per source. Drawn on the Clean up screen and kept here, so when a layout moves you adjust the rule rather than wait for an update.</string>
+    <string name="settings_cleanup_default_intro">The profile marked default is applied on its own to shares that do not stop for input. Leave none default and nothing happens unasked.</string>
+    <string name="settings_cleanup_no_profiles">No profiles yet — draw on Clean up in the editor and tick Remember.</string>
+    <string name="settings_cleanup_delete_profile">Delete profile</string>
+    <string name="settings_cleanup_no_areas">No areas yet</string>
+    <string name="settings_cleanup_rule">%1$s · %2$d,%3$d%% → %4$d,%5$d%%</string>
+    <string name="settings_cleanup_delete_area">Delete area</string>
+    <string name="settings_treatment_fill">fill in</string>
+    <string name="settings_treatment_crop_away">crop away</string>
+    <string name="settings_treatment_blur">blur</string>
+    <string name="settings_treatment_pixelate">pixelate</string>
+    <string name="settings_treatment_ai_erase">erase with AI</string>
+    <string name="settings_image_model">Image model</string>
+    <string name="settings_image_model_intro">Used by the \"Erase with AI\" treatment on the Clean up screen, for overlays that sit on detail where filling from the surroundings only smears. Leave the endpoint empty and that treatment falls back to a local fill.</string>
+    <string name="settings_image_model_format">Inpainting has no standard request shape, so the format is a setting rather than a guess. Multipart suits the OpenAI images/edits family; JSON suits the Stable Diffusion derived servers.</string>
+    <string name="settings_instruction">Instruction</string>
+
+    <!-- Alt text -->
+    <string name="settings_vision_intro">Writes alt text for templates set to Generated. Any OpenAI-compatible chat-completions endpoint whose model can look at images works. The picture is sent there, so pick a service you trust with it. A failure never blocks a post; it goes out without a description instead.</string>
+    <string name="settings_prompt">Prompt</string>
+
+    <!-- Diagnostics -->
+    <string name="settings_keep_log">Keep a log</string>
+    <string name="settings_keep_log_detail">Records what the app does — a share arriving, a link resolving, a post failing — so a problem can be looked at afterwards. Access tokens and post text are never written down.</string>
+    <string name="settings_nothing_logged">Nothing logged yet</string>
+    <string name="settings_log_size">Log: %1$s</string>
+    <string name="settings_send_log">Send log</string>
+    <string name="settings_clear_log">Clear</string>
+    <string name="settings_send_log_chooser">Send the log</string>
+    <string name="settings_log_cleared">Log cleared</string>
+    <plurals name="settings_size_bytes">
+        <item quantity="one">%d byte</item>
+        <item quantity="other">%d bytes</item>
+    </plurals>
+
+    <!-- Messages -->
+    <string name="settings_placeholder_name_invalid">{%1$s} cannot be used as a placeholder name</string>
+    <string name="settings_saved">%1$s saved</string>
+    <string name="settings_placeholder_saved">{%1$s} saved</string>
+    <string name="settings_test_could_not_run">The test could not run</string>
+</resources>

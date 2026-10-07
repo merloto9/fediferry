@@ -22,6 +22,7 @@ package app.fediferry.ui.sources
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.R
 import app.fediferry.data.model.Source
 import app.fediferry.di.ServiceLocator
 import app.fediferry.link.fieldsOf
@@ -53,7 +54,7 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
     fun load(sourceId: String) = viewModelScope.launch {
         val source = dao.byId(sourceId)
         if (source == null) {
-            _state.update { it.copy(loading = false, error = "That channel is gone") }
+            _state.update { it.copy(loading = false, error = getApplication<Application>().getString(R.string.sources_channel_gone)) }
             return@launch
         }
         _state.update { it.copy(source = source, loading = true, error = null) }
@@ -71,7 +72,7 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
                 }
             },
             onFailure = { e ->
-                _state.update { it.copy(loading = false, error = e.message ?: "Could not load posts") }
+                _state.update { it.copy(loading = false, error = e.message ?: getApplication<Application>().getString(R.string.sources_load_failed)) }
             },
         )
     }
@@ -93,7 +94,7 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
             },
             onFailure = { e ->
                 _state.update {
-                    it.copy(picking = null, message = "Could not use that picture: ${e.message}")
+                    it.copy(picking = null, message = getApplication<Application>().getString(R.string.sources_pick_failed, e.message))
                 }
             },
         )

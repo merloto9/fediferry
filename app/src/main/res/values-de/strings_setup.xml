@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Einstellungen → Darstellung -->
+    <string name="appearance_theme">Design</string>
+    <string name="appearance_system">System</string>
+    <string name="appearance_light">Hell</string>
+    <string name="appearance_dark">Dunkel</string>
+    <string name="appearance_theme_system_explain">Hell oder dunkel, wie am Telefon eingestellt.</string>
+    <string name="appearance_theme_light_explain">Immer hell.</string>
+    <string name="appearance_theme_dark_explain">Immer dunkel.</string>
+    <string name="appearance_colours">Farben</string>
+    <string name="appearance_colours_wallpaper">Hintergrund</string>
+    <string name="appearance_colours_app_explain">Das eigene Grün von FediFerry, jede Textfarbe darauf geprüft, dass sie sich von ihrem Untergrund abhebt.</string>
+    <string name="appearance_colours_app_explain_no_wallpaper">Das eigene Grün von FediFerry, jede Textfarbe darauf geprüft, dass sie sich von ihrem Untergrund abhebt. Hintergrundfarben brauchen Android 12.</string>
+    <string name="appearance_colours_wallpaper_explain">Farben aus deinem Hintergrundbild, wie sie auch andere Apps auf diesem Telefon nutzen. Für ihren Kontrast gibt es keine Garantie, und rot ausfallende Farben werden gegen die von FediFerry getauscht: Rot bleibt Warnungen vorbehalten.</string>
+    <string name="appearance_contrast">Kontrast</string>
+    <string name="appearance_contrast_standard">Standard</string>
+    <string name="appearance_contrast_high">Hoch</string>
+    <string name="appearance_contrast_system_explain">Folgt Einstellungen → Bedienungshilfen → Farbe und Bewegung → Kontrast: Mittel oder Hoch dort heißt Hoch hier.</string>
+    <string name="appearance_contrast_system_unavailable">Diese Android-Version hat keine Kontrasteinstellung, daher gilt Standard.</string>
+    <string name="appearance_contrast_standard_explain">Text mindestens 4,5-mal so hell oder dunkel wie sein Hintergrund.</string>
+    <string name="appearance_contrast_high_explain">Text mindestens 7-mal so hell oder dunkel wie sein Hintergrund, dazu kräftigere Umrisse. Nutzt immer die eigenen Farben von FediFerry.</string>
+
+    <!-- Einstellungen → KI-Modelle -->
+    <string name="models_none">Noch kein Modell.</string>
+    <string name="models_add">Modell hinzufügen</string>
+    <string name="models_default">Standard</string>
+    <string name="models_name">Name</string>
+    <string name="models_name_hint">Wie du es nennst, z. B. Gemini Flash</string>
+    <string name="models_endpoint">Endpunkt-URL</string>
+    <string name="models_endpoint_invalid">Keine Webadresse – sie sollte mit https:// beginnen</string>
+    <string name="models_model">Modell</string>
+    <string name="models_api_key">API-Schlüssel</string>
+    <string name="models_key_saved_hint">Gespeichert – tippen zum Ersetzen</string>
+    <string name="models_key_none">Keiner</string>
+    <string name="models_key_stored">Verschlüsselt auf diesem Telefon gespeichert. Er wird nie wieder angezeigt.</string>
+    <string name="models_request_format">Anfrageformat</string>
+    <string name="models_mask_marks">Die Maske markiert den zu ersetzenden Bereich als</string>
+    <string name="models_mask_transparent">Transparent</string>
+    <string name="models_mask_white">Weiß</string>
+    <string name="models_save">Speichern</string>
+    <string name="models_test">Testen</string>
+    <string name="models_testing">Teste…</string>
+    <string name="models_make_default">Als Standard</string>
+    <string name="models_delete">Löschen</string>
+    <string name="models_save_first">Speichere zuerst, um die Änderungen zu testen.</string>
+    <string name="models_sending_test">Sende ein winziges Testbild…</string>
+    <string name="models_report_detail">%1$s: %2$s</string>
+
+    <!-- Einstellungen → Hashtags -->
+    <string name="placeholders_hashtags_intro">Die Hashtags, mit denen du postest – eine Liste für alles. Jede Vorlage hakt die an, die ihr Thema nutzt; der Editor zeigt die ganze Liste, so kann jeder Beitrag mehr bekommen.</string>
+    <string name="placeholders_remove_hashtag">%1$s entfernen</string>
+    <string name="placeholders_new_hashtag">Neuer Hashtag</string>
+    <string name="placeholders_new_hashtag_example">#politik</string>
+    <string name="placeholders_add_hashtag">Hashtag hinzufügen</string>
+    <string name="placeholders_remember_sent">Neue Hashtags beim Senden übernehmen</string>
+    <string name="placeholders_remember_sent_explain">Jeder Hashtag eines gesendeten Beitrags, der noch nicht auf der Liste steht, kommt dazu – ob im Editor getippt, von einer Quelle ergänzt oder in den Text geschrieben. Es zählen nur Beiträge, die wirklich rausgegangen sind.</string>
+
+    <!-- Einstellungen → Platzhalter -->
+    <string name="placeholders_title">Platzhalter</string>
+    <string name="placeholders_new">Neuer Platzhalter</string>
+    <string name="placeholders_intro">Namen, die der Text einer Vorlage verwenden kann. Was jeder sagt, legst du pro Quelle unter Quellmodule fest. {link} und {date} sind eingebaut und werden immer aus dem Teilen gefüllt.</string>
+    <string name="placeholders_tags_reserved">Reserviert. Wird beim Senden zu den Hashtags des Beitrags – die der Vorlage plus die, die eine Quelle ergänzt – und bleibt bis dahin als {tags} im Editor stehen, damit sich die Hashtags noch ändern können. Er lässt sich weder umbenennen noch löschen; die Hashtags jeder Quelle legst du unten unter Quellmodule fest.</string>
+    <string name="placeholders_problem_empty">Gib ihm einen Namen</string>
+    <string name="placeholders_problem_reserved">{%1$s} ist reserviert</string>
+    <string name="placeholders_problem_chars">Nur Buchstaben, Ziffern und _</string>
+    <string name="placeholders_problem_taken">Ein anderer Platzhalter heißt schon so</string>
+    <string name="placeholders_name">Name</string>
+    <string name="placeholders_write_hint">Schreib {%1$s} in den Text einer Vorlage</string>
+    <string name="placeholders_no_source">Noch keine Quelle füllt ihn.</string>
+    <string name="placeholders_filled_from">Gefüllt aus %1$s</string>
+    <string name="placeholders_rename">Umbenennen</string>
+    <string name="placeholders_delete">Löschen</string>
+
+    <!-- Einstellungen → Quellmodule -->
+    <string name="placeholders_modules_title">Quellmodule</string>
+    <string name="placeholders_modules_intro">Jede Quelle, aus der die App laden kann, ist ein eigenes Modul. Öffne eins, um zu sehen, was es liefert, und um festzulegen, was jeder Platzhalter daraus übernimmt.</string>
+    <string name="placeholders_module_open">%1$s öffnen</string>
+    <string name="placeholders_module_close">%1$s schließen</string>
+    <string name="placeholders_recognises">Erkennt</string>
+    <string name="placeholders_sends">Liefert</string>
+    <string name="placeholders_takes_from">Was jeder Platzhalter von %1$s übernimmt</string>
+    <string name="placeholders_recipe_explain">Aus den Feldern oben zusammengesetzt. Leer heißt, der Platzhalter bleibt bei Beiträgen von %1$s leer. Bei {tags} wird das Ergebnis in Hashtags zerlegt und im Editor neben denen der Vorlage angehakt.</string>
+    <string name="placeholders_no_tags_from">Keine Hashtags von %1$s</string>
+    <string name="placeholders_empty">Leer</string>
+    <string name="placeholders_unknown_fields">%1$s – liefert %2$s nicht</string>
+    <string name="placeholders_none_defined">Noch keine Platzhalter angelegt.</string>
+    <string name="placeholders_save_module">%1$s speichern</string>
+
+    <!-- Hilfe zu Platzhaltern -->
+    <string name="help_title">Platzhalter</string>
+    <string name="help_tags_what">Die Hashtags des Beitrags: die der Vorlage plus die, die eine Quelle ergänzt. Wird beim Senden gefüllt, bleibt im Editor also {tags} – die Hashtags änderst du mit „Hashtags anpassen“ neben der Vorlage.</string>
+    <string name="help_tags_empty">Leer, wenn keine Hashtags ausgewählt sind.</string>
+    <string name="help_link_what">Der Permalink des geteilten Beitrags.</string>
+    <string name="help_link_empty">Leer, außer beim Teilen kam ein Link mit. Das Teilen-Menü von Instagram schickt einen, ein einfacher Screenshot nicht.</string>
+    <string name="help_date_what">Das heutige Datum, als yyyy-MM-dd.</string>
+    <string name="help_date_empty">Nie leer.</string>
+    <string name="help_custom_unmapped">Angelegt unter Einstellungen → Platzhalter &amp; Quellen, aber noch füllt ihn keine Quelle.</string>
+    <string name="help_custom_mapped_item">%1$s: %2$s</string>
+    <string name="help_custom_empty">Leer bei Screenshots und nicht geladenen Links sowie bei jeder Quelle, die eine Vorlage abgehakt hat.</string>
+    <string name="help_custom_empty_unmapped">Leer bei Screenshots und nicht geladenen Links, bei %1$s sowie bei jeder Quelle, die eine Vorlage abgehakt hat.</string>
+    <string name="help_intro">Alles in geschweiften Klammern wird beim Schreiben des Beitrags ersetzt.</string>
+    <string name="help_empty_lines_title">Leere Zeilen verschwinden</string>
+    <string name="help_empty_lines">Bleibt jeder Platzhalter einer Zeile leer, fällt die ganze Zeile weg – eine Vorlage, die mit „via {link}“ endet, postet ohne Link also gar nichts statt eines verwaisten „via“.</string>
+    <string name="help_example">Beispiel</string>
+    <string name="help_unknown">Ein unbekannter Platzhalter bleibt genau so stehen, wie er getippt wurde – ein Fehler fällt also auf, statt zu verschwinden.</string>
+    <string name="help_close">Schließen</string>
+
+    <!-- Modellauswahl -->
+    <string name="modelpicker_current">Modell: %1$s</string>
+    <string name="modelpicker_change">Modell wechseln</string>
+    <string name="modelpicker_default_item">%1$s  (Standard)</string>
+</resources>

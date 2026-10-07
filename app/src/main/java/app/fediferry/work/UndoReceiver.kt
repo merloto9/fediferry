@@ -23,6 +23,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import app.fediferry.R
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +49,7 @@ class UndoReceiver : BroadcastReceiver() {
                 ServiceLocator.items(appContext).markDraft(itemId)
                 Notifications.cancel(appContext, itemId)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(appContext, "Post cancelled — kept as a draft", Toast.LENGTH_SHORT)
+                    Toast.makeText(appContext, appContext.getString(R.string.notify_undone), Toast.LENGTH_SHORT)
                         .show()
                 }
             } finally {

@@ -19,6 +19,7 @@
  */
 package app.fediferry.module.youtube
 
+import app.fediferry.R
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.SourceField
 import app.fediferry.link.LinkResolver
@@ -28,12 +29,12 @@ import okhttp3.OkHttpClient
 object YouTubeModule : SourceModule {
     override val source = ContentSource.YOUTUBE
     override val name = "YouTube"
-    override val summary =
-        "Follows channels in the Sources space; picking a community post's picture opens it in the editor."
-    override val recognises = listOf("Channels added in Sources — not shared links")
+    override val summary = R.string.extra_module_youtube_summary
+    override val recognises = emptyList<String>()
+    override val recognisesNote = R.string.extra_module_youtube_recognises
     override val fields = listOf(
-        SourceField("text", "The community post's text."),
-        SourceField("channel", "The channel's name."),
+        SourceField("text", R.string.extra_field_youtube_text),
+        SourceField("channel", R.string.extra_field_youtube_channel),
     )
     override val defaultRecipes = mapOf("caption" to "{text}")
 

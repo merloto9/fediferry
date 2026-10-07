@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="queue_title">Queue</string>
+    <string name="queue_refresh">Refresh</string>
+    <string name="queue_settings">Settings</string>
+    <string name="queue_loading_title">Asking Mastodon</string>
+    <string name="queue_loading_detail">Reading the posts your server will publish later. FediFerry keeps no copy, so this list always comes fresh from there.</string>
+    <string name="queue_no_account_title">No account connected</string>
+    <string name="queue_no_account_detail">Connect a Mastodon account in Settings to schedule posts.</string>
+    <string name="queue_empty_title">Nothing scheduled</string>
+    <string name="queue_empty_detail">To have Mastodon post something later, long-press it in the inbox and tap the clock. Mastodon keeps the queue, so FediFerry needn\'t be open when the post goes out.</string>
+    <string name="queue_text_only">Text</string>
+    <string name="queue_cw">CW: %1$s</string>
+    <string name="queue_no_text">(no text)</string>
+    <string name="queue_actions_for">Actions for the post at %1$s</string>
+    <string name="queue_change_time">Change time</string>
+    <string name="queue_make_draft">Make a draft</string>
+    <string name="queue_cancel_post">Cancel post</string>
+    <string name="queue_reconnect_title">Reconnect @%1$s</string>
+    <string name="queue_read_failed_title">Couldn\'t read @%1$s\'s queue</string>
+    <string name="queue_reconnect_text">To show the posts Mastodon will publish later, FediFerry needs permission to read them, which this account didn\'t give when it was connected. Scheduling works without it.</string>
+    <string name="queue_reconnect">Reconnect</string>
+
+    <!-- Dialogs -->
+    <string name="queue_move_title">Move to</string>
+    <string name="queue_move_confirm">Move</string>
+    <string name="queue_cancel_title">Cancel this post?</string>
+    <string name="queue_cancel_text">Mastodon takes it out of the queue and won\'t post it. It can\'t be brought back afterwards.</string>
+    <string name="queue_cancel_confirm">Cancel post</string>
+    <string name="queue_cancel_keep">Keep it</string>
+    <string name="queue_draft_title">Make a draft?</string>
+    <string name="queue_draft_text">FediFerry copies this post — text, hashtags, picture and alt text — into a new draft in the inbox. Mastodon can\'t change a scheduled post\'s text or picture, so to edit it: make a draft, cancel this one, and schedule the draft again when it\'s ready.</string>
+    <string name="queue_draft_and_cancel">Make draft, cancel this</string>
+    <string name="queue_draft_and_keep">Make draft, keep this</string>
+    <string name="queue_drafting_title">Making a draft</string>
+    <string name="queue_drafting_detail">Downloading the picture from your server and copying the post into the inbox.</string>
+
+    <!-- Outcomes -->
+    <string name="queue_moved">Moved to %1$s</string>
+    <string name="queue_cancelled">Cancelled. Mastodon won\'t post it.</string>
+    <string name="queue_draft_made_kept">Draft made. It\'s in the inbox; the scheduled post stays.</string>
+    <string name="queue_draft_made_cancelled">Draft made and the scheduled post cancelled. Edit it in the inbox.</string>
+    <string name="queue_draft_made_not_cancelled">Draft made, but the scheduled post couldn\'t be cancelled: %1$s</string>
+    <string name="queue_draft_failed">Couldn\'t make a draft: %1$s</string>
+    <string name="queue_failed">That didn\'t work</string>
+    <string name="queue_no_token">No access token — reconnect the account</string>
+    <string name="queue_unreachable">Could not reach the server</string>
+    <string name="queue_sign_in_failed">Could not start the sign-in</string>
+
+    <!-- One post -->
+    <string name="queue_post_title">Scheduled post</string>
+    <string name="queue_back">Back</string>
+    <string name="queue_post_loading_title">Asking Mastodon</string>
+    <string name="queue_post_loading_detail">Reading this post as your server holds it now.</string>
+    <string name="queue_post_gone_title">No longer in the queue</string>
+    <string name="queue_post_gone_detail">It has gone out already, or was cancelled somewhere else.</string>
+    <string name="queue_read_post_failed">Couldn\'t read this post</string>
+    <string name="queue_detail_when">Goes out</string>
+    <string name="queue_detail_account">Account</string>
+    <string name="queue_detail_visibility">Visibility</string>
+    <string name="queue_detail_cw">Content warning</string>
+    <string name="queue_detail_text">Text</string>
+    <string name="queue_detail_alt">Alt text</string>
+    <string name="queue_detail_no_alt">None — screen reader users will not know what the picture shows.</string>
+    <string name="queue_visibility_public">Public</string>
+    <string name="queue_visibility_unlisted">Quiet public</string>
+    <string name="queue_visibility_private">Followers only</string>
+    <string name="queue_visibility_direct">Private mention</string>
+</resources>

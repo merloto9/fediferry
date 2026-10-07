@@ -21,6 +21,7 @@ package app.fediferry.di
 
 import android.annotation.SuppressLint
 import android.content.Context
+import app.fediferry.R
 import app.fediferry.alt.AltTextProvider
 import app.fediferry.alt.NoAltTextProvider
 import app.fediferry.alt.StaticAltTextProvider
@@ -100,6 +101,7 @@ object ServiceLocator {
                 resolvers = linkResolvers(),
                 fetcher = OkHttpMediaFetcher(linkHttp()),
                 placeholderKeys = database.placeholderKeys(),
+                context = context.applicationContext,
             )
         }.also { repo = it }
     }
@@ -141,7 +143,7 @@ object ServiceLocator {
     }
 
     fun mastodon(context: Context): MastodonClient = api ?: synchronized(this) {
-        api ?: MastodonClient(http()).also { api = it }
+        api ?: MastodonClient(http(), context.applicationContext).also { api = it }
     }
 
     fun tokens(context: Context): TokenStore = tokenStore ?: synchronized(this) {
@@ -212,10 +214,11 @@ object ServiceLocator {
      * a provider that fails saying so — a missing model never blocks a post.
      */
     suspend fun visionProvider(context: Context, modelId: String? = null): AltTextProvider {
+        val app = context.applicationContext
         val model = aiModels(context).pick(AiKind.ALT_TEXT, modelId)
             ?: return object : AltTextProvider {
                 override suspend fun describe(image: ByteArray, mimeType: String): Result<String> =
-                    Result.failure(IllegalStateException("no alt-text model set up — add one in Settings → Alt text"))
+                    Result.failure(IllegalStateException(app.getString(R.string.post_no_alt_model)))
             }
         return visionProvider(context, model)
     }

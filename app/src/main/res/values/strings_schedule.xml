@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- When a scheduled post goes out -->
+    <string name="schedule_today_at">today at %1$s</string>
+    <string name="schedule_tomorrow_at">tomorrow at %1$s</string>
+    <string name="schedule_on_date_at">on %1$s at %2$s</string>
+    <string name="schedule_today">Today</string>
+    <string name="schedule_tomorrow">Tomorrow</string>
+    <string name="schedule_date_time">%1$s, %2$s</string>
+
+    <!-- The picker -->
+    <string name="schedule_next">Next</string>
+    <string name="schedule_cancel">Cancel</string>
+    <string name="schedule_back">Back</string>
+    <plurals name="schedule_too_soon">
+        <item quantity="one">Pick a time at least %1$d minute from now. Mastodon needs five, and the picture has to upload first.</item>
+        <item quantity="other">Pick a time at least %1$d minutes from now. Mastodon needs five, and the picture has to upload first.</item>
+    </plurals>
+    <string name="schedule_hint">Mastodon keeps the post and publishes it %1$s. FediFerry doesn\'t need to be open then.</string>
+    <string name="schedule_title">Schedule post</string>
+    <string name="schedule_confirm">Schedule</string>
+    <string name="schedule_handing_over">Handing it to Mastodon to post %1$s. It\'ll show in Queue.</string>
+
+    <!-- After the upload -->
+    <string name="schedule_notification_title">Scheduled</string>
+    <string name="schedule_notification_text">Mastodon posts it %1$s</string>
+    <string name="schedule_too_soon_failure">The time picked is less than 5 minutes away, which Mastodon does not accept. Schedule it again.</string>
+</resources>

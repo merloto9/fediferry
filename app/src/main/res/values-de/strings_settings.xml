@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pages and their groups -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_page_account">Mastodon-Konto</string>
+    <string name="settings_page_templates">Vorlagen</string>
+    <string name="settings_page_hashtags">Hashtags</string>
+    <string name="settings_page_placeholders">Platzhalter &amp; Quellen</string>
+    <string name="settings_page_sharing">Teilen &amp; Posten</string>
+    <string name="settings_page_cleanup">Bild bereinigen</string>
+    <string name="settings_page_alt_text">Bildbeschreibung</string>
+    <string name="settings_page_appearance">Darstellung</string>
+    <string name="settings_page_diagnostics">Diagnose</string>
+    <string name="settings_group_account">Konto</string>
+    <string name="settings_group_posts">Beiträge</string>
+    <string name="settings_group_pictures">Bilder</string>
+    <string name="settings_group_app">App</string>
+
+    <!-- Overview summaries -->
+    <string name="settings_summary_separator">%1$s · %2$s</string>
+    <string name="settings_summary_not_connected">Nicht verbunden – noch kann nichts gepostet werden</string>
+    <string name="settings_summary_account">\@%1$s auf %2$s</string>
+    <plurals name="settings_summary_account_more">
+        <item quantity="one">\@%1$s auf %2$s und %3$d weiteres</item>
+        <item quantity="other">\@%1$s auf %2$s und %3$d weitere</item>
+    </plurals>
+    <plurals name="settings_summary_templates">
+        <item quantity="one">%d Vorlage</item>
+        <item quantity="other">%d Vorlagen</item>
+    </plurals>
+    <string name="settings_summary_default">%1$s · Standard: %2$s</string>
+    <plurals name="settings_summary_hashtags">
+        <item quantity="one">%d Hashtag</item>
+        <item quantity="other">%d Hashtags</item>
+    </plurals>
+    <string name="settings_summary_hashtags_remember">%1$s · neue aus gesendeten Beiträgen kommen dazu</string>
+    <string name="settings_summary_no_placeholders">Keine Platzhalter</string>
+    <plurals name="settings_summary_sources">
+        <item quantity="one">%d Quelle</item>
+        <item quantity="other">%d Quellen</item>
+    </plurals>
+    <string name="settings_summary_undo">Rückgängig %1$d s</string>
+    <string name="settings_summary_fetches_links">holt Bilder über Links</string>
+    <string name="settings_summary_screenshots_only">nur Screenshots</string>
+    <string name="settings_summary_trims">schneidet Screenshots zu</string>
+    <plurals name="settings_summary_profiles">
+        <item quantity="one">%d Profil</item>
+        <item quantity="other">%d Profile</item>
+    </plurals>
+    <string name="settings_summary_no_ai_model">kein KI-Modell</string>
+    <string name="settings_summary_no_model">Kein Modell eingerichtet</string>
+    <string name="settings_summary_model">Modell: %1$s</string>
+    <plurals name="settings_summary_models">
+        <item quantity="one">%1$d Modell · Standard: %2$s</item>
+        <item quantity="other">%1$d Modelle · Standard: %2$s</item>
+    </plurals>
+    <string name="settings_summary_theme_system">System-Design</string>
+    <string name="settings_summary_theme_light">Hell</string>
+    <string name="settings_summary_theme_dark">Dunkel</string>
+    <string name="settings_summary_colours_wallpaper">Farben vom Hintergrundbild</string>
+    <string name="settings_summary_colours_app">FediFerry-Farben</string>
+    <string name="settings_summary_contrast_system">System-Kontrast</string>
+    <string name="settings_summary_contrast_standard">Standard-Kontrast</string>
+    <string name="settings_summary_contrast_high">hoher Kontrast</string>
+    <string name="settings_summary_logging">Protokoll an · %1$s</string>
+    <string name="settings_summary_log_off">Protokoll aus</string>
+
+    <!-- Common -->
+    <string name="settings_back">Zurück</string>
+    <string name="settings_back_to_settings">Zurück zu den Einstellungen</string>
+    <string name="settings_default">Standard</string>
+    <string name="settings_make_default">Als Standard</string>
+    <string name="settings_save">Speichern</string>
+    <string name="settings_delete">Löschen</string>
+    <string name="settings_what_to_ask">Was gefragt wird</string>
+
+    <!-- Account -->
+    <string name="settings_disconnect">Trennen</string>
+    <string name="settings_instance">Server</string>
+    <string name="settings_connect">Verbinden</string>
+    <string name="settings_contacting">Verbinde mit %1$s</string>
+    <string name="settings_your_instance">deinem Server</string>
+    <string name="settings_contacting_detail">FediFerry wird beim Server registriert. Seine Anmeldeseite öffnet sich im Browser, sobald er antwortet.</string>
+    <string name="settings_enter_instance">Gib einen Server an, z. B. mastodon.social</string>
+    <string name="settings_could_not_reach">%1$s ist nicht erreichbar: %2$s</string>
+
+    <!-- Templates -->
+    <string name="settings_new_template">Neue Vorlage</string>
+    <string name="settings_templates_intro">Eine Vorlage ist ein Thema: welche Hashtags sie ankreuzt und wie ihre Beiträge geschrieben sind. Der Text kann {tags}, {link}, {date} und die Platzhalter aus „Platzhalter &amp; Quellen“ enthalten.</string>
+    <string name="settings_what_can_i_use">Was kann ich nutzen?</string>
+    <string name="settings_template_name">Name</string>
+    <string name="settings_template_body">Text</string>
+    <plurals name="settings_template_unknown">
+        <item quantity="one">%1$s ist nicht definiert und würde genau so gepostet, wie es dasteht.</item>
+        <item quantity="other">%1$s sind nicht definiert und würden genau so gepostet, wie sie dastehen.</item>
+    </plurals>
+    <string name="settings_add_source_hashtags">Hashtags der Quelle hinzufügen</string>
+    <string name="settings_add_source_hashtags_detail">Kreuzt zusätzlich zu den obigen an, was das {tags}-Rezept einer Quelle in „Platzhalter &amp; Quellen“ liefert – etwa die eigenen Tags von 9GAG. Jeder Beitrag kann das im Editor noch ändern.</string>
+    <string name="settings_default_content_warning">Standard-Inhaltswarnung</string>
+    <string name="settings_default_visibility">Standard-Sichtbarkeit</string>
+    <string name="settings_fixed_description">Feste Beschreibung</string>
+    <string name="settings_fixed_description_hint">Ein Meme</string>
+    <string name="settings_fill_placeholders_from">Platzhalter füllen aus</string>
+    <string name="settings_fill_placeholders_detail">Bei Beiträgen aus einer angekreuzten Quelle werden Platzhalter wie {caption} nach ihren Rezepten in „Platzhalter &amp; Quellen“ gefüllt. Bei einer nicht angekreuzten bleiben sie leer.</string>
+    <string name="settings_template_hashtags">Hashtags</string>
+    <string name="settings_hashtag_list_empty">Die Hashtag-Liste ist leer – füge welche unter Einstellungen → Hashtags hinzu.</string>
+    <string name="settings_hashtag_not_listed">%1$s (nicht auf der Liste)</string>
+    <string name="settings_template_hashtags_detail">Angekreuzte sind im Editor schon angekreuzt und füllen {tags}.</string>
+
+    <!-- Sharing & posting -->
+    <string name="settings_resolve_links">Bilder aus geteilten Links holen</string>
+    <string name="settings_resolve_links_detail">Wird ein Link allein geteilt, hol das Bild direkt vom Dienst, statt auf einen Screenshot zu warten. Klappt mit 9GAG, Pinterest und Reddit; Instagram stellt nichts zum Abholen bereit.</string>
+    <string name="settings_auto_crop">Screenshots automatisch zuschneiden</string>
+    <string name="settings_auto_crop_detail">„Jetzt posten“ und „Für später“ schneiden einen Screenshot auf das Bild zu, wenn die Erkennung sicher ist. Das Original bleibt in jedem Fall erhalten, der Editor kann es also rückgängig machen.</string>
+    <string name="settings_clean_old_links">Ältere Links bereinigen</string>
+    <string name="settings_clean_old_links_detail">Pinterest- und Reddit-Links, die vor FediFerry 0.17.1 geteilt oder von Hand in einen Beitrag geschrieben wurden, können verraten, wer sie geteilt hat. Prüfe jetzt alle Links im Eingang.</string>
+    <string name="settings_check">Prüfen</string>
+    <string name="settings_undo_window">Zeit zum Rückgängigmachen: %1$d s</string>
+    <string name="settings_undo_window_detail">So lange wartet „Jetzt posten“ vor dem Senden. Bei null wird sofort gesendet.</string>
+    <string name="settings_purge_never">Gepostete Beiträge: werden behalten</string>
+    <plurals name="settings_purge_after">
+        <item quantity="one">Gepostete Beiträge: nach %d Tag gelöscht</item>
+        <item quantity="other">Gepostete Beiträge: nach %d Tagen gelöscht</item>
+    </plurals>
+
+    <!-- Image clean-up -->
+    <string name="settings_cleanup_profiles">Bereinigungsprofile</string>
+    <string name="settings_cleanup_intro">Bereiche, die aus einem Screenshot entfernt werden, je Quelle. Gezeichnet auf dem Bildschirm „Bereinigen“ und hier gespeichert – ändert sich ein Layout, passt du die Regel an, statt auf ein Update zu warten.</string>
+    <string name="settings_cleanup_default_intro">Das als Standard markierte Profil wird von selbst auf geteilte Bilder angewendet, die nicht auf eine Eingabe warten. Ist keins Standard, passiert nichts ungefragt.</string>
+    <string name="settings_cleanup_no_profiles">Noch keine Profile – zeichne im Editor unter „Bereinigen“ und kreuze „Merken“ an.</string>
+    <string name="settings_cleanup_delete_profile">Profil löschen</string>
+    <string name="settings_cleanup_no_areas">Noch keine Bereiche</string>
+    <string name="settings_cleanup_rule">%1$s · %2$d,%3$d %% → %4$d,%5$d %%</string>
+    <string name="settings_cleanup_delete_area">Bereich löschen</string>
+    <string name="settings_treatment_fill">auffüllen</string>
+    <string name="settings_treatment_crop_away">wegschneiden</string>
+    <string name="settings_treatment_blur">weichzeichnen</string>
+    <string name="settings_treatment_pixelate">verpixeln</string>
+    <string name="settings_treatment_ai_erase">mit KI entfernen</string>
+    <string name="settings_image_model">Bildmodell</string>
+    <string name="settings_image_model_intro">Wird von „Mit KI entfernen“ auf dem Bildschirm „Bereinigen“ genutzt – für Einblendungen über Details, bei denen Auffüllen aus der Umgebung nur verschmiert. Bleibt der Endpunkt leer, füllt diese Behandlung stattdessen lokal auf.</string>
+    <string name="settings_image_model_format">Für Inpainting gibt es kein einheitliches Anfrageformat, deshalb ist es eine Einstellung statt einer Vermutung. Multipart passt zur OpenAI-images/edits-Familie, JSON zu den von Stable Diffusion abgeleiteten Servern.</string>
+    <string name="settings_instruction">Anweisung</string>
+
+    <!-- Alt text -->
+    <string name="settings_vision_intro">Schreibt Bildbeschreibungen für Vorlagen, die auf „Generiert“ stehen. Jeder OpenAI-kompatible Chat-Completions-Endpunkt, dessen Modell Bilder ansehen kann, funktioniert. Das Bild wird dorthin geschickt, wähl also einen Dienst, dem du es anvertraust. Ein Fehler hält nie einen Beitrag auf; er geht dann eben ohne Beschreibung raus.</string>
+    <string name="settings_prompt">Prompt</string>
+
+    <!-- Diagnostics -->
+    <string name="settings_keep_log">Protokoll führen</string>
+    <string name="settings_keep_log_detail">Hält fest, was die App tut – ein ankommendes geteiltes Bild, ein aufgelöster Link, ein fehlgeschlagener Beitrag –, damit sich ein Problem später untersuchen lässt. Zugangstokens und Beitragstexte werden nie aufgeschrieben.</string>
+    <string name="settings_nothing_logged">Noch nichts protokolliert</string>
+    <string name="settings_log_size">Protokoll: %1$s</string>
+    <string name="settings_send_log">Protokoll senden</string>
+    <string name="settings_clear_log">Leeren</string>
+    <string name="settings_send_log_chooser">Protokoll senden</string>
+    <string name="settings_log_cleared">Protokoll geleert</string>
+    <plurals name="settings_size_bytes">
+        <item quantity="one">%d Byte</item>
+        <item quantity="other">%d Byte</item>
+    </plurals>
+
+    <!-- Messages -->
+    <string name="settings_placeholder_name_invalid">{%1$s} kann nicht als Platzhaltername verwendet werden</string>
+    <string name="settings_saved">%1$s gespeichert</string>
+    <string name="settings_placeholder_saved">{%1$s} gespeichert</string>
+    <string name="settings_test_could_not_run">Der Test konnte nicht laufen</string>
+</resources>

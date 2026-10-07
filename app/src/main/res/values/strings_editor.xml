@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Editor screen -->
+    <string name="editor_title">Edit post</string>
+    <string name="editor_save_and_back">Save and go back</string>
+    <string name="editor_discard">Discard</string>
+    <string name="editor_item_gone">That item is gone</string>
+    <string name="editor_trim">Trim</string>
+    <string name="editor_clean_up">Clean up</string>
+    <string name="editor_undo_edits">Undo edits</string>
+    <string name="editor_adjust_hashtags">Adjust Hashtags</string>
+    <string name="editor_close">Close</string>
+    <string name="editor_open">Open</string>
+    <string name="editor_post_text">Post text</string>
+    <string name="editor_placeholder_help">Which placeholders can I use?</string>
+    <string name="editor_alt_text">Alt text</string>
+    <string name="editor_alt_text_busy">Asking the vision model to describe the picture…</string>
+    <string name="editor_alt_text_failed">Automatic description failed — the post will go out without one.</string>
+    <string name="editor_alt_text_hint">For people who cannot see the picture. Say what it shows, including any text in it. Screen readers read this aloud.</string>
+    <string name="editor_regenerate_alt_text">Regenerate alt text</string>
+    <string name="editor_save_draft">Save draft</string>
+    <string name="editor_post">Post</string>
+    <string name="editor_tags_empty">{tags} is empty — no hashtags are picked, so its line is left out.</string>
+    <string name="editor_tags_becomes">{tags} becomes %1$s when the post is sent.</string>
+    <string name="editor_tags_missing">The text has no {tags}, so the hashtags you picked are not posted.</string>
+    <string name="editor_template">Template: %1$s</string>
+    <string name="editor_no_account">No account connected — add one in Settings → Mastodon account before posting.</string>
+    <string name="editor_account">Account: @%1$s</string>
+    <string name="editor_link_warning_title">This link may show who shared it</string>
+    <string name="editor_link_warning_body">It was shared with details about the sender, and a clean link that still leads to the same post couldn\'t be confirmed, so it is posted as shared.</string>
+    <string name="editor_remove_link">Take the link out of the post</string>
+    <string name="editor_stack">Stack: %1$s</string>
+    <string name="editor_stack_new">New</string>
+    <string name="editor_change_stack">Change stack</string>
+    <string name="editor_stack_none">New — on no stack</string>
+    <!-- Editor messages -->
+    <string name="editor_no_image">No image to describe</string>
+    <string name="editor_alt_text_error">Alt text failed: %1$s</string>
+    <string name="editor_original_restored">Original screenshot restored</string>
+    <string name="editor_connect_account">Connect a Mastodon account first</string>
+
+    <!-- Hashtag panel -->
+    <string name="hashtags_title">Hashtags</string>
+    <string name="hashtags_explain">Ticked ones replace {tags} when the post is sent. The template decides which start ticked.</string>
+    <string name="hashtags_none_yet">No hashtags yet — add some in Settings → Hashtags, or type one below.</string>
+    <string name="hashtags_add_source">Add %1$s\'s hashtags</string>
+    <string name="hashtags_source_none">None for this post — %1$s\'s {tags} recipe in Settings → Placeholders &amp; sources gives nothing.</string>
+    <string name="hashtags_another">Another hashtag for this post</string>
+    <string name="hashtags_example">#politics</string>
+    <string name="hashtags_joins_settings">Joins Settings → Hashtags once the post is sent.</string>
+    <string name="hashtags_this_post_only">For this post only.</string>
+    <string name="hashtags_add">Add hashtag</string>
+
+    <!-- Post options: visibility and alt text -->
+    <string name="options_visibility">Visibility</string>
+    <string name="options_visibility_public">Public</string>
+    <string name="options_visibility_unlisted">Quiet public</string>
+    <string name="options_visibility_private">Followers only</string>
+    <string name="options_visibility_direct">Private mention</string>
+    <string name="options_visibility_public_explain">Anyone can see it. It appears on your profile, in your followers\' home feeds, on the public timelines and under its hashtags, and it can be boosted.</string>
+    <string name="options_visibility_unlisted_explain">Anyone can see it and boost it, and your followers get it in their home feeds — but it stays off the public timelines, trends and hashtag searches. Good for not flooding the local feed with memes.</string>
+    <string name="options_visibility_private_explain">Only your followers and anyone @mentioned in the text can see it. It cannot be boosted, and people who are not following you see nothing on your profile.</string>
+    <string name="options_visibility_direct_explain">Only the accounts @mentioned in the text can see it. Without a mention, nobody but you will. Your server\'s admins can still read it — it is not end-to-end encrypted.</string>
+    <string name="options_no_mention_warning">The text mentions no one yet, so this post would reach nobody.</string>
+    <string name="options_alt_text">Alt text</string>
+    <string name="options_alt_text_explain">A description of the picture for people who cannot see it. Screen readers read it aloud, and it shows behind the ALT badge on the image.</string>
+    <string name="options_alt_none">None</string>
+    <string name="options_alt_static">Fixed text</string>
+    <string name="options_alt_vision">Generated</string>
+    <string name="options_alt_none_explain">Posts go out without a description. People using a screen reader hear only that there is an image, and many on Mastodon skip or avoid posts without one. You can still write one in the editor.</string>
+    <string name="options_alt_static_explain">Every post gets the same description, written below. Handy as a fallback, but it cannot say what a particular meme shows — edit it in the editor when it matters.</string>
+    <string name="options_alt_vision_explain">The picture is sent to the image-describing model set up under Settings → Alt text, and its answer becomes the description. Check it in the editor before posting; a post-now share sends it unread. If the model fails, the post goes out without one.</string>
+    <string name="options_no_model">No model is set up yet — fill in Settings → Alt text, or every post from this template goes out without a description.</string>
+
+    <!-- Content warning -->
+    <string name="cw_label">Content warning</string>
+    <string name="cw_pick">Pick a content warning</string>
+    <string name="cw_clear">Clear</string>
+    <string name="cw_none">No warning — the post shows uncovered.</string>
+    <string name="cw_in_use">In use</string>
+
+    <!-- Loading -->
+    <string name="loading_slow">Still working — the server is taking its time.</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_inbox">Inbox</string>
+    <string name="nav_queue">Queue</string>
+    <string name="nav_sources">Sources</string>
+</resources>

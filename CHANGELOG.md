@@ -8,6 +8,21 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.21.0] — 2026-10-07
+
+### Added
+
+- **German.** FediFerry's screens, messages and notifications come in English
+  and German. *Settings → Language* picks one or follows the phone; on
+  Android 13+ it is also in Android's per-app language settings. More
+  languages can be added without changing the settings screen.
+- **Full screen pictures.** Tap the picture in the editor to see it full
+  screen; pinch or double-tap to zoom, and its alt text shows along the bottom.
+- **A scheduled post's own screen.** Tap a post in the Queue to see everything
+  about it — pictures (full screen on tap), alt text, text, content warning,
+  visibility, account and the exact date and time — with *Change time*,
+  *Make a draft* and *Cancel post*. It is read fresh from Mastodon each time.
+
 ## [0.20.0] — 2026-10-07
 
 ### Added

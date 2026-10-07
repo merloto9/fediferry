@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedule_today_at">heute um %1$s</string>
+    <string name="schedule_tomorrow_at">morgen um %1$s</string>
+    <string name="schedule_on_date_at">am %1$s um %2$s</string>
+    <string name="schedule_today">Heute</string>
+    <string name="schedule_tomorrow">Morgen</string>
+    <string name="schedule_date_time">%1$s, %2$s</string>
+
+    <string name="schedule_next">Weiter</string>
+    <string name="schedule_cancel">Abbrechen</string>
+    <string name="schedule_back">Zurück</string>
+    <plurals name="schedule_too_soon">
+        <item quantity="one">Wähle eine Zeit mindestens %1$d Minute ab jetzt. Mastodon braucht fünf, und das Bild muss zuerst hochgeladen werden.</item>
+        <item quantity="other">Wähle eine Zeit mindestens %1$d Minuten ab jetzt. Mastodon braucht fünf, und das Bild muss zuerst hochgeladen werden.</item>
+    </plurals>
+    <string name="schedule_hint">Mastodon behält den Beitrag und veröffentlicht ihn %1$s. FediFerry muss dann nicht geöffnet sein.</string>
+    <string name="schedule_title">Beitrag planen</string>
+    <string name="schedule_confirm">Planen</string>
+    <string name="schedule_handing_over">Wird an Mastodon übergeben, um ihn %1$s zu posten. Er erscheint unter Geplant.</string>
+
+    <string name="schedule_notification_title">Geplant</string>
+    <string name="schedule_notification_text">Mastodon postet ihn %1$s</string>
+    <string name="schedule_too_soon_failure">Die gewählte Zeit ist weniger als 5 Minuten entfernt, das akzeptiert Mastodon nicht. Plane ihn erneut.</string>
+</resources>

@@ -19,6 +19,7 @@
  */
 package app.fediferry.module.ninegag
 
+import app.fediferry.R
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.SourceField
 import app.fediferry.module.SourceModule
@@ -27,16 +28,15 @@ import okhttp3.OkHttpClient
 object NineGagModule : SourceModule {
     override val source = ContentSource.NINEGAG
     override val name = "9GAG"
-    override val summary =
-        "Fetches the picture or video behind a shared post — animated posts as the video, not a still."
+    override val summary = R.string.extra_module_ninegag_summary
     override val recognises = listOf("9gag.com/gag/…")
     override val fields = listOf(
-        SourceField("title", "The post's title — usually the joke itself."),
-        SourceField("description", "The text under the title. Most posts leave it empty."),
-        SourceField("hashtags", "The post's tags as hashtags, e.g. #meme #funny."),
-        SourceField("section", "The section or user page the post was made in."),
-        SourceField("author", "The poster's 9GAG username."),
-        SourceField("alt", "9GAG's own description of the picture."),
+        SourceField("title", R.string.extra_field_ninegag_title),
+        SourceField("description", R.string.extra_field_ninegag_description),
+        SourceField("hashtags", R.string.extra_field_ninegag_hashtags),
+        SourceField("section", R.string.extra_field_ninegag_section),
+        SourceField("author", R.string.extra_field_ninegag_author),
+        SourceField("alt", R.string.extra_field_ninegag_alt),
     )
     override val defaultRecipes = mapOf("caption" to "{title}")
 

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Texts shown outside the app's own screens: the share receiver's toasts and
+  scrims, sign-in, notifications, and the reasons a post failed.
+-->
+<resources>
+    <!-- Share receiver -->
+    <string name="receiver_nothing_shareable">Nothing shareable in that</string>
+    <string name="receiver_read_failed">Could not read the share: %1$s</string>
+    <string name="receiver_posting_in">Posting in %1$ds</string>
+    <string name="receiver_posting">Posting…</string>
+    <string name="receiver_saved_with_link_image">Saved with the image from the link</string>
+    <string name="receiver_saved_trimmed">%1$s, trimmed</string>
+    <string name="receiver_cleaning_title">Checking the %1$s link</string>
+    <string name="receiver_cleaning_detail">Taking out the part that says who shared it, and making sure the link still leads to the same post.</string>
+    <string name="receiver_link_may_identify">This %1$s link may show who shared it. A clean one couldn\'t be confirmed, so the link you shared is kept.</string>
+    <string name="receiver_fetching_title">Fetching the picture from %1$s</string>
+    <string name="receiver_fetching_detail">The link you shared points at a %1$s post. Its picture is being downloaded, so no screenshot is needed.</string>
+    <string name="receiver_paired">Joined to your other share</string>
+    <string name="receiver_duplicate">Already in the inbox</string>
+    <string name="receiver_awaiting_media">Link saved — share a screenshot next to attach the image</string>
+    <string name="receiver_saved">Saved to the inbox</string>
+
+    <!-- Sign-in -->
+    <string name="auth_failed">Sign-in failed: %1$s</string>
+    <string name="auth_cancelled">Sign-in was cancelled</string>
+    <string name="auth_finishing_title">Finishing sign-in</string>
+    <string name="auth_finishing_detail">Trading the sign-in code for an access token with your Mastodon instance, then fetching your account.</string>
+    <string name="auth_connected">Connected as @%1$s</string>
+    <string name="auth_no_sign_in">No sign-in is in progress</string>
+    <string name="auth_state_mismatch">Sign-in response did not match the request</string>
+    <string name="auth_lost_registration">Lost the client registration for %1$s</string>
+
+    <!-- Errors talking to an instance -->
+    <string name="mastodon_still_processing">Instance is still processing the attachment</string>
+    <string name="mastodon_network_error">Network error: %1$s</string>
+    <string name="mastodon_unreadable_response">Unreadable response from instance</string>
+    <string name="mastodon_error_401">Not authorised — reconnect the account</string>
+    <string name="mastodon_error_403">The instance refused this post</string>
+    <string name="mastodon_error_404">Endpoint not found — is this a Mastodon instance?</string>
+    <string name="mastodon_error_413">Attachment too large for this instance</string>
+    <string name="mastodon_error_422">The instance rejected it</string>
+    <string name="mastodon_error_429">Rate limited by the instance</string>
+    <string name="mastodon_error_server">Instance error (%1$d)</string>
+    <string name="mastodon_error_unexpected">Unexpected response (%1$d)</string>
+
+    <!-- Notifications -->
+    <string name="notify_channel_pending">Pending posts</string>
+    <string name="notify_channel_pending_description">The undo window before a post is sent</string>
+    <string name="notify_channel_results">Post results</string>
+    <string name="notify_channel_results_description">Confirmations and failures</string>
+    <string name="notify_posting_title">Posting to Mastodon</string>
+    <string name="notify_sending_in">Sending in %1$ds</string>
+    <string name="notify_undo">Undo</string>
+    <string name="notify_undone">Post cancelled — kept as a draft</string>
+
+    <!-- Posting -->
+    <string name="post_posted">Posted</string>
+    <string name="post_sent">Sent to Mastodon</string>
+    <string name="post_failed_title">Post failed</string>
+    <string name="post_failed_reason">Posting failed</string>
+    <string name="post_no_account">No Mastodon account is connected</string>
+    <string name="post_no_token">No access token — reconnect @%1$s</string>
+    <string name="post_nothing_to_post">Nothing to post — no text and no image</string>
+    <string name="post_no_alt_model">no alt-text model set up — add one in Settings → Alt text</string>
+
+    <!-- Item store -->
+    <string name="repo_download_failed">Couldn\'t download the picture: %1$s</string>
+    <string name="repo_no_image_to_crop">This item has no image to crop</string>
+    <string name="repo_no_image_to_clean">This item has no image to clean up</string>
+    <string name="repo_unreadable_image">Could not read the image</string>
+</resources>

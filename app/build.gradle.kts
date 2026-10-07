@@ -22,6 +22,12 @@ android {
     namespace = "app.fediferry"
     compileSdk = 37
 
+    // The system's per-app language screen (Android 13+) lists the languages
+    // there are strings for; see AppLocale for adding one.
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     defaultConfig {
         applicationId = "app.fediferry"
         minSdk = 26

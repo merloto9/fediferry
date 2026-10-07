@@ -83,7 +83,9 @@ either, and need not be open, or even installed, when the post goes out. The
 post leaves the inbox once Mastodon has it.
 
 The **Queue** tab, between Inbox and Sources, reads the scheduled posts from
-each connected account every time you open it. Change a post's time or cancel
+each connected account every time you open it. Tap a post to see all of it —
+its pictures (tap one for full screen), alt text, text, content warning,
+visibility, account and the exact date and time it goes out. Change a post's time or cancel
 it from its menu; both go straight to the server. Mastodon cannot change a
 scheduled post's text or picture, so to edit one, choose *Make a draft*: its
 text, hashtags, content warning, visibility, picture and alt text are copied
@@ -210,6 +212,20 @@ contrast (follow Android 14+'s contrast setting, standard, or high). The app's
 own colours are checked so every text stands out from what it sits on: at least
 4.5:1, or 7:1 in high contrast. Red is used for warnings only — a wallpaper
 colour that comes out red is swapped for the app's own.
+
+### Language
+
+FediFerry's screens come in English and German. *Settings → Language* picks
+one, or follows the phone's language (the default); anything not yet
+translated shows in English. On Android 13+ the same choice is also under
+Android's *Settings → Apps → FediFerry → Language*. Your posts, templates and
+hashtags stay exactly as you wrote them.
+
+To add a language: put its strings in `app/src/main/res/values-<tag>/` (one
+file per area, mirroring `values/strings_*.xml`) and add the tag to
+`AppLocale.SUPPORTED` in `i18n/AppLocale.kt`. The Settings list, each
+language's own name and Android's per-app language screen follow from that;
+lint's MissingTranslation check names any string still missing.
 
 ### Hashtags
 

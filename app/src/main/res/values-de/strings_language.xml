@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_language">Sprache</string>
+    <string name="language_intro">Die Sprache der Bildschirme von FediFerry. Deine Beiträge und Vorlagen bleiben, wie du sie geschrieben hast.</string>
+    <string name="language_system">Sprache des Telefons</string>
+    <string name="language_system_detail">Folgt deinem Telefon, gerade %1$s. Englisch, wo FediFerry keine Übersetzung hat.</string>
+    <string name="language_footer">Weitere Sprachen folgen. Was noch nicht übersetzt ist, erscheint auf Englisch.</string>
+    <string name="language_footer_system">Weitere Sprachen folgen. Was noch nicht übersetzt ist, erscheint auf Englisch. Android bietet das auch unter Einstellungen → Apps → FediFerry → Sprache an.</string>
+</resources>

@@ -22,6 +22,7 @@ package app.fediferry.ui.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.R
 import app.fediferry.ai.ModelTestReport
 import app.fediferry.ai.ModelTester
 import app.fediferry.data.Settings
@@ -142,7 +143,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun clearLog() = viewModelScope.launch {
         DebugLog.clear()
         refreshLogSize()
-        _state.update { it.copy(message = "Log cleared") }
+        _state.update { it.copy(message = text(R.string.settings_log_cleared)) }
     }
 
     /**
@@ -152,7 +153,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
      */
     suspend fun exportLog(): File? {
         val file = DebugLog.export(File(getApplication<Application>().cacheDir, "logs"))
-        if (file == null) _state.update { it.copy(message = "Nothing logged yet") }
+        if (file == null) _state.update { it.copy(message = text(R.string.settings_nothing_logged)) }
         return file
     }
 
@@ -160,13 +161,13 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun connect(instance: String) = viewModelScope.launch {
         if (instance.isBlank()) {
-            _state.update { it.copy(message = "Enter an instance host, e.g. mastodon.social") }
+            _state.update { it.copy(message = text(R.string.settings_enter_instance)) }
             return@launch
         }
         _state.update { it.copy(connecting = true, message = null) }
         runCatching { auth.beginAuthorization(instance) }
             .onFailure { e ->
-                _state.update { it.copy(message = "Could not reach $instance: ${e.message}") }
+                _state.update { it.copy(message = text(R.string.settings_could_not_reach, instance, e.message.orEmpty())) }
             }
         _state.update { it.copy(connecting = false) }
     }
@@ -183,7 +184,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         db.templates().upsert(
             Template(
                 id = UUID.randomUUID().toString(),
-                name = "New template",
+                name = text(R.string.settings_new_template),
                 body = "{tags}\n\nvia {link}",
                 altTextMode = AltTextMode.NONE,
                 sortOrder = _state.value.templates.size,
@@ -201,11 +202,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         val name = newName.trim()
         val taken = _state.value.placeholderKeys.any { it.id != key.id && it.name == name }
         if (!PlaceholderKey.isValidName(name) || taken) {
-            _state.update { it.copy(message = "{$name} cannot be used as a placeholder name") }
+            _state.update { it.copy(message = text(R.string.settings_placeholder_name_invalid, name)) }
             return@launch
         }
         db.placeholderKeys().upsert(key.copy(name = name))
-        _state.update { it.copy(message = "{$name} saved") }
+        _state.update { it.copy(message = text(R.string.settings_placeholder_saved, name)) }
     }
 
     /**
@@ -219,7 +220,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
             val mappings = if (recipe.isEmpty()) key.mappings - source.name else key.mappings + (source.name to recipe)
             db.placeholderKeys().upsert(key.copy(mappings = mappings))
         }
-        _state.update { it.copy(message = "${source.label} saved") }
+        _state.update { it.copy(message = text(R.string.settings_saved, source.label)) }
     }
 
     // --- hashtags -----------------------------------------------------------
@@ -264,7 +265,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
         // The key lives outside Room, so the list will not notice a key change.
         _state.update { s ->
             val withKey = if (aiModels.hasApiKey(model)) s.aiModelsWithKey + model.id else s.aiModelsWithKey - model.id
-            s.copy(aiModelsWithKey = withKey, aiTests = s.aiTests - model.id, message = "${model.displayName} saved")
+            s.copy(aiModelsWithKey = withKey, aiTests = s.aiTests - model.id, message = text(R.string.settings_saved, model.displayName))
         }
     }
 
@@ -279,7 +280,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun testAiModel(model: AiModel) = viewModelScope.launch {
         _state.update { it.copy(aiTesting = it.aiTesting + model.id) }
         val report = runCatching { ModelTester.test(getApplication(), model) }
-            .getOrElse { ModelTestReport(false, it.message ?: "The test could not run", emptyList()) }
+            .getOrElse { ModelTestReport(false, it.message ?: text(R.string.settings_test_could_not_run), emptyList()) }
         _state.update { it.copy(aiTesting = it.aiTesting - model.id, aiTests = it.aiTests + (model.id to report)) }
     }
 
@@ -326,4 +327,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
+
+    /** A message for the snackbar, in the app's language. */
+    private fun text(id: Int, vararg args: Any): String = getApplication<Application>().getString(id, *args)
 }

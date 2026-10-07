@@ -19,6 +19,7 @@
  */
 package app.fediferry.work
 
+import app.fediferry.R
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -61,12 +62,7 @@ class PostWorker(
         if (scheduledAt != null && scheduledAt - System.currentTimeMillis() < MIN_SCHEDULE_LEAD_MS) {
             // Mastodon refuses a time under five minutes away. Say so, rather
             // than posting at once when the upload waited too long for a network.
-            return fail(
-                item,
-                "The time picked is less than 5 minutes away, which Mastodon does not accept. " +
-                    "Schedule it again.",
-                retry = false,
-            )
+            return fail(item, app.getString(R.string.schedule_too_soon_failure), retry = false)
         }
 
         Notifications.cancel(app, itemId)
@@ -93,15 +89,25 @@ class PostWorker(
             )
             recordHashtags(posted.text)
             if (scheduledAt != null) {
-                Notifications.showResult(app, itemId, "Scheduled", "Mastodon posts it ${ScheduleFormat.whenText(scheduledAt)}")
+                Notifications.showResult(
+                    app,
+                    itemId,
+                    app.getString(R.string.schedule_notification_title),
+                    app.getString(R.string.schedule_notification_text, ScheduleWords.whenText(app.resources, scheduledAt)),
+                )
             } else {
-                Notifications.showResult(app, itemId, "Posted", posted.url ?: "Sent to Mastodon")
+                Notifications.showResult(
+                    app,
+                    itemId,
+                    app.getString(R.string.post_posted),
+                    posted.url ?: app.getString(R.string.post_sent),
+                )
             }
             Result.success()
         } catch (e: MastodonException) {
-            fail(item, e.message ?: "Posting failed", retry = e.retryable)
+            fail(item, e.message ?: app.getString(R.string.post_failed_reason), retry = e.retryable)
         } catch (e: Exception) {
-            fail(item, e.message ?: "Posting failed", retry = false)
+            fail(item, e.message ?: app.getString(R.string.post_failed_reason), retry = false)
         }
     }
 
@@ -122,9 +128,9 @@ class PostWorker(
 
         val account = item.accountId?.let { accounts.byId(it) }
             ?: accounts.defaultAccount()
-            ?: throw MastodonException("No Mastodon account is connected")
+            ?: throw MastodonException(app.getString(R.string.post_no_account))
         val token = tokens.get(account.id)
-            ?: throw MastodonException("No access token — reconnect @${account.acct}")
+            ?: throw MastodonException(app.getString(R.string.post_no_token, account.acct))
 
         var altText = item.altText
         var altFailed = false
@@ -152,7 +158,7 @@ class PostWorker(
         // {tags} is filled only now, so the hashtags picked last are the ones posted.
         val text = TemplateEngine.postTextOf(item)
         if (text.isBlank() && mediaIds.isEmpty()) {
-            throw MastodonException("Nothing to post — no text and no image")
+            throw MastodonException(app.getString(R.string.post_nothing_to_post))
         }
 
         val status = client.postStatus(
@@ -211,7 +217,7 @@ class PostWorker(
             return Result.retry()
         }
         repo.update(item.copy(status = Status.FAILED, failureReason = reason))
-        Notifications.showResult(app, item.id, "Post failed", reason)
+        Notifications.showResult(app, item.id, app.getString(R.string.post_failed_title), reason)
         return Result.failure()
     }
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_close">Schließen</string>
+    <string name="media_show_full_screen">Im Vollbild zeigen</string>
+    <string name="media_shared_image">Geteiltes Bild</string>
+    <string name="media_attached_picture">Angehängtes Bild</string>
+</resources>

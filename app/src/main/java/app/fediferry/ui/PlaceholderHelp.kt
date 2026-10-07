@@ -31,8 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import app.fediferry.R
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.PlaceholderKey
 
@@ -43,41 +45,44 @@ private data class Placeholder(
     val whenEmpty: String,
 )
 
-private val PLACEHOLDERS = listOf(
+/** The built-in placeholders, in the app's language. */
+@Composable
+private fun builtInPlaceholders(): List<Placeholder> = listOf(
     Placeholder(
         "{tags}",
-        "The post's hashtags: the template's picks, plus any a source adds. Filled when " +
-            "the post is sent, so it stays {tags} in the editor — change the hashtags with Adjust Hashtags " +
-            "next to the template.",
-        "Empty when no hashtags are picked.",
+        stringResource(R.string.help_tags_what),
+        stringResource(R.string.help_tags_empty),
     ),
     Placeholder(
         "{link}",
-        "The permalink of the post that was shared.",
-        "Empty unless a link came with the share. Instagram's share sheet sends one; " +
-            "a plain screenshot does not.",
+        stringResource(R.string.help_link_what),
+        stringResource(R.string.help_link_empty),
     ),
     Placeholder(
         "{date}",
-        "Today's date, as yyyy-MM-dd.",
-        "Never empty.",
+        stringResource(R.string.help_date_what),
+        stringResource(R.string.help_date_empty),
     ),
 )
 
 /** A user-defined placeholder, described by what each source fills it with. */
+@Composable
 private fun PlaceholderKey.asPlaceholder(): Placeholder {
     val mapped = ContentSource.entries.filter { recipeFor(it).isNotBlank() }
     val unmapped = ContentSource.entries - mapped.toSet()
+    val mappedItems = mapped.map { stringResource(R.string.help_custom_mapped_item, it.label, recipeFor(it)) }
     return Placeholder(
         token = "{$name}",
         what = if (mapped.isEmpty()) {
-            "Defined in Settings → Placeholders & sources, but no source fills it yet."
+            stringResource(R.string.help_custom_unmapped)
         } else {
-            mapped.joinToString("; ") { "${it.label}: ${recipeFor(it)}" }
+            mappedItems.joinToString("; ")
         },
-        whenEmpty = "Empty for screenshots and unfetched links" +
-            (if (unmapped.isEmpty()) "" else ", and for " + unmapped.joinToString { it.label }) +
-            ", and for any source a template has unticked.",
+        whenEmpty = if (unmapped.isEmpty()) {
+            stringResource(R.string.help_custom_empty)
+        } else {
+            stringResource(R.string.help_custom_empty_unmapped, unmapped.joinToString { it.label })
+        },
     )
 }
 
@@ -89,17 +94,17 @@ private fun PlaceholderKey.asPlaceholder(): Placeholder {
 fun PlaceholderHelpDialog(keys: List<PlaceholderKey>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Placeholders") },
+        title = { Text(stringResource(R.string.help_title)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "Anything in braces is replaced when the post is written.",
+                    stringResource(R.string.help_intro),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                (PLACEHOLDERS + keys.filterNot { it.isTags }.map { it.asPlaceholder() }).forEach { p ->
+                (builtInPlaceholders() + keys.filterNot { it.isTags }.map { it.asPlaceholder() }).forEach { p ->
                     Column {
                         Text(
                             p.token,
@@ -115,27 +120,24 @@ fun PlaceholderHelpDialog(keys: List<PlaceholderKey>, onDismiss: () -> Unit) {
                     }
                 }
                 HorizontalDivider()
-                Text("Empty lines disappear", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.help_empty_lines_title), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "If every placeholder on a line comes back empty, the whole line is " +
-                        "dropped — so a template ending in \"via {link}\" posts nothing at " +
-                        "all when there was no link, rather than a dangling \"via\".",
+                    stringResource(R.string.help_empty_lines),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 HorizontalDivider()
-                Text("Example", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.help_example), style = MaterialTheme.typography.titleSmall)
                 Text(
                     "{tags}\n\nvia {link}",
                     style = MaterialTheme.typography.bodySmall,
                     fontFamily = FontFamily.Monospace,
                 )
                 Text(
-                    "An unknown placeholder is left exactly as typed, so a mistake shows " +
-                        "up instead of vanishing.",
+                    stringResource(R.string.help_unknown),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.help_close)) } },
     )
 }

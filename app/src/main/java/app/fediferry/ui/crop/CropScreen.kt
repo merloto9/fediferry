@@ -56,8 +56,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.R
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -90,9 +92,9 @@ fun CropScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text("Trim the screenshot") },
+                title = { Text(stringResource(R.string.crop_title)) },
                 actions = {
-                    TextButton(onClick = { onDone(itemId) }) { Text("Skip") }
+                    TextButton(onClick = { onDone(itemId) }) { Text(stringResource(R.string.crop_skip)) }
                 },
             )
         },
@@ -100,7 +102,7 @@ fun CropScreen(
         val path = state.sourcePath
         if (path == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                if (state.loaded) Text("No image to trim") else CircularProgressIndicator()
+                if (state.loaded) Text(stringResource(R.string.crop_no_image)) else CircularProgressIndicator()
             }
             return@Scaffold
         }
@@ -108,9 +110,9 @@ fun CropScreen(
         Column(Modifier.fillMaxSize().padding(padding)) {
             Text(
                 text = if (state.suggestion != null) {
-                    "Drag the corners if this missed. The original is kept, so this can be undone."
+                    stringResource(R.string.crop_hint_suggested)
                 } else {
-                    "Nothing obvious to trim — drag the corners to crop by hand."
+                    stringResource(R.string.crop_hint_none)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -130,15 +132,15 @@ fun CropScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (state.suggestion != null) {
-                    TextButton(onClick = viewModel::useSuggestion) { Text("Suggested") }
+                    TextButton(onClick = viewModel::useSuggestion) { Text(stringResource(R.string.crop_suggested)) }
                 }
-                TextButton(onClick = viewModel::useWholeImage) { Text("Whole image") }
+                TextButton(onClick = viewModel::useWholeImage) { Text(stringResource(R.string.crop_whole_image)) }
                 Button(
                     onClick = { viewModel.apply(onDone) },
                     enabled = !state.applying,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(if (state.applying) "Trimming…" else "Use this")
+                    Text(stringResource(if (state.applying) R.string.crop_trimming else R.string.crop_use_this))
                 }
             }
         }
@@ -170,7 +172,7 @@ private fun CropCanvas(
     Box(modifier.onSizeChanged { container = Size(it.width.toFloat(), it.height.toFloat()) }) {
         AsyncImage(
             model = File(path),
-            contentDescription = "Screenshot being trimmed",
+            contentDescription = stringResource(R.string.crop_image_description),
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )

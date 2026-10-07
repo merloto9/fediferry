@@ -22,6 +22,7 @@ package app.fediferry.ui.editor
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.R
 import app.fediferry.data.model.Account
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
@@ -216,7 +217,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
 
         val bytes = repo.mediaBytes(item)
         if (bytes == null) {
-            _state.update { it.copy(altTextBusy = false, message = "No image to describe") }
+            _state.update { it.copy(altTextBusy = false, message = getApplication<Application>().getString(R.string.editor_no_image)) }
             return@launch
         }
 
@@ -236,7 +237,9 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                 altTextBusy = false,
                 item = result.getOrNull()?.let { s.item?.copy(altText = it, altTextFailed = false) }
                     ?: s.item,
-                message = result.exceptionOrNull()?.let { "Alt text failed: ${it.message}" },
+                message = result.exceptionOrNull()?.let {
+                    getApplication<Application>().getString(R.string.editor_alt_text_error, it.message)
+                },
             )
         }
     }
@@ -245,7 +248,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun revertEdits() = viewModelScope.launch {
         val item = _state.value.item ?: return@launch
         val restored = repo.revertEdits(item)
-        _state.update { it.copy(item = restored, message = "Original screenshot restored") }
+        _state.update { it.copy(item = restored, message = getApplication<Application>().getString(R.string.editor_original_restored)) }
     }
 
     fun saveDraft(onDone: () -> Unit) = viewModelScope.launch {
@@ -256,7 +259,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun send(onDone: () -> Unit) = viewModelScope.launch {
         val item = _state.value.item ?: return@launch
         if (item.accountId == null && db.accounts().defaultAccount() == null) {
-            _state.update { it.copy(message = "Connect a Mastodon account first") }
+            _state.update { it.copy(message = getApplication<Application>().getString(R.string.editor_connect_account)) }
             return@launch
         }
         repo.update(item)

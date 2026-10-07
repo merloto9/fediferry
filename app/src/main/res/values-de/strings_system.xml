@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Share receiver -->
+    <string name="receiver_nothing_shareable">Darin ist nichts zum Teilen</string>
+    <string name="receiver_read_failed">Das Geteilte konnte nicht gelesen werden: %1$s</string>
+    <string name="receiver_posting_in">Wird in %1$d s gepostet</string>
+    <string name="receiver_posting">Wird gepostet …</string>
+    <string name="receiver_saved_with_link_image">Mit dem Bild aus dem Link gespeichert</string>
+    <string name="receiver_saved_trimmed">%1$s, zugeschnitten</string>
+    <string name="receiver_cleaning_title">%1$s-Link wird geprüft</string>
+    <string name="receiver_cleaning_detail">Der Teil, der verrät, wer ihn geteilt hat, wird entfernt – und es wird geprüft, dass der Link noch zum selben Beitrag führt.</string>
+    <string name="receiver_link_may_identify">Dieser %1$s-Link verrät womöglich, wer ihn geteilt hat. Ein bereinigter Link ließ sich nicht bestätigen, deshalb bleibt der geteilte Link.</string>
+    <string name="receiver_fetching_title">Bild wird von %1$s geladen</string>
+    <string name="receiver_fetching_detail">Der geteilte Link führt zu einem Beitrag auf %1$s. Sein Bild wird heruntergeladen, du brauchst also keinen Screenshot.</string>
+    <string name="receiver_paired">Mit dem zuvor Geteilten zusammengeführt</string>
+    <string name="receiver_duplicate">Schon im Eingang</string>
+    <string name="receiver_awaiting_media">Link gespeichert – teile als Nächstes einen Screenshot, um das Bild anzuhängen</string>
+    <string name="receiver_saved">Im Eingang gespeichert</string>
+
+    <!-- Sign-in -->
+    <string name="auth_failed">Anmeldung fehlgeschlagen: %1$s</string>
+    <string name="auth_cancelled">Anmeldung abgebrochen</string>
+    <string name="auth_finishing_title">Anmeldung wird abgeschlossen</string>
+    <string name="auth_finishing_detail">Der Anmeldecode wird bei deinem Mastodon-Server gegen einen Zugangsschlüssel getauscht, danach wird dein Konto geladen.</string>
+    <string name="auth_connected">Verbunden als @%1$s</string>
+    <string name="auth_no_sign_in">Es läuft keine Anmeldung</string>
+    <string name="auth_state_mismatch">Die Antwort passt nicht zur Anmeldeanfrage</string>
+    <string name="auth_lost_registration">Die App-Registrierung für %1$s ist verloren gegangen</string>
+
+    <!-- Errors talking to an instance -->
+    <string name="mastodon_still_processing">Der Server verarbeitet den Anhang noch</string>
+    <string name="mastodon_network_error">Netzwerkfehler: %1$s</string>
+    <string name="mastodon_unreadable_response">Unlesbare Antwort vom Server</string>
+    <string name="mastodon_error_401">Nicht berechtigt – verbinde das Konto neu</string>
+    <string name="mastodon_error_403">Der Server verweigert diesen Beitrag</string>
+    <string name="mastodon_error_404">Endpunkt nicht gefunden – ist das ein Mastodon-Server?</string>
+    <string name="mastodon_error_413">Anhang zu groß für diesen Server</string>
+    <string name="mastodon_error_422">Vom Server abgelehnt</string>
+    <string name="mastodon_error_429">Zu viele Anfragen an den Server</string>
+    <string name="mastodon_error_server">Serverfehler (%1$d)</string>
+    <string name="mastodon_error_unexpected">Unerwartete Antwort (%1$d)</string>
+
+    <!-- Notifications -->
+    <string name="notify_channel_pending">Ausstehende Beiträge</string>
+    <string name="notify_channel_pending_description">Die Zeit zum Rückgängigmachen, bevor ein Beitrag gesendet wird</string>
+    <string name="notify_channel_results">Ergebnisse beim Posten</string>
+    <string name="notify_channel_results_description">Bestätigungen und Fehler</string>
+    <string name="notify_posting_title">Wird auf Mastodon gepostet</string>
+    <string name="notify_sending_in">Wird in %1$d s gesendet</string>
+    <string name="notify_undo">Rückgängig</string>
+    <string name="notify_undone">Beitrag abgebrochen – als Entwurf behalten</string>
+
+    <!-- Posting -->
+    <string name="post_posted">Gepostet</string>
+    <string name="post_sent">An Mastodon gesendet</string>
+    <string name="post_failed_title">Posten fehlgeschlagen</string>
+    <string name="post_failed_reason">Posten fehlgeschlagen</string>
+    <string name="post_no_account">Kein Mastodon-Konto verbunden</string>
+    <string name="post_no_token">Kein Zugangsschlüssel – verbinde @%1$s neu</string>
+    <string name="post_nothing_to_post">Nichts zu posten – weder Text noch Bild</string>
+    <string name="post_no_alt_model">kein Modell für Bildbeschreibungen eingerichtet – füge eines unter Einstellungen → Bildbeschreibung hinzu</string>
+
+    <!-- Item store -->
+    <string name="repo_download_failed">Das Bild konnte nicht heruntergeladen werden: %1$s</string>
+    <string name="repo_no_image_to_crop">Hier gibt es kein Bild zum Zuschneiden</string>
+    <string name="repo_no_image_to_clean">Hier gibt es kein Bild zum Bereinigen</string>
+    <string name="repo_unreadable_image">Das Bild konnte nicht gelesen werden</string>
+</resources>

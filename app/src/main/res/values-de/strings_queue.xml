@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="queue_title">Geplant</string>
+    <string name="queue_refresh">Aktualisieren</string>
+    <string name="queue_settings">Einstellungen</string>
+    <string name="queue_loading_title">Mastodon wird gefragt</string>
+    <string name="queue_loading_detail">Die Beiträge, die dein Server später veröffentlicht, werden gelesen. FediFerry behält keine Kopie, daher kommt diese Liste immer frisch von dort.</string>
+    <string name="queue_no_account_title">Kein Konto verbunden</string>
+    <string name="queue_no_account_detail">Verbinde in den Einstellungen ein Mastodon-Konto, um Beiträge zu planen.</string>
+    <string name="queue_empty_title">Nichts geplant</string>
+    <string name="queue_empty_detail">Damit Mastodon etwas später postet, halte es im Eingang gedrückt und tippe auf die Uhr. Mastodon verwaltet die Warteschlange, FediFerry muss also nicht geöffnet sein, wenn der Beitrag erscheint.</string>
+    <string name="queue_text_only">Text</string>
+    <string name="queue_cw">IW: %1$s</string>
+    <string name="queue_no_text">(kein Text)</string>
+    <string name="queue_actions_for">Aktionen für den Beitrag um %1$s</string>
+    <string name="queue_change_time">Zeit ändern</string>
+    <string name="queue_make_draft">Entwurf erstellen</string>
+    <string name="queue_cancel_post">Beitrag absagen</string>
+    <string name="queue_reconnect_title">@%1$s neu verbinden</string>
+    <string name="queue_read_failed_title">Geplante Beiträge von @%1$s nicht lesbar</string>
+    <string name="queue_reconnect_text">Um die Beiträge zu zeigen, die Mastodon später veröffentlicht, braucht FediFerry die Erlaubnis, sie zu lesen. Dieses Konto hat sie beim Verbinden nicht erteilt. Planen funktioniert auch ohne.</string>
+    <string name="queue_reconnect">Neu verbinden</string>
+
+    <string name="queue_move_title">Verschieben auf</string>
+    <string name="queue_move_confirm">Verschieben</string>
+    <string name="queue_cancel_title">Diesen Beitrag absagen?</string>
+    <string name="queue_cancel_text">Mastodon nimmt ihn aus der Warteschlange und postet ihn nicht. Er lässt sich danach nicht zurückholen.</string>
+    <string name="queue_cancel_confirm">Beitrag absagen</string>
+    <string name="queue_cancel_keep">Behalten</string>
+    <string name="queue_draft_title">Entwurf erstellen?</string>
+    <string name="queue_draft_text">FediFerry kopiert diesen Beitrag – Text, Hashtags, Bild und Bildbeschreibung – in einen neuen Entwurf im Eingang. Mastodon kann Text oder Bild eines geplanten Beitrags nicht ändern. Zum Bearbeiten also: Entwurf erstellen, diesen absagen und den Entwurf neu planen, wenn er fertig ist.</string>
+    <string name="queue_draft_and_cancel">Entwurf erstellen, diesen absagen</string>
+    <string name="queue_draft_and_keep">Entwurf erstellen, diesen behalten</string>
+    <string name="queue_drafting_title">Entwurf wird erstellt</string>
+    <string name="queue_drafting_detail">Das Bild wird von deinem Server geladen und der Beitrag in den Eingang kopiert.</string>
+
+    <string name="queue_moved">Verschoben auf %1$s</string>
+    <string name="queue_cancelled">Abgesagt. Mastodon postet ihn nicht.</string>
+    <string name="queue_draft_made_kept">Entwurf erstellt. Er ist im Eingang; der geplante Beitrag bleibt.</string>
+    <string name="queue_draft_made_cancelled">Entwurf erstellt und der geplante Beitrag abgesagt. Bearbeite ihn im Eingang.</string>
+    <string name="queue_draft_made_not_cancelled">Entwurf erstellt, aber der geplante Beitrag ließ sich nicht absagen: %1$s</string>
+    <string name="queue_draft_failed">Entwurf konnte nicht erstellt werden: %1$s</string>
+    <string name="queue_failed">Das hat nicht geklappt</string>
+    <string name="queue_no_token">Kein Zugangsschlüssel – verbinde das Konto neu</string>
+    <string name="queue_unreachable">Server nicht erreichbar</string>
+    <string name="queue_sign_in_failed">Anmeldung konnte nicht gestartet werden</string>
+
+    <string name="queue_post_title">Geplanter Beitrag</string>
+    <string name="queue_back">Zurück</string>
+    <string name="queue_post_loading_title">Mastodon wird gefragt</string>
+    <string name="queue_post_loading_detail">Der Beitrag wird gelesen, wie dein Server ihn gerade hat.</string>
+    <string name="queue_post_gone_title">Nicht mehr geplant</string>
+    <string name="queue_post_gone_detail">Er ist schon erschienen oder wurde woanders abgesagt.</string>
+    <string name="queue_read_post_failed">Beitrag nicht lesbar</string>
+    <string name="queue_detail_when">Erscheint</string>
+    <string name="queue_detail_account">Konto</string>
+    <string name="queue_detail_visibility">Sichtbarkeit</string>
+    <string name="queue_detail_cw">Inhaltswarnung</string>
+    <string name="queue_detail_text">Text</string>
+    <string name="queue_detail_alt">Bildbeschreibung</string>
+    <string name="queue_detail_no_alt">Keine – wer einen Screenreader nutzt, erfährt nicht, was das Bild zeigt.</string>
+    <string name="queue_visibility_public">Öffentlich</string>
+    <string name="queue_visibility_unlisted">Öffentlich (still)</string>
+    <string name="queue_visibility_private">Nur Follower</string>
+    <string name="queue_visibility_direct">Private Erwähnung</string>
+</resources>

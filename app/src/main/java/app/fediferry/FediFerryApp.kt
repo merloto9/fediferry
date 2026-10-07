@@ -19,6 +19,8 @@
  */
 package app.fediferry
 
+import app.fediferry.i18n.AppLocale
+import android.content.Context
 import android.app.Application
 import java.io.File
 import coil3.ImageLoader
@@ -38,6 +40,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class FediFerryApp : Application(), SingletonImageLoader.Factory {
+
+    // Before Android 13 the app's own language choice is applied here.
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

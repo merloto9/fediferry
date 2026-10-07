@@ -19,6 +19,9 @@
  */
 package app.fediferry.data.model
 
+import androidx.annotation.StringRes
+import app.fediferry.R
+
 /**
  * The content warnings offered as presets, German first and English second.
  *
@@ -41,11 +44,12 @@ object ContentWarningPresets {
         val text: String get() = "$de / $en"
     }
 
-    data class Group(val title: String, val presets: List<Preset>)
+    /** [title] is UI and follows the app's language; the presets stay bilingual post text. */
+    data class Group(@StringRes val title: Int, val presets: List<Preset>)
 
     val groups: List<Group> = listOf(
         Group(
-            "Gewalt & Tod",
+            R.string.extra_cw_group_violence,
             listOf(
                 Preset("Gewaltdarstellung", "Depiction of violence"),
                 Preset("Blut, Gore", "Blood, gore"),
@@ -56,7 +60,7 @@ object ContentWarningPresets {
             ),
         ),
         Group(
-            "Psychische Gesundheit",
+            R.string.extra_cw_group_mental_health,
             listOf(
                 Preset("Suizid, Selbstverletzung", "Suicide, self-harm"),
                 Preset("Psychische Gesundheit", "Mental health"),
@@ -65,7 +69,7 @@ object ContentWarningPresets {
             ),
         ),
         Group(
-            "Sexualität & Körper",
+            R.string.extra_cw_group_sexuality,
             listOf(
                 Preset("Sexueller Inhalt (NSFW)", "Sexual content (NSFW)"),
                 Preset("Nacktheit", "Nudity"),
@@ -73,7 +77,7 @@ object ContentWarningPresets {
             ),
         ),
         Group(
-            "Hass & Diskriminierung",
+            R.string.extra_cw_group_hate,
             listOf(
                 Preset("NS-Symbolik, Rechtsextremismus", "Nazi symbolism, far-right extremism"),
                 Preset("Rassismus", "Racism"),
@@ -85,7 +89,7 @@ object ContentWarningPresets {
             ),
         ),
         Group(
-            "Substanzen & Essen",
+            R.string.extra_cw_group_substances,
             listOf(
                 Preset("Drogen", "Drugs"),
                 Preset("Alkohol", "Alcohol"),
@@ -93,7 +97,7 @@ object ContentWarningPresets {
             ),
         ),
         Group(
-            "Reize & Phobien",
+            R.string.extra_cw_group_triggers,
             listOf(
                 Preset("Blinklichter, schnelle Schnitte", "Flashing lights, rapid motion"),
                 Preset("Spinnen", "Spiders"),
@@ -102,7 +106,7 @@ object ContentWarningPresets {
             ),
         ),
         Group(
-            "Tiere, Ton & Kontext",
+            R.string.extra_cw_group_context,
             listOf(
                 Preset("Tierleid, Tiertod", "Animal suffering, animal death"),
                 Preset("Politik", "Politics"),

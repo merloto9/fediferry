@@ -19,6 +19,8 @@
  */
 package app.fediferry.mastodon
 
+import app.fediferry.i18n.AppLocale
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.lifecycle.lifecycleScope
 import app.fediferry.MainActivity
+import app.fediferry.R
 import app.fediferry.di.ServiceLocator
 import app.fediferry.ui.LoadingScrim
 import app.fediferry.ui.theme.FediFerryTheme
@@ -39,6 +42,11 @@ import kotlinx.coroutines.launch
  */
 class OAuthRedirectActivity : ComponentActivity() {
 
+    // Before Android 13 the app's own language choice is applied here.
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val data = intent?.data
@@ -49,7 +57,7 @@ class OAuthRedirectActivity : ComponentActivity() {
 
         if (code == null || state == null) {
             ServiceLocator.auth(this).cancel()
-            toast(error?.let { "Sign-in failed: $it" } ?: "Sign-in was cancelled")
+            toast(error?.let { getString(R.string.auth_failed, it) } ?: getString(R.string.auth_cancelled))
             openApp()
             return
         }
@@ -57,9 +65,8 @@ class OAuthRedirectActivity : ComponentActivity() {
         setContent {
             FediFerryTheme {
                 LoadingScrim(
-                    title = "Finishing sign-in",
-                    detail = "Trading the sign-in code for an access token with your " +
-                        "Mastodon instance, then fetching your account.",
+                    title = getString(R.string.auth_finishing_title),
+                    detail = getString(R.string.auth_finishing_detail),
                     icon = Icons.AutoMirrored.Outlined.Login,
                 )
             }
@@ -70,8 +77,8 @@ class OAuthRedirectActivity : ComponentActivity() {
                 .completeAuthorization(code, state)
             toast(
                 result.fold(
-                    onSuccess = { "Connected as @${it.acct}" },
-                    onFailure = { "Sign-in failed: ${it.message}" },
+                    onSuccess = { getString(R.string.auth_connected, it.acct) },
+                    onFailure = { getString(R.string.auth_failed, it.message.orEmpty()) },
                 ),
             )
             openApp()

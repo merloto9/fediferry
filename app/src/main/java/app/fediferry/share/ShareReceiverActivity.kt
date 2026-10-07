@@ -19,6 +19,8 @@
  */
 package app.fediferry.share
 
+import app.fediferry.i18n.AppLocale
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.lifecycleScope
 import app.fediferry.MainActivity
+import app.fediferry.R
 import app.fediferry.data.ItemRepository
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Status
@@ -52,6 +55,11 @@ import kotlinx.coroutines.launch
  */
 class ShareReceiverActivity : ComponentActivity() {
 
+    // Before Android 13 the app's own language choice is applied here.
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -60,7 +68,7 @@ class ShareReceiverActivity : ComponentActivity() {
         val payload = SharePayload.from(intent)
 
         if (payload.isEmpty) {
-            toast("Nothing shareable in that")
+            toast(getString(R.string.receiver_nothing_shareable))
             finish()
             return
         }
@@ -92,7 +100,7 @@ class ShareReceiverActivity : ComponentActivity() {
                     // name). The payload itself is never logged.
                     Log.e(TAG, "Ingest failed for a $mode share", error)
                     DebugLog.w(LOG, "Ingest failed for a $mode share", error)
-                    toast("Could not read the share: ${error.describe()}")
+                    toast(getString(R.string.receiver_read_failed, error.describe()))
                     finish()
                 },
             )
@@ -118,7 +126,7 @@ class ShareReceiverActivity : ComponentActivity() {
                 val delay = ServiceLocator.settings(this).current().undoDelaySeconds
                 if (delay > 0) Notifications.showUndo(this, itemId, delay)
                 PostScheduler.enqueue(this, itemId, delay * 1000L)
-                toast(if (delay > 0) "Posting in ${delay}s" else "Posting…")
+                toast(if (delay > 0) getString(R.string.receiver_posting_in, delay) else getString(R.string.receiver_posting))
                 finish()
             }
 
@@ -148,8 +156,8 @@ class ShareReceiverActivity : ComponentActivity() {
                 }
                 toast(
                     when {
-                        resolved !== original.item -> "Saved with the image from the link"
-                        trimmed -> ingested.describe() + ", trimmed"
+                        resolved !== original.item -> getString(R.string.receiver_saved_with_link_image)
+                        trimmed -> getString(R.string.receiver_saved_trimmed, ingested.describe())
                         else -> ingested.describe()
                     },
                 )
@@ -181,9 +189,8 @@ class ShareReceiverActivity : ComponentActivity() {
         setContent {
             FediFerryTheme {
                 LoadingScrim(
-                    title = "Checking the $service link",
-                    detail = "Taking out the part that says who shared it, and making sure the " +
-                        "link still leads to the same post.",
+                    title = getString(R.string.receiver_cleaning_title, service),
+                    detail = getString(R.string.receiver_cleaning_detail),
                     icon = Icons.Outlined.Link,
                 )
             }
@@ -192,8 +199,7 @@ class ShareReceiverActivity : ComponentActivity() {
         if (cleaned.linkMayIdentify) {
             Toast.makeText(
                 applicationContext,
-                "This $service link may show who shared it. A clean one couldn't be confirmed, " +
-                    "so the link you shared is kept.",
+                getString(R.string.receiver_link_may_identify, service),
                 Toast.LENGTH_LONG,
             ).show()
         }
@@ -212,9 +218,8 @@ class ShareReceiverActivity : ComponentActivity() {
         setContent {
             FediFerryTheme {
                 LoadingScrim(
-                    title = "Fetching the picture from $service",
-                    detail = "The link you shared points at a $service post. Its picture is " +
-                        "being downloaded, so no screenshot is needed.",
+                    title = getString(R.string.receiver_fetching_title, service),
+                    detail = getString(R.string.receiver_fetching_detail, service),
                     icon = Icons.Outlined.Link,
                 )
             }
@@ -248,11 +253,10 @@ class ShareReceiverActivity : ComponentActivity() {
      * that the post still has no image.
      */
     private fun ItemRepository.Ingested.describe(): String = when (outcome) {
-        ItemRepository.Ingested.Outcome.PAIRED -> "Joined to your other share"
-        ItemRepository.Ingested.Outcome.DUPLICATE -> "Already in the inbox"
-        ItemRepository.Ingested.Outcome.AWAITING_MEDIA ->
-            "Link saved — share a screenshot next to attach the image"
-        ItemRepository.Ingested.Outcome.CREATED -> "Saved to the inbox"
+        ItemRepository.Ingested.Outcome.PAIRED -> getString(R.string.receiver_paired)
+        ItemRepository.Ingested.Outcome.DUPLICATE -> getString(R.string.receiver_duplicate)
+        ItemRepository.Ingested.Outcome.AWAITING_MEDIA -> getString(R.string.receiver_awaiting_media)
+        ItemRepository.Ingested.Outcome.CREATED -> getString(R.string.receiver_saved)
     }
 
     private fun toast(message: String) =

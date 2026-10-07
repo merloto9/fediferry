@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AI model test report (Settings → AI models) -->
+    <string name="extra_test_bad_endpoint">\"%1$s\" is not a web address. It should look like https://api.example.com/v1/chat/completions, with no spaces.</string>
+    <string name="extra_test_works">It works.</string>
+    <string name="extra_test_answer">Answer</string>
+    <string name="extra_test_edited_picture">an edited picture, %1$d KB</string>
+    <string name="extra_test_response_time">Response time</string>
+    <string name="extra_test_millis">%1$d ms</string>
+    <plurals name="extra_test_millis_asked">
+        <item quantity="one">%1$d ms (asked %2$d time)</item>
+        <item quantity="other">%1$d ms (asked %2$d times)</item>
+    </plurals>
+    <string name="extra_test_in_list">In the server\'s model list</string>
+    <string name="extra_test_listed_yes">yes</string>
+    <plurals name="extra_test_listed_no">
+        <item quantity="one">no — %1$d model is offered; check the spelling of \"%2$s\"</item>
+        <item quantity="other">no — %1$d models are offered; check the spelling of \"%2$s\"</item>
+    </plurals>
+    <string name="extra_test_no_server">There is no server called %1$s — check the address.</string>
+    <string name="extra_test_unreachable">Could not reach %1$s — check the address and the phone\'s connection.</string>
+    <string name="extra_test_timeout">%1$s did not answer in time.</string>
+    <string name="extra_test_ssl">The secure connection to %1$s failed: %2$s</string>
+    <string name="extra_test_model_ran">Model the server ran</string>
+    <string name="extra_test_tokens">Tokens</string>
+    <string name="extra_test_tokens_in">%1$s in</string>
+    <string name="extra_test_tokens_out">%1$s out</string>
+    <string name="extra_test_tokens_thinking">%1$s of them thinking</string>
+    <string name="extra_test_tokens_total">%1$s in all</string>
+    <string name="extra_test_stopped">Stopped because</string>
+    <string name="extra_test_stopped_done">it was done</string>
+    <string name="extra_test_requests">Requests</string>
+    <string name="extra_test_rate_limit">Rate limit</string>
+    <string name="extra_test_retry_after">Try again after</string>
+    <string name="extra_test_left">%1$s left</string>
+    <string name="extra_test_left_of">%1$s of %2$s left</string>
+    <string name="extra_test_left_reset">%1$s left, resets in %2$s</string>
+    <string name="extra_test_left_of_reset">%1$s of %2$s left, resets in %3$s</string>
+
+    <!-- Source modules (Settings → Placeholders & sources) -->
+    <string name="extra_module_ninegag_summary">Fetches the picture or video behind a shared post — animated posts as the video, not a still.</string>
+    <string name="extra_field_ninegag_title">The post\'s title — usually the joke itself.</string>
+    <string name="extra_field_ninegag_description">The text under the title. Most posts leave it empty.</string>
+    <string name="extra_field_ninegag_hashtags">The post\'s tags as hashtags, e.g. #meme #funny.</string>
+    <string name="extra_field_ninegag_section">The section or user page the post was made in.</string>
+    <string name="extra_field_ninegag_author">The poster\'s 9GAG username.</string>
+    <string name="extra_field_ninegag_alt">9GAG\'s own description of the picture.</string>
+    <string name="extra_module_pinterest_summary">Fetches a shared pin\'s picture at full size. Video pins are left for a screenshot.</string>
+    <string name="extra_field_pinterest_title">The pin\'s title, without the keyword tail Pinterest adds for search engines.</string>
+    <string name="extra_field_pinterest_description">The pin\'s description — often Pinterest\'s own stock sentence rather than the pinner\'s.</string>
+    <string name="extra_module_reddit_summary">Fetches a shared post\'s picture, a gallery\'s first picture, a GIF as video, or a video with its sound.</string>
+    <string name="extra_field_reddit_title">The post\'s title.</string>
+    <string name="extra_field_reddit_subreddit">The subreddit it was posted in, without the r/.</string>
+    <string name="extra_module_youtube_summary">Follows channels in the Sources space; picking a community post\'s picture opens it in the editor.</string>
+    <string name="extra_module_youtube_recognises">Channels added in Sources — not shared links</string>
+    <string name="extra_field_youtube_text">The community post\'s text.</string>
+    <string name="extra_field_youtube_channel">The channel\'s name.</string>
+
+    <!-- Content warning preset groups -->
+    <string name="extra_cw_group_violence">Violence &amp; death</string>
+    <string name="extra_cw_group_mental_health">Mental health</string>
+    <string name="extra_cw_group_sexuality">Sexuality &amp; body</string>
+    <string name="extra_cw_group_hate">Hate &amp; discrimination</string>
+    <string name="extra_cw_group_substances">Substances &amp; food</string>
+    <string name="extra_cw_group_triggers">Sensory triggers &amp; phobias</string>
+    <string name="extra_cw_group_context">Animals, tone &amp; context</string>
+
+    <!-- Crop -->
+    <string name="extra_crop_no_size">Could not read the image size</string>
+    <string name="extra_crop_failed">Could not crop: %1$s</string>
+</resources>

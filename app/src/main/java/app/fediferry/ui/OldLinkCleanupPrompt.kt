@@ -20,6 +20,7 @@
 package app.fediferry.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,11 +32,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fediferry.R
 import app.fediferry.data.OldLinkCleanup
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,7 +57,7 @@ class OldLinkCleanupViewModel(app: Application) : AndroidViewModel(app) {
 
     sealed interface Phase {
         data object Hidden : Phase
-        data class Offer(val count: Int, val services: String) : Phase
+        data class Offer(val count: Int, val services: List<String>) : Phase
         data class Running(val done: Int, val total: Int) : Phase
         data class Done(val result: OldLinkCleanup.Result) : Phase
     }
@@ -74,7 +79,7 @@ class OldLinkCleanupViewModel(app: Application) : AndroidViewModel(app) {
                         settings.setOldLinkCleanupOffered(true)
                     } else {
                         val services = candidates.flatMap { repo.cleaningServices(it) }.distinct()
-                        _phase.value = Phase.Offer(candidates.size, services.joinToString(" and "))
+                        _phase.value = Phase.Offer(candidates.size, services)
                     }
                 }
                 firstLook = false
@@ -107,39 +112,34 @@ fun OldLinkCleanupPrompt(viewModel: OldLinkCleanupViewModel = viewModel()) {
         is OldLinkCleanupViewModel.Phase.Offer -> if (p.count == 0) {
             AlertDialog(
                 onDismissRequest = { viewModel.decline() },
-                title = { Text("Links in the inbox") },
-                text = { Text("No post in the inbox has a Pinterest or Reddit link to check.") },
-                confirmButton = { TextButton(onClick = { viewModel.decline() }) { Text("OK") } },
+                title = { Text(stringResource(R.string.oldlinks_none_title)) },
+                text = { Text(stringResource(R.string.oldlinks_none_body)) },
+                confirmButton = { TextButton(onClick = { viewModel.decline() }) { Text(stringResource(R.string.oldlinks_ok)) } },
             )
         } else {
             AlertDialog(
                 onDismissRequest = { viewModel.decline() },
-                title = { Text("Clean older links?") },
+                title = { Text(stringResource(R.string.oldlinks_offer_title)) },
                 text = {
-                    Text(
-                        "${plural(p.count, "post")} in the inbox ${if (p.count == 1) "has" else "have"} " +
-                            "${p.services} links, in the shared link or the text. Links from before " +
-                            "FediFerry 0.17.1, or added by hand, may still say who shared them. " +
-                            "Check them now? Each link is tested, and one that can't be " +
-                            "confirmed is kept as it is.\n\n" +
-                            "You can do this later in Settings → Sharing & posting.",
-                    )
+                    val pair = stringResource(R.string.oldlinks_services_pair)
+                    val services = p.services.reduceOrNull { a, b -> String.format(pair, a, b) }.orEmpty()
+                    Text(pluralStringResource(R.plurals.oldlinks_offer_body, p.count, p.count, services))
                 },
-                confirmButton = { TextButton(onClick = { viewModel.run() }) { Text("Clean links") } },
-                dismissButton = { TextButton(onClick = { viewModel.decline() }) { Text("Not now") } },
+                confirmButton = { TextButton(onClick = { viewModel.run() }) { Text(stringResource(R.string.oldlinks_clean)) } },
+                dismissButton = { TextButton(onClick = { viewModel.decline() }) { Text(stringResource(R.string.oldlinks_not_now)) } },
             )
         }
         is OldLinkCleanupViewModel.Phase.Running -> AlertDialog(
             onDismissRequest = {},
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-            title = { Text("Cleaning links") },
+            title = { Text(stringResource(R.string.oldlinks_running_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (p.total == 0) {
-                        Text("Looking at the inbox…")
+                        Text(stringResource(R.string.oldlinks_looking))
                         LinearProgressIndicator(Modifier.fillMaxWidth())
                     } else {
-                        Text("Checking post ${minOf(p.done + 1, p.total)} of ${p.total}")
+                        Text(stringResource(R.string.oldlinks_checking, minOf(p.done + 1, p.total), p.total))
                         LinearProgressIndicator(
                             progress = { p.done / p.total.toFloat() },
                             modifier = Modifier.fillMaxWidth(),
@@ -151,24 +151,19 @@ fun OldLinkCleanupPrompt(viewModel: OldLinkCleanupViewModel = viewModel()) {
         )
         is OldLinkCleanupViewModel.Phase.Done -> AlertDialog(
             onDismissRequest = { viewModel.close() },
-            title = { Text("Links checked") },
-            text = { Text(summary(p.result)) },
-            confirmButton = { TextButton(onClick = { viewModel.close() }) { Text("OK") } },
+            title = { Text(stringResource(R.string.oldlinks_done_title)) },
+            text = { Text(summary(LocalContext.current, p.result)) },
+            confirmButton = { TextButton(onClick = { viewModel.close() }) { Text(stringResource(R.string.oldlinks_ok)) } },
         )
     }
 }
 
-private fun plural(n: Int, word: String) = "$n $word" + if (n == 1) "" else "s"
-
 /** What a run did, in the words the done dialog uses. */
-internal fun summary(r: OldLinkCleanup.Result): String = buildList {
-    if (r.cleaned > 0) add("${plural(r.cleaned, "link")} cleaned.")
-    if (r.kept > 0) {
-        val one = r.kept == 1
-        add(
-            "${plural(r.kept, "link")} couldn't be confirmed and ${if (one) "was" else "were"} " +
-                "kept as shared, so ${if (one) "it" else "they"} may still say who shared ${if (one) "it" else "them"}.",
-        )
-    }
-    if (r.alreadyClean > 0) add("${plural(r.alreadyClean, "link")} already clean.")
-}.ifEmpty { listOf("Nothing needed changing.") }.joinToString("\n")
+internal fun summary(context: Context, r: OldLinkCleanup.Result): String {
+    val res = context.resources
+    return buildList {
+        if (r.cleaned > 0) add(res.getQuantityString(R.plurals.oldlinks_cleaned, r.cleaned, r.cleaned))
+        if (r.kept > 0) add(res.getQuantityString(R.plurals.oldlinks_kept, r.kept, r.kept))
+        if (r.alreadyClean > 0) add(res.getQuantityString(R.plurals.oldlinks_already_clean, r.alreadyClean, r.alreadyClean))
+    }.ifEmpty { listOf(context.getString(R.string.oldlinks_nothing)) }.joinToString("\n")
+}

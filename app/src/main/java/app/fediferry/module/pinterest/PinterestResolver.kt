@@ -168,12 +168,25 @@ class PinterestResolver(private val http: OkHttpClient) : LinkResolver {
 
         /**
          * Whether [html] is pin [id]'s own page. A 200 is not enough: Pinterest
-         * answers a pin that does not exist with a page too. Its `og:url` has
-         * to name the same pin, and it has to carry the pin's picture.
+         * answers a pin that does not exist with a page too, one without the
+         * pin's picture or data. So the page has to carry a picture, and name
+         * the pin either in `og:url` or as the pin its data is about.
+         *
+         * `og:url` alone is not enough: a pin saved from another one (a repin,
+         * which most shared memes are) names the pin it was saved from there,
+         * and in its canonical link. Its data still says which pin it is.
+         * Related pins further down the page carry ids too, so only the page's
+         * own pin — the one the `PinResponse` is about — counts.
          */
-        fun isPinPage(html: String, id: String): Boolean =
-            meta(html, "og:url")?.let(::pinIdOf) == id &&
-                meta(html, "og:image")?.startsWith("https://i.pinimg.com/", ignoreCase = true) == true
+        fun isPinPage(html: String, id: String): Boolean {
+            val hasPicture = meta(html, "og:image")?.startsWith("https://i.pinimg.com/", ignoreCase = true) == true
+            return hasPicture && (meta(html, "og:url")?.let(::pinIdOf) == id || mainPinIdOf(html) == id)
+        }
+
+        /** The id of the pin a page's data is about, or null when it has none. */
+        fun mainPinIdOf(html: String): String? = MAIN_PIN.find(html)?.groupValues?.get(1)
+
+        private val MAIN_PIN = Regex(""""__typename":"PinResponse","data":\{"entityId":"([0-9]+)"""")
 
         /**
          * Pulls the picture out of a pin page.

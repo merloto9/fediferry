@@ -264,6 +264,33 @@ class PinterestResolverTest {
     }
 
     @Test
+    fun `a repin is its own pin though its page names the pin it was saved from`() {
+        val html = fixture("pinterest_repin.html")
+
+        assertEquals("1132373900084961258", PinterestResolver.mainPinIdOf(html))
+        assertTrue(PinterestResolver.isPinPage(html, "1132373900084961258"))
+        // The original is named in og:url, so it counts as well.
+        assertTrue(PinterestResolver.isPinPage(html, "30962316181759460"))
+        // A related pin further down the page is not this page's pin.
+        assertFalse(PinterestResolver.isPinPage(html, "1132374037465594811"))
+        // Pinterest's page for a pin that does not exist has no picture and no pin data.
+        assertFalse(PinterestResolver.isPinPage("<html><head></head><body></body></html>", "9132373900084961258"))
+    }
+
+    @Test
+    fun `a shared repin loses its sender too`() = runTest {
+        val http = fake(mutableListOf()) { url ->
+            if (url == "https://www.pinterest.com/pin/1132373900084961258/") page(fixture("pinterest_repin.html")) else notFound()
+        }
+
+        val cleaned = PinterestResolver(http).cleanLink(
+            "https://www.pinterest.de/pin/1132373900084961258/sent/?invite_code=89bae6ed&sender=616148930178164272&sfo=1",
+        )
+
+        assertEquals(CleanedLink.Clean("https://www.pinterest.com/pin/1132373900084961258/"), cleaned)
+    }
+
+    @Test
     fun `a shared link loses its sender once the plain address shows the same pin`() = runTest {
         val seen = mutableListOf<String>()
         val http = fake(seen) { url ->

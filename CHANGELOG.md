@@ -8,6 +8,18 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.21.2] — 2026-10-07
+
+### Fixed
+
+- **Pinterest links of saved pins are cleaned again.** Most shared memes are
+  pins saved from another pin, and Pinterest's page for one names the pin it
+  was saved from. FediFerry took that for a different pin, kept the link with
+  the sharer's details and warned that it couldn't be confirmed. The check now
+  reads which pin the page's own data is about, so such links are cleaned
+  (for example `pin.it/xFVZtwRF8`). A pin that doesn't exist still fails the
+  check, and *Clean older links* catches links that were kept before.
+
 ## [0.21.1] — 2026-10-07
 
 ### Changed

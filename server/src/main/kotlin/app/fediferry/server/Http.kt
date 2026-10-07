@@ -69,6 +69,9 @@ class Services(
     val feed = ChangeFeed(storage, clock)
     val media = MediaStore(storage, dataDir, clock)
     val library = Library(storage, media, feed, resolvers, fetcher, clock)
+    val crypto = Crypto.load(dataDir)
+    val secrets = Secrets(storage.db, crypto, clock)
+    val settings = SettingsStore(storage, feed, clock)
 }
 
 /** One HTTP client for everything the server fetches from services. */
@@ -132,6 +135,7 @@ fun Application.fediferry(services: Services) {
 
                 deviceRoutes(services)
                 libraryRoutes(services)
+                settingsRoutes(services)
 
                 get("/changes") {
                     val since = call.request.queryParameters["since"]?.toLongOrNull() ?: 0L

@@ -1,0 +1,19 @@
+-- The server's own registration with each fediverse instance, per redirect
+-- address (the app's debug and release builds differ). Shared by projects.
+CREATE TABLE instance_app (
+    instance TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    client_id TEXT NOT NULL,
+    client_secret_ciphertext TEXT NOT NULL,
+    client_secret_nonce TEXT NOT NULL,
+    scopes TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (instance, redirect_uri)
+);
+
+upsert:
+INSERT OR REPLACE INTO instance_app(instance, redirect_uri, client_id, client_secret_ciphertext, client_secret_nonce, scopes, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+byKey:
+SELECT * FROM instance_app WHERE instance = ? AND redirect_uri = ?;

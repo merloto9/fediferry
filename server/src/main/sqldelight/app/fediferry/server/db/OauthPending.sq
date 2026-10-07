@@ -1,0 +1,20 @@
+-- A sign-in in progress: the state a phone carries through the browser.
+CREATE TABLE oauth_pending (
+    state TEXT NOT NULL PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    instance TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+insert:
+INSERT INTO oauth_pending(state, project_id, instance, redirect_uri, created_at) VALUES (?, ?, ?, ?, ?);
+
+take:
+SELECT * FROM oauth_pending WHERE state = ? AND project_id = ?;
+
+delete:
+DELETE FROM oauth_pending WHERE state = ?;
+
+expire:
+DELETE FROM oauth_pending WHERE created_at < ?;

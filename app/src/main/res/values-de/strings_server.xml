@@ -19,4 +19,14 @@
     <string name="server_error_not_fediferry">Unter dieser Adresse läuft ein Server, aber kein FediFerry-Server.</string>
     <string name="server_error_unknown">Verbinden fehlgeschlagen: %1$s</string>
     <string name="server_error_local_network">Der Server liegt in deinem lokalen Netz, und FediFerry darf dort keine Geräte erreichen. Erlaube FediFerry in den App-Einstellungen von Android den Zugriff auf Geräte in der Nähe bzw. das lokale Netzwerk und verbinde dich dann erneut.</string>
+    <string name="server_sync_note">Vorlagen, Platzhalter, Hashtags, KI-Modelle (mit ihren Schlüsseln), Bereinigungsprofile und Quellen liegen im Projekt und bleiben auf jedem verbundenen Telefon gleich.</string>
+    <plurals name="server_import_waiting">
+        <item quantity="one">%1$d Beitrag auf diesem Telefon ist noch nicht im Projekt.</item>
+        <item quantity="other">%1$d Beiträge auf diesem Telefon sind noch nicht im Projekt.</item>
+    </plurals>
+    <string name="server_import">In die Bibliothek kopieren</string>
+    <plurals name="server_imported">
+        <item quantity="one">%1$d Beitrag wird in die Bibliothek kopiert.</item>
+        <item quantity="other">%1$d Beiträge werden in die Bibliothek kopiert.</item>
+    </plurals>
 </resources>

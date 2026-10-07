@@ -130,10 +130,16 @@ class Library(
             }
         }
 
-        // The same picture again, on its own: the library already has it.
-        val again = asset?.takeIf { url == null }?.let { db.libraryItemQueries.byAsset(projectId, it.id, ::Library_item).executeAsOneOrNull() }
+        // The same picture again: the library already has it. A link that came
+        // along this time is added to it when it had none.
+        val again = asset?.let { db.libraryItemQueries.byAsset(projectId, it.id, ::Library_item).executeAsOneOrNull() }
         if (again != null) {
-            feed.change(projectId, "library_item", again.id) { db.ingestRecordQueries.insert(projectId, clientShareId, again.id, now) }
+            feed.change(projectId, "library_item", again.id) {
+                if (url != null && again.source_url == null) {
+                    db.libraryItemQueries.attachLink(url, origin, json.encodeToString(fields), if (mayIdentify) 1 else 0, fields["title"], now, projectId, again.id)
+                }
+                db.ingestRecordQueries.insert(projectId, clientShareId, again.id, now)
+            }
             return IngestResult(item(projectId, again.id)!!, duplicate = true)
         }
 

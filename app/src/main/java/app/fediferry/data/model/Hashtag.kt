@@ -26,6 +26,7 @@ import androidx.room.PrimaryKey
  * One hashtag in the list the user keeps in Settings. Templates pick a subset
  * of these, and the editor offers all of them.
  */
+@kotlinx.serialization.Serializable
 @Entity(tableName = "hashtags")
 data class Hashtag(
     /** With its #, as it is posted. */
@@ -38,6 +39,7 @@ data class Hashtag(
  * out with, on the list or not, so the editor can offer the ones used most
  * first. Kept apart from the posts, so removing old posts keeps the counts.
  */
+@kotlinx.serialization.Serializable
 @Entity(tableName = "hashtag_usage")
 data class HashtagUsage(
     /** The tag's [Hashtags.key]: lower case, so #Meme and #meme count together. */

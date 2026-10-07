@@ -36,6 +36,10 @@ data class ConnectState(
     val busy: Boolean = false,
     /** What went wrong on the last try, already in words. */
     val error: String? = null,
+    /** Posts kept on this phone that are not in the project's library yet. */
+    val waitingToImport: Int = 0,
+    /** How many were just queued for copying, to confirm it. */
+    val justImported: Int? = null,
 )
 
 /**
@@ -52,6 +56,24 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
 
     private var lastAddress: String? = null
 
+    private val importer get() = ServiceLocator.localImporter(getApplication())
+
+    init {
+        refreshImport()
+    }
+
+    private fun refreshImport() = viewModelScope.launch {
+        val connection = connections.current() ?: return@launch
+        _state.value = _state.value.copy(waitingToImport = importer.waiting(connection.projectId))
+    }
+
+    /** Copies this phone's posts into the project's library. */
+    fun importPosts() = viewModelScope.launch {
+        val connection = connections.current() ?: return@launch
+        val queued = importer.importAll(connection.projectId)
+        _state.value = _state.value.copy(waitingToImport = importer.waiting(connection.projectId), justImported = queued)
+    }
+
     fun connect(address: String, token: String) = viewModelScope.launch {
         lastAddress = address
         _state.value = _state.value.copy(busy = true, error = null)
@@ -67,13 +89,17 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
         }
         result.onSuccess { connection ->
             connections.save(connection)
+            // The first sync: this phone's settings go up, or the project's come down.
+            ServiceLocator.projectSync(getApplication()).restartFollowing()
             _state.value = ConnectState(connection = connection)
+            refreshImport()
         }.onFailure { e ->
             _state.value = _state.value.copy(busy = false, error = describe(e))
         }
     }
 
     fun disconnect() {
+        ServiceLocator.projectSync(getApplication()).stop()
         connections.clear()
         _state.value = ConnectState()
     }

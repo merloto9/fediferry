@@ -51,4 +51,8 @@ interface TemplateDao {
 
     @Query("SELECT COUNT(*) FROM templates")
     suspend fun count(): Int
+
+    /** For the server sync: removes a template another phone deleted, default or not. */
+    @Query("DELETE FROM templates WHERE id = :id")
+    suspend fun deleteAny(id: String)
 }

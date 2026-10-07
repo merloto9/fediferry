@@ -19,6 +19,9 @@
  */
 package app.fediferry.client
 
+import kotlinx.serialization.json.JsonObject
+import app.fediferry.api.SettingsEntryDto
+import app.fediferry.api.SecretInput
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import app.fediferry.api.TagDto
@@ -147,6 +150,37 @@ class ServerClient(
 
     suspend fun tags(): List<TagDto> = get("tags")
 
+    // --- project settings ------------------------------------------------------
+
+    suspend fun settings(kind: String): List<SettingsEntryDto> = get("settings/$kind")
+
+    suspend fun putSetting(kind: String, id: String, data: JsonObject): SettingsEntryDto =
+        send("settings/$kind/${encode(id)}", "PUT", json.encodeToString(data))
+
+    suspend fun deleteSetting(kind: String, id: String) = sendNoContent("settings/$kind/${encode(id)}", "DELETE")
+
+    /** Names of the secrets the server holds; never their values. */
+    suspend fun secretIds(): List<String> = get("secrets")
+
+    suspend fun putSecret(id: String, value: String) =
+        sendNoContentWithBody("secrets/${encode(id)}", "PUT", json.encodeToString(SecretInput(value)))
+
+    suspend fun deleteSecret(id: String) = sendNoContent("secrets/${encode(id)}", "DELETE")
+
+    /** An id as one path segment: hashtags and account ids may hold characters a path cannot. */
+    private fun encode(id: String): String = java.net.URLEncoder.encode(id, "UTF-8").replace("+", "%20")
+
+    private suspend fun sendNoContentWithBody(path: String, method: String, body: String) {
+        withContext(Dispatchers.IO) {
+            val response = try {
+                http.newCall(request(path, auth = true).method(method, body.toRequestBody(JSON_TYPE)).build()).execute()
+            } catch (e: IOException) {
+                throw ServerException(0, "client.unreachable", mapOf("reason" to (e.message ?: e.javaClass.simpleName)), e)
+            }
+            response.use { if (!it.isSuccessful) decode<Unit>(it) }
+        }
+    }
+
     /** The address of a stored file; fetching it needs the project token, as every call does. */
     fun mediaUrl(assetId: String): String = url("media/$assetId").toString()
 
@@ -176,7 +210,7 @@ class ServerClient(
         call(request(path, auth = true).post(body.toRequestBody(JSON_TYPE)).build())
 
     private fun url(path: String, query: Map<String, String> = emptyMap()): HttpUrl =
-        base.newBuilder().addPathSegments(Api.PREFIX.trimStart('/')).addPathSegments(path)
+        base.newBuilder().addPathSegments(Api.PREFIX.trimStart('/')).addEncodedPathSegments(path)
             .apply { query.forEach { (k, v) -> addQueryParameter(k, v) } }
             .build()
 

@@ -49,4 +49,7 @@ interface AiModelDao {
 
     @Query("SELECT COUNT(*) FROM ai_models WHERE kind = :kind")
     suspend fun count(kind: AiKind): Int
+
+    @Query("SELECT * FROM ai_models ORDER BY sortOrder, name")
+    suspend fun all(): List<app.fediferry.data.model.AiModel>
 }

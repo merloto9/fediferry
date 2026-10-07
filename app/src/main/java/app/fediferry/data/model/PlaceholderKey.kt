@@ -32,6 +32,7 @@ import app.fediferry.module.Modules
  * source with no recipe, or a blank one, leaves the placeholder empty, and an
  * empty placeholder drops its line from the post exactly as a missing link does.
  */
+@kotlinx.serialization.Serializable
 @Entity(tableName = "placeholder_keys")
 data class PlaceholderKey(
     @PrimaryKey val id: String,

@@ -19,4 +19,14 @@
     <string name="server_error_not_fediferry">There is a server at that address, but it is not a FediFerry server.</string>
     <string name="server_error_unknown">Connecting failed: %1$s</string>
     <string name="server_error_local_network">The server is in your local network, and FediFerry is not allowed to reach devices there. Allow local network access for FediFerry in Android\'s app settings, then connect again.</string>
+    <string name="server_sync_note">Templates, placeholders, hashtags, AI models (with their keys), clean-up profiles and sources are kept in the project and stay in step on every phone connected to it.</string>
+    <plurals name="server_import_waiting">
+        <item quantity="one">%1$d post on this phone is not in the project yet.</item>
+        <item quantity="other">%1$d posts on this phone are not in the project yet.</item>
+    </plurals>
+    <string name="server_import">Copy them to the library</string>
+    <plurals name="server_imported">
+        <item quantity="one">%1$d post is being copied to the library.</item>
+        <item quantity="other">%1$d posts are being copied to the library.</item>
+    </plurals>
 </resources>

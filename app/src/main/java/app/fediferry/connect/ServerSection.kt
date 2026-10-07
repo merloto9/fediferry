@@ -19,6 +19,7 @@
  */
 package app.fediferry.connect
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -65,6 +66,17 @@ fun ServerSection(viewModel: ConnectViewModel = viewModel()) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        Text(stringResource(R.string.server_sync_note), style = MaterialTheme.typography.bodySmall)
+        if (state.waitingToImport > 0) {
+            Text(
+                pluralStringResource(R.plurals.server_import_waiting, state.waitingToImport, state.waitingToImport),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(onClick = viewModel::importPosts) { Text(stringResource(R.string.server_import)) }
+        }
+        state.justImported?.let {
+            Text(pluralStringResource(R.plurals.server_imported, it, it), style = MaterialTheme.typography.bodySmall)
         }
         OutlinedButton(onClick = viewModel::disconnect) { Text(stringResource(R.string.server_disconnect)) }
         return

@@ -178,6 +178,16 @@ class LibraryTest {
     }
 
     @Test
+    fun `the same picture with a link is still the item already there, now with the link`() = test { client, token ->
+        val first = client.share(token, "s1", picture = png(10, 10, 8)).body<IngestResult>()
+        val second = client.share(token, "s2", device = "tablet", link = "https://pin.it/abc", picture = png(10, 10, 8)).body<IngestResult>()
+        assertTrue(second.duplicate)
+        assertEquals(first.item.id, second.item.id)
+        assertEquals("https://pin.it/abc", second.item.sourceUrl)
+        assertEquals(1, items(client, token).size)
+    }
+
+    @Test
     fun `a link and its screenshot from one phone become one item`() = test { client, token ->
         val link = client.share(token, "l1", link = "https://pin.it/abc").body<IngestResult>()
         assertEquals(LibraryKinds.LINK, link.item.kind)

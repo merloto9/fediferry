@@ -42,4 +42,8 @@ interface HashtagDao {
 
     @Query("SELECT COUNT(*) FROM hashtags")
     suspend fun count(): Int
+
+    /** For the server sync: takes the server's version as it is. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(tag: Hashtag)
 }

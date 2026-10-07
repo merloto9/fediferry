@@ -105,4 +105,8 @@ interface ItemDao {
      */
     @Query("UPDATE items SET status = 'QUEUED' WHERE status = 'POSTING'")
     suspend fun requeueStalePosting()
+
+    /** Everything not posted yet, for copying into a server library. */
+    @Query("SELECT * FROM items WHERE status != 'POSTED' ORDER BY createdAt")
+    suspend fun unposted(): List<Item>
 }

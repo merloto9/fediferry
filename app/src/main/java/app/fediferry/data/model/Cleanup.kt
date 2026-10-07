@@ -33,6 +33,7 @@ import app.fediferry.media.cleanup.TreatmentKind
  * arrives from somewhere new, the fix is to edit a profile rather than to ship
  * a release.
  */
+@kotlinx.serialization.Serializable
 @Entity(tableName = "cleanup_profiles")
 data class CleanupProfile(
     @PrimaryKey val id: String,
@@ -51,6 +52,7 @@ data class CleanupProfile(
  * Coordinates are fractions of the image so a rule written on one phone works
  * on any other.
  */
+@kotlinx.serialization.Serializable
 @Entity(
     tableName = "cleanup_rules",
     indices = [Index("profileId")],

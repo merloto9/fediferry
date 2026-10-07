@@ -81,4 +81,8 @@ interface CleanupDao {
 
     @Query("DELETE FROM cleanup_profiles WHERE id = :id")
     suspend fun deleteProfileRow(id: String)
+
+    /** Every rule of every profile, for the server sync. */
+    @Query("SELECT * FROM cleanup_rules ORDER BY profileId, sortOrder")
+    suspend fun allRules(): List<ProfileRule>
 }

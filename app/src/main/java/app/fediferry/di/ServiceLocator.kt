@@ -19,6 +19,8 @@
  */
 package app.fediferry.di
 
+import app.fediferry.connect.LocalImporter
+import app.fediferry.connect.ProjectSync
 import app.fediferry.connect.ServerAuth
 import app.fediferry.library.PendingShares
 import app.fediferry.connect.ServerConnections
@@ -70,6 +72,7 @@ object ServiceLocator {
     @Volatile private var tokenStore: TokenStore? = null
     @Volatile private var serverConnections: ServerConnections? = null
     @Volatile private var pendingShares: PendingShares? = null
+    @Volatile private var projectSync: ProjectSync? = null
     @Volatile private var aiModelStore: AiModels? = null
     @Volatile private var settingsStore: SettingsStore? = null
     @Volatile private var authManager: AuthManager? = null
@@ -151,6 +154,15 @@ object ServiceLocator {
 
     fun mastodon(context: Context): MastodonClient = api ?: synchronized(this) {
         api ?: MastodonClient(http(), context.applicationContext).also { api = it }
+    }
+
+    fun localImporter(context: Context): LocalImporter =
+        LocalImporter(context.applicationContext, database(context), pendingShares(context))
+
+    fun projectSync(context: Context): ProjectSync = projectSync ?: synchronized(this) {
+        projectSync ?: ProjectSync(
+            context.applicationContext, database(context), serverConnections(context), aiModels(context), appScope,
+        ).also { projectSync = it }
     }
 
     fun pendingShares(context: Context): PendingShares = pendingShares ?: synchronized(this) {

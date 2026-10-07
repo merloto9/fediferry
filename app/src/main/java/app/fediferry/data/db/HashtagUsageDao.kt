@@ -43,4 +43,11 @@ interface HashtagUsageDao {
             bump(it)
         }
     }
+
+    /** For the server sync: takes the server's count as it is. */
+    @androidx.room.Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    suspend fun upsert(usage: app.fediferry.data.model.HashtagUsage)
+
+    @Query("DELETE FROM hashtag_usage WHERE `key` = :key")
+    suspend fun delete(key: String)
 }

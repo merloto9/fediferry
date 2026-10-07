@@ -38,6 +38,7 @@ enum class AiKind {
  * The API key is not here. It lives encrypted beside the Mastodon tokens,
  * keyed by [id], so a database export never carries it.
  */
+@kotlinx.serialization.Serializable
 @Entity(tableName = "ai_models", indices = [Index("kind")])
 data class AiModel(
     @PrimaryKey val id: String,

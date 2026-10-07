@@ -1,0 +1,25 @@
+-- A project's settings — templates, placeholders, hashtags, AI models, clean-up
+-- profiles, sources — one row per object, as the JSON the app keeps them in.
+-- Every phone mirrors these; the server's copy is the one that counts.
+CREATE TABLE settings_entry (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    id TEXT NOT NULL,
+    json TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    updated_by TEXT,
+    PRIMARY KEY (project_id, kind, id)
+);
+
+upsert:
+INSERT INTO settings_entry(project_id, kind, id, json, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(project_id, kind, id) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at, updated_by = excluded.updated_by;
+
+byKind:
+SELECT * FROM settings_entry WHERE project_id = ? AND kind = ? ORDER BY id;
+
+byId:
+SELECT * FROM settings_entry WHERE project_id = ? AND kind = ? AND id = ?;
+
+delete:
+DELETE FROM settings_entry WHERE project_id = ? AND kind = ? AND id = ?;

@@ -1,0 +1,49 @@
+-- Where a project publishes: a Mastodon account now, other fediverse
+-- software later. What the destination can take is kept in capabilities_json.
+CREATE TABLE channel (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    name TEXT NOT NULL,
+    instance TEXT NOT NULL,
+    remote_account_id TEXT NOT NULL,
+    acct TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    avatar_url TEXT,
+    capabilities_json TEXT NOT NULL DEFAULT '{}',
+    defaults_json TEXT NOT NULL DEFAULT '{}',
+    is_default INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+insert:
+INSERT INTO channel(project_id, id, type, name, instance, remote_account_id, acct, display_name, avatar_url,
+    capabilities_json, defaults_json, is_default, sort_order, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+all:
+SELECT * FROM channel WHERE project_id = ? ORDER BY sort_order, name;
+
+byId:
+SELECT * FROM channel WHERE project_id = ? AND id = ?;
+
+count:
+SELECT COUNT(*) FROM channel WHERE project_id = ?;
+
+refreshAccount:
+UPDATE channel SET display_name = ?, avatar_url = ?, remote_account_id = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+setCapabilities:
+UPDATE channel SET capabilities_json = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+update:
+UPDATE channel SET name = ?, defaults_json = ?, sort_order = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+setDefault:
+UPDATE channel SET is_default = (id = ?), updated_at = ? WHERE project_id = ?;
+
+delete:
+DELETE FROM channel WHERE project_id = ? AND id = ?;

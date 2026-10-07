@@ -46,4 +46,7 @@ interface SourceDao {
 
     @Query("DELETE FROM sources WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("SELECT * FROM sources ORDER BY sortOrder, displayName")
+    suspend fun all(): List<app.fediferry.data.model.Source>
 }

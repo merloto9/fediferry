@@ -19,6 +19,8 @@
  */
 package app.fediferry.library
 
+import app.fediferry.api.LibraryItemPatch
+import app.fediferry.api.FolderInput
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -49,7 +51,12 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         for (share in pending.all.value) {
             try {
                 val file = pending.file(share).takeIf { share.hasFile && it.exists() }?.readBytes()
-                client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt)
+                val result = client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt)
+                share.folder?.let { name ->
+                    val folder = client.folders().firstOrNull { it.name.equals(name, ignoreCase = true) }
+                        ?: client.createFolder(FolderInput(name))
+                    client.patchLibraryItem(result.item.id, LibraryItemPatch(folderId = folder.id))
+                }
                 pending.remove(share)
                 DebugLog.d(LOG, "Uploaded a share")
             } catch (e: ServerException) {

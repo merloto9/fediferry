@@ -39,6 +39,7 @@ enum class AltTextMode {
  * Body text carries the built-in `{link}`, `{tags}` and `{date}` placeholders
  * and any the user defined; see [app.fediferry.template.TemplateEngine].
  */
+@kotlinx.serialization.Serializable
 @Entity(tableName = "templates")
 data class Template(
     @PrimaryKey val id: String,

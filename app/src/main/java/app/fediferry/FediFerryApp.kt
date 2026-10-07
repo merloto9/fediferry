@@ -72,6 +72,8 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
         Notifications.ensureChannels(this)
         // Loads the server connection, so pictures from the server get their token from the start.
         ServiceLocator.serverConnections(this)
+        // Keeps the project settings in step with the server while the app runs.
+        ServiceLocator.projectSync(this).start()
         ShortcutPublisher.publish(this)
 
         // Installed before anything can log, and left off until the setting

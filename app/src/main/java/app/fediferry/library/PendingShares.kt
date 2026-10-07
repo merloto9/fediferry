@@ -45,6 +45,8 @@ data class PendingShare(
     val attempts: Int = 0,
     /** Why the last try failed, as an error code; shown in the library. */
     val lastError: String? = null,
+    /** A library folder to put the item in once it is up, by name. */
+    val folder: String? = null,
 ) {
     val hasFile: Boolean get() = mime != null
 }
@@ -84,6 +86,20 @@ class PendingShares(context: Context) {
         refresh()
         added
     }
+
+    /**
+     * Keeps a file that is on the phone already — a post being copied into the
+     * library — under a fixed [id], so copying twice never uploads twice.
+     */
+    suspend fun addFile(id: String, link: String?, file: File?, mime: String?, capturedAt: Long, folder: String?) = withContext(Dispatchers.IO) {
+        if (File(dir, "$id.json").exists()) return@withContext
+        val share = PendingShare(id, IngestModes.SAVE, link, null, mime?.takeIf { file != null }, capturedAt, folder = folder)
+        if (file != null) file.copyTo(file(share), overwrite = true)
+        File(dir, "${share.id}.json").writeText(json.encodeToString(share))
+        refresh()
+    }
+
+    fun has(id: String): Boolean = File(dir, "$id.json").exists()
 
     fun file(share: PendingShare): File = File(dir, "${share.id}.bin")
 

@@ -33,6 +33,7 @@ enum class SourceKind { YOUTUBE }
  * they are someone else's content, and only the picture actually chosen becomes
  * an item.
  */
+@kotlinx.serialization.Serializable
 @Entity(tableName = "sources")
 data class Source(
     @PrimaryKey val id: String,

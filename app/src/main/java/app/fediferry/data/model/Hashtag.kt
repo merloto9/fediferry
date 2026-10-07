@@ -106,5 +106,43 @@ object Hashtags {
     /** The hashtags in [text] that [known] does not have yet, in the order written. */
     fun newIn(text: String, known: List<String>): List<String> = inText(text).filterNot { contains(known, it) }
 
+    /**
+     * A draft from before 0.12 has its hashtags typed into the text and no list
+     * of its own, so there is nothing for the editor's hashtag menu to tick.
+     * This moves every line made only of hashtags into the list, and leaves
+     * `{tags}` where the first of them stood — or at the end, when there is
+     * none, so a hashtag picked later has somewhere to go. Hashtags inside a
+     * sentence stay where they are. The post still says the same; only
+     * several hashtag lines become one.
+     */
+    fun adoptFromText(body: String): Pair<String, List<String>> {
+        if ("{tags}" in body) return body to emptyList()
+        val tags = mutableListOf<String>()
+        val lines = mutableListOf<String>()
+        var placed = false
+        body.lines().forEach { line ->
+            val words = line.trim().split(Regex("""\s+""")).filter { it.isNotEmpty() }
+            val onlyTags = words.isNotEmpty() && words.all { word ->
+                inText(word).singleOrNull()?.equals(word, ignoreCase = true) == true
+            }
+            if (!onlyTags) {
+                lines += line
+                return@forEach
+            }
+            tags += words
+            if (!placed) {
+                lines += "{tags}"
+                placed = true
+            }
+        }
+        val text = lines.joinToString("\n")
+        val withToken = when {
+            placed -> text
+            text.isBlank() -> "{tags}"
+            else -> text.trimEnd() + "\n\n{tags}"
+        }
+        return withToken to union(emptyList(), tags)
+    }
+
     private val IN_TEXT = Regex("""(?<![\p{L}\p{N}_/#&])#([\p{L}\p{N}_]+)""")
 }

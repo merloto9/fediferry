@@ -88,16 +88,6 @@ internal fun HashtagPanel(
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Hashtags", style = MaterialTheme.typography.titleSmall)
 
-            if (item.hashtags == null) {
-                // A draft from before hashtags were picked per post.
-                Text(
-                    "This draft was written with its hashtags already in the text — edit them " +
-                        "there, or pick a template again to choose them here.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                return@Column
-            }
-
             val picked = item.hashtagList
             // Most used first. The counts only change once a post is sent, so
             // ticking a chip never moves it away from the finger.

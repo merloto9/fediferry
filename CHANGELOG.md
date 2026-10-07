@@ -8,6 +8,17 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.19.1] — 2026-10-07
+
+### Fixed
+
+- **The hashtag menu works for drafts from before 0.12.** Those drafts had
+  their hashtags typed into the text and no list of their own, so *Adjust
+  Hashtags* showed only a note and nothing to tick. When such a draft is
+  opened now, its hashtag lines become the post's ticked hashtags and `{tags}`
+  takes their place. The post still says the same; several hashtag lines
+  become one, and hashtags inside a sentence stay where they are.
+
 ## [0.19.0] — 2026-10-01
 
 ### Added

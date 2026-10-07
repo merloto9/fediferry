@@ -75,7 +75,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun load(itemId: String) = viewModelScope.launch {
         _state.update {
             it.copy(
-                item = repo.byId(itemId),
+                item = repo.byId(itemId)?.let(::withHashtagList),
                 templates = repo.templates(),
                 placeholderKeys = db.placeholderKeys().all(),
                 hashtagList = db.hashtags().all().map { it.tag },
@@ -87,6 +87,16 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                 loaded = true,
             )
         }
+    }
+
+    /**
+     * A draft from before hashtags were picked per post gets its list now, so
+     * the hashtag menu works for it too. Saved with the post's next edit.
+     */
+    private fun withHashtagList(item: Item): Item {
+        if (item.hashtags != null) return item
+        val (body, tags) = Hashtags.adoptFromText(item.bodyText)
+        return item.copy(bodyText = body, hashtags = Hashtags.format(tags))
     }
 
     private fun edit(block: (Item) -> Item) = _state.update { s ->

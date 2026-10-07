@@ -65,6 +65,8 @@ fun SchedulePicker(
     initial: Long,
     onPick: (Long) -> Unit,
     onDismiss: () -> Unit,
+    /** The FediFerry server publishes, not Mastodon: a minute ahead is enough. */
+    byServer: Boolean = false,
 ) {
     val zone = ZoneId.systemDefault()
     val start = Instant.ofEpochMilli(initial).atZone(zone)
@@ -102,7 +104,7 @@ fun SchedulePicker(
     }
 
     val at = ScheduleFormat.combine(date, timeState.hour, timeState.minute, zone)
-    val tooSoon = at < ScheduleFormat.earliest()
+    val tooSoon = at < if (byServer) System.currentTimeMillis() + SERVER_LEAD_MS else ScheduleFormat.earliest()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -110,7 +112,9 @@ fun SchedulePicker(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(ScheduleWords.dayHeading(LocalResources.current, at), style = MaterialTheme.typography.titleSmall)
                 TimePicker(state = timeState)
-                if (tooSoon) {
+                if (tooSoon && byServer) {
+                    Text(stringResource(R.string.schedule_too_soon_server), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                } else if (tooSoon) {
                     Text(
                         pluralStringResource(
                             R.plurals.schedule_too_soon,
@@ -122,7 +126,10 @@ fun SchedulePicker(
                     )
                 } else {
                     Text(
-                        stringResource(R.string.schedule_hint, ScheduleWords.whenText(LocalResources.current, at)),
+                        stringResource(
+                            if (byServer) R.string.schedule_hint_server else R.string.schedule_hint,
+                            ScheduleWords.whenText(LocalResources.current, at),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -132,3 +139,6 @@ fun SchedulePicker(
         dismissButton = { TextButton(onClick = { pickingTime = false }) { Text(stringResource(R.string.schedule_back)) } },
     )
 }
+
+/** How far ahead a time for the FediFerry server must be: long enough to read and press the button. */
+private const val SERVER_LEAD_MS = 60_000L

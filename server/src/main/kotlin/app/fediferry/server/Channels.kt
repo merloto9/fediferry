@@ -155,6 +155,7 @@ class Channels(
         db.channelQueries.byId(projectId, id).executeAsOneOrNull() ?: throw ApiException.notFound("channel")
         feed.change(projectId, "channel", id, deleted = true) {
             db.channelQueries.delete(projectId, id)
+            db.scheduleQueries.deleteForChannel(projectId, id)
             secrets.delete(projectId, tokenId(id))
         }
     }

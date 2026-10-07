@@ -64,3 +64,9 @@ UPDATE post SET review_folder_id = ?, updated_at = ? WHERE project_id = ? AND id
 
 releaseReviewFolder:
 UPDATE post SET review_folder_id = NULL, updated_at = :now WHERE project_id = :project AND review_folder_id = :folder;
+
+setStage:
+UPDATE post SET stage = ?, version = version + 1, updated_at = ? WHERE project_id = ? AND id = ?;
+
+byStages:
+SELECT * FROM post WHERE project_id = ? AND stage IN ? AND deleted_at IS NULL ORDER BY updated_at DESC;

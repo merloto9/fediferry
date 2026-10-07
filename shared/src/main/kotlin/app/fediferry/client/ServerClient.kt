@@ -22,6 +22,9 @@ package app.fediferry.client
 import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.AltSuggestion
 import app.fediferry.api.LabelDto
+import app.fediferry.api.PlanRequest
+import app.fediferry.api.ScheduleDto
+import app.fediferry.api.ScheduleInput
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
@@ -176,7 +179,7 @@ class ServerClient(
 
     // --- posts -----------------------------------------------------------------
 
-    suspend fun posts(stage: String): List<PostDto> = get("posts", query = mapOf("stage" to stage))
+    suspend fun posts(vararg stages: String): List<PostDto> = get("posts", query = mapOf("stage" to stages.joinToString(",")))
 
     suspend fun post(id: String): PostDto = get("posts/$id")
 
@@ -215,6 +218,22 @@ class ServerClient(
     suspend fun deleteReviewFolder(id: String) = sendNoContent("review/folders/$id", "DELETE")
 
     suspend fun labels(): List<LabelDto> = get("labels")
+
+    // --- publishing --------------------------------------------------------------
+
+    /** Puts a ready post in the queue, moves a planned one, or tries a failed one again. */
+    suspend fun plan(id: String, request: PlanRequest): PostDto = post("posts/$id/plan", json.encodeToString(request))
+
+    /** Out of the queue, back to review. */
+    suspend fun unplan(id: String): PostDto = post("posts/$id/unplan", "{}")
+
+    suspend fun schedules(): List<ScheduleDto> = get("schedules")
+
+    suspend fun createSchedule(input: ScheduleInput): ScheduleDto = post("schedules", json.encodeToString(input))
+
+    suspend fun updateSchedule(id: String, input: ScheduleInput): ScheduleDto = send("schedules/$id", "PATCH", json.encodeToString(input))
+
+    suspend fun deleteSchedule(id: String) = sendNoContent("schedules/$id", "DELETE")
 
     suspend fun suggestAlt(postId: String, position: Int): AltSuggestion = post("posts/$postId/media/$position/alt-suggestion", "{}")
 

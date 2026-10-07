@@ -69,8 +69,9 @@ class Posts(
 
     fun get(projectId: String, id: String): PostDto = dto(projectId, row(projectId, id))
 
-    fun list(projectId: String, stage: String): List<PostDto> =
-        db.postQueries.byStage(projectId, stage).executeAsList().map { dto(projectId, it) }
+    /** Posts in any of [stages], most recently changed first. */
+    fun list(projectId: String, stages: Collection<String>): List<PostDto> =
+        db.postQueries.byStages(projectId, stages).executeAsList().map { dto(projectId, it) }
 
     private fun row(projectId: String, id: String): Post =
         db.postQueries.byId(projectId, id).executeAsOneOrNull() ?: throw ApiException.notFound("post")
@@ -102,6 +103,7 @@ class Posts(
             readyAt = post.ready_at,
             reviewFolderId = post.review_folder_id,
             labels = db.postLabelQueries.forPost(projectId, post.id).executeAsList(),
+            publication = db.publicationQueries.byPost(projectId, post.id).executeAsOneOrNull()?.let(Publishing::dto),
         )
     }
 
@@ -306,15 +308,15 @@ class Posts(
 
     fun delete(projectId: String, postId: String, deviceId: String?) {
         val post = row(projectId, postId)
-        if (post.stage != PostStages.DRAFT && post.stage != PostStages.READY) {
-            throw ApiException(HttpStatusCode.Conflict, "post.not_deletable", mapOf("stage" to post.stage))
-        }
+        // Planned or being sent: take it out of the queue first. Out already: it leaves the history only.
+        if (post.stage !in DELETABLE) throw ApiException(HttpStatusCode.Conflict, "post.not_deletable", mapOf("stage" to post.stage))
         val held = db.postLockQueries.byPost(projectId, postId).executeAsOneOrNull()
         if (held != null && held.device_id != deviceId && held.expires_at > clock()) throw locked(held.device_name, held.expires_at)
         val now = clock()
         feed.change(projectId, "post", postId, deleted = true) {
             db.postQueries.softDelete(now, now, projectId, postId)
             db.postLockQueries.clear(projectId, postId)
+            if (post.stage == PostStages.FAILED) db.publicationQueries.delete(projectId, postId)
         }
     }
 
@@ -368,6 +370,7 @@ class Posts(
     companion object {
         const val LOCK_TTL_MS = 5 * 60 * 1000L
         const val MAX_LABEL = 40
+        val DELETABLE = setOf(PostStages.DRAFT, PostStages.READY, PostStages.FAILED, PostStages.PUBLISHED)
         const val VISION_PROMPT = "Describe this image for a blind reader in one or two plain sentences. " +
             "Transcribe any text in the image verbatim. No preamble."
     }

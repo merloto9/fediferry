@@ -22,6 +22,8 @@ package app.fediferry.server
 import app.fediferry.api.CreatePost
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.PostPatch
+import app.fediferry.api.PlanRequest
+import app.fediferry.api.ScheduleInput
 import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.ProfileRuleData
@@ -51,7 +53,8 @@ fun Route.postRoutes(services: Services) {
     val posts = services.posts
 
     get("/posts") {
-        call.respond(posts.list(call.projectId(), call.request.queryParameters["stage"] ?: app.fediferry.api.PostStages.DRAFT))
+        val stages = (call.request.queryParameters["stage"] ?: app.fediferry.api.PostStages.DRAFT).split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        call.respond(posts.list(call.projectId(), stages))
     }
     post("/posts") { call.respond(HttpStatusCode.Created, posts.create(call.projectId(), call.deviceId(), call.receive<CreatePost>())) }
     get("/posts/{id}") { call.respond(posts.get(call.projectId(), call.parameters["id"].orEmpty())) }
@@ -81,6 +84,19 @@ fun Route.postRoutes(services: Services) {
         call.respond(HttpStatusCode.NoContent)
     }
     get("/labels") { call.respond(posts.labels(call.projectId())) }
+
+    val publishing = services.publishing
+    post("/posts/{id}/plan") { call.respond(publishing.plan(call.projectId(), call.parameters["id"].orEmpty(), call.receive<PlanRequest>())) }
+    post("/posts/{id}/unplan") { call.respond(publishing.unplan(call.projectId(), call.parameters["id"].orEmpty())) }
+    get("/schedules") { call.respond(publishing.schedules(call.projectId())) }
+    post("/schedules") { call.respond(HttpStatusCode.Created, publishing.createSchedule(call.projectId(), call.receive<ScheduleInput>())) }
+    patch("/schedules/{id}") {
+        call.respond(publishing.updateSchedule(call.projectId(), call.parameters["id"].orEmpty(), call.receive<ScheduleInput>()))
+    }
+    delete("/schedules/{id}") {
+        publishing.deleteSchedule(call.projectId(), call.parameters["id"].orEmpty())
+        call.respond(HttpStatusCode.NoContent)
+    }
     post("/posts/{id}/lock") {
         call.respond(posts.lock(call.projectId(), call.parameters["id"].orEmpty(), call.deviceId(), call.request.queryParameters["force"] == "true"))
     }

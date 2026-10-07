@@ -19,6 +19,9 @@
  */
 package app.fediferry.server
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.NoOpCliktCommand
@@ -77,6 +80,8 @@ private class Serve : DataCommand("serve") {
         val services = Services(storage, File(data))
         echo("FediFerry server $SERVER_VERSION on http://$host:$port — data in ${File(data).absolutePath}")
         if (services.projects.all().isEmpty()) echo("No projects yet. Create one with: fediferry project create \"Name\"")
+        // Publishes planned posts when their time comes, with or without a phone around.
+        services.publishing.start(CoroutineScope(SupervisorJob() + Dispatchers.IO))
         embeddedServer(Netty, port = port, host = host) { fediferry(services) }.start(wait = true)
     }
 }

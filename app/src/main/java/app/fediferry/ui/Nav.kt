@@ -27,6 +27,8 @@ import app.fediferry.drafts.DraftEditorScreen
 import app.fediferry.drafts.DraftsScreen
 import app.fediferry.review.ReviewPostScreen
 import app.fediferry.review.ReviewScreen
+import app.fediferry.publishing.PublishingScreen
+import app.fediferry.publishing.SchedulesScreen
 import app.fediferry.ui.queue.QueuedPostScreen
 import android.net.Uri
 import app.fediferry.ui.queue.QueueScreen
@@ -55,6 +57,8 @@ object Routes {
     const val DRAFT = "draft/{postId}"
     const val REVIEW = "review"
     const val REVIEW_POST = "review/{postId}"
+    const val PUBLISHING = "publishing"
+    const val SCHEDULES = "schedules"
     const val QUEUE = "queue"
     const val QUEUED_POST = "queue/{accountId}/{statusId}"
     const val SOURCES = "sources"
@@ -132,6 +136,15 @@ fun FediFerryNavHost(
                 onReady = { id -> navController.navigate(Routes.reviewPost(id)) { popUpTo(Routes.DRAFT) { inclusive = true } } },
             )
         }
+        composable(Routes.PUBLISHING) {
+            PublishingScreen(
+                onOpenPost = { navController.navigate(Routes.reviewPost(it)) },
+                onOpenSchedules = { navController.navigate(Routes.SCHEDULES) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(Routes.SCHEDULES) { SchedulesScreen(onBack = { navController.popBackStack() }) }
         composable(Routes.REVIEW) {
             ReviewScreen(
                 onOpenPost = { navController.navigate(Routes.reviewPost(it)) },

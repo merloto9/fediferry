@@ -55,13 +55,14 @@ object Notifications {
     }
 
     /** The undo window. Cancelled by the worker as soon as it starts sending. */
-    fun showUndo(context: Context, itemId: String, seconds: Int) {
+    fun showUndo(context: Context, itemId: String, seconds: Int, onServer: Boolean = false) {
         val undo = PendingIntent.getBroadcast(
             context,
             itemId.hashCode(),
             Intent(context, UndoReceiver::class.java)
                 .setAction(UndoReceiver.ACTION_UNDO)
-                .putExtra(UndoReceiver.EXTRA_ITEM_ID, itemId),
+                // A post in the server's queue is undone there; [itemId] is then the post's id.
+                .putExtra(if (onServer) UndoReceiver.EXTRA_POST_ID else UndoReceiver.EXTRA_ITEM_ID, itemId),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 

@@ -87,10 +87,14 @@ class ShareReceiverActivity : ComponentActivity() {
 
         // Connected to a FediFerry server: a share kept for later goes to the
         // project's library there, and Compose starts a draft there. Post now
-        // stays on the phone until publishing moves to the server too.
+        // goes through the server's queue, with the undo window before it.
         val server = ServiceLocator.serverConnections(this).current()
         if (server != null && mode == ShareMode.COMPOSE) {
             composeOnServer(payload, server.projectName)
+            return
+        }
+        if (server != null && mode == ShareMode.POST_NOW) {
+            postNowOnServer(payload, server.projectName)
             return
         }
         if (server != null && mode == ShareMode.SAVE_FOR_LATER) {
@@ -175,6 +179,67 @@ class ShareReceiverActivity : ComponentActivity() {
                     .putExtra(MainActivity.EXTRA_POST_ID, first)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             )
+        }
+        finish()
+    }
+
+    /**
+     * Post now, by way of the server: the share goes up, becomes a draft, is
+     * checked and made ready, and is queued for the end of the undo window.
+     * A post the channel would not take opens in the editor instead. Without
+     * a connection it waits, and goes out once it is up.
+     */
+    private fun postNowOnServer(payload: SharePayload, project: String) = lifecycleScope.launch {
+        val shares = runCatching {
+            ServiceLocator.pendingShares(this@ShareReceiverActivity).add(IngestModes.POST_NOW, payload.imageUris, payload.link, payload.text)
+        }.getOrElse { error ->
+            DebugLog.w(LOG, "Keeping a share for the server failed", error)
+            toast(getString(R.string.receiver_read_failed, error.describe()))
+            finish()
+            return@launch
+        }
+        setContent {
+            FediFerryTheme {
+                LoadingScrim(
+                    title = getString(R.string.receiver_posting_title, project),
+                    detail = getString(R.string.receiver_drafting_detail),
+                    icon = Icons.Outlined.EditNote,
+                )
+            }
+        }
+        val context = this@ShareReceiverActivity
+        val connections = ServiceLocator.serverConnections(context)
+        val client = connections.current()?.let(connections::client)
+        val delay = ServiceLocator.settings(context).current().undoDelaySeconds
+        val outcomes = runCatching {
+            shares.mapNotNull { share ->
+                client?.let { api -> UploadWorker.send(context, api, share)?.let { UploadWorker.postNow(api, it, delay) } }
+            }
+        }.onFailure { DebugLog.w(LOG, "Posting now through the server failed: ${(it as? app.fediferry.client.ServerException)?.code}") }
+            .getOrNull()
+        when {
+            outcomes.isNullOrEmpty() -> {
+                UploadWorker.enqueue(context)
+                toast(getString(R.string.receiver_post_later, project))
+            }
+            else -> {
+                outcomes.filterIsInstance<UploadWorker.PostNowOutcome.Queued>().forEach { q ->
+                    if (delay > 0) Notifications.showUndo(context, q.postId, delay, onServer = true)
+                }
+                val notReady = outcomes.filterIsInstance<UploadWorker.PostNowOutcome.NotReady>().firstOrNull()
+                if (notReady != null) {
+                    val why = notReady.violations.firstOrNull()?.let { app.fediferry.drafts.ServerMessages.violation(resources, it) }.orEmpty()
+                    toast(getString(R.string.receiver_post_not_ready, why))
+                    startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .setAction(MainActivity.ACTION_EDIT_POST)
+                            .putExtra(MainActivity.EXTRA_POST_ID, notReady.postId)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                    )
+                } else {
+                    toast(if (delay > 0) getString(R.string.receiver_posting_in, delay) else getString(R.string.receiver_posting))
+                }
+            }
         }
         finish()
     }

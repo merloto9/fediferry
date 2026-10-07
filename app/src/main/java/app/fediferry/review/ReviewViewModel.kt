@@ -29,6 +29,8 @@ import app.fediferry.api.PostStages
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
+import app.fediferry.api.PlanModes
+import app.fediferry.api.PlanRequest
 import app.fediferry.client.ServerClient
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
@@ -153,6 +155,26 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
     fun renameFolder(folder: ReviewFolderDto, name: String) = act { it.updateReviewFolder(folder.id, ReviewFolderInput(name.trim())) }
 
     fun deleteFolder(folder: ReviewFolderDto) = act { it.deleteReviewFolder(folder.id) }
+
+    /**
+     * Plans each post into the next free slot of its channel, in the order
+     * shown, so the first in the list goes out first. Stops at the first
+     * refusal (no schedule, no free slot) and says why.
+     */
+    fun planIntoSlots(ids: Collection<String>, onPlanned: (Int) -> Unit) = viewModelScope.launch {
+        val api = client ?: return@launch
+        var planned = 0
+        for (post in _state.value.shown.filter { it.id in ids }) {
+            val failed = runCatching { api.plan(post.id, PlanRequest(PlanModes.NEXT_SLOT)) }.exceptionOrNull()
+            if (failed != null) {
+                _messages.tryEmit((failed as? ServerException)?.code ?: "client.unknown")
+                break
+            }
+            planned++
+        }
+        if (planned > 0) onPlanned(planned)
+        refresh()
+    }
 
     fun delete(ids: Collection<String>) = act { api -> ids.forEach { api.deletePost(it) } }
 

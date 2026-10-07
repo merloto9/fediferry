@@ -45,6 +45,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Warning
@@ -105,6 +108,7 @@ fun ReviewScreen(
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
+    val scope = rememberCoroutineScope()
     var selection by remember { mutableStateOf(emptySet<String>()) }
     var moving by remember { mutableStateOf(false) }
     var labelling by remember { mutableStateOf(false) }
@@ -178,6 +182,14 @@ fun ReviewScreen(
                 },
                 actions = {
                     if (selection.isNotEmpty()) {
+                        IconButton(onClick = {
+                            viewModel.planIntoSlots(selection) { count ->
+                                scope.launch { snackbar.showSnackbar(resources.getQuantityString(R.plurals.review_planned, count, count)) }
+                            }
+                            selection = emptySet()
+                        }) {
+                            Icon(Icons.Outlined.EventAvailable, contentDescription = stringResource(R.string.review_plan_into_slots))
+                        }
                         IconButton(onClick = { moving = true }) {
                             Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = stringResource(R.string.library_move))
                         }

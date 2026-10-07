@@ -70,6 +70,10 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.R
 import app.fediferry.api.PostStages
+import app.fediferry.api.PlanModes
+import app.fediferry.api.PlanRequest
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Button
 import app.fediferry.data.model.Visibility
 import app.fediferry.drafts.ServerMessages
 import app.fediferry.library.FolderPicker
@@ -96,6 +100,7 @@ fun ReviewPostScreen(
     var folders by remember { mutableStateOf(false) }
     var labelling by remember { mutableStateOf(false) }
     var fullScreen by remember { mutableStateOf<Pair<String?, String?>?>(null) }
+    var planning by remember { mutableStateOf(false) }
 
     LaunchedEffect(postId) { viewModel.load(postId) }
     LifecycleResumeEffect(postId) {
@@ -115,14 +120,26 @@ fun ReviewPostScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.review_post_title)) },
+                title = {
+                    Text(
+                        stringResource(
+                            when (state.post?.stage) {
+                                PostStages.SCHEDULED -> R.string.post_title_planned
+                                PostStages.PUBLISHING -> R.string.post_title_sending
+                                PostStages.PUBLISHED -> R.string.post_title_published
+                                PostStages.FAILED -> R.string.post_title_failed
+                                else -> R.string.review_post_title
+                            },
+                        ),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.queue_back))
                     }
                 },
                 actions = {
-                    IconButton(onClick = { deleting = true }) {
+                    if (state.post?.stage in DELETABLE) IconButton(onClick = { deleting = true }) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.drafts_delete))
                     }
                 },
@@ -144,6 +161,14 @@ fun ReviewPostScreen(
                 onDismiss = { folders = false },
             )
         }
+        if (planning) {
+            PlanSheet(
+                post = post,
+                nextSlot = state.nextSlot,
+                onPlan = { planning = false; viewModel.plan(it) },
+                onDismiss = { planning = false },
+            )
+        }
         if (labelling) {
             LabelSheet(
                 known = (state.labels.map { it.name } + post.labels).distinctBy { it.lowercase() }.sortedBy { it.lowercase() },
@@ -157,9 +182,10 @@ fun ReviewPostScreen(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (post.stage != PostStages.READY) {
+            if (post.stage == PostStages.DRAFT) {
                 Text(stringResource(R.string.review_not_ready_any_more), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             }
+            WayOut(post, state, onPlan = { planning = true }, onUnplan = viewModel::unplan, onRetry = { viewModel.plan(PlanRequest(PlanModes.NOW)) })
             post.media.forEach { media ->
                 val url = viewModel.mediaUrl(media.asset.id)
                 AsyncImage(
@@ -200,6 +226,10 @@ fun ReviewPostScreen(
             }
 
             if (post.stage == PostStages.READY) {
+                Button(onClick = { planning = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Schedule, contentDescription = null)
+                    Text(stringResource(R.string.post_plan), modifier = Modifier.padding(start = 8.dp))
+                }
                 OutlinedButton(onClick = { viewModel.backToDraft(onOpenDraft) }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Outlined.EditNote, contentDescription = null)
                     Text(stringResource(R.string.review_back_to_draft), modifier = Modifier.padding(start = 8.dp))
@@ -217,3 +247,5 @@ private fun Detail(label: String, value: String) {
         Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
+private val DELETABLE = setOf(PostStages.READY, PostStages.FAILED, PostStages.PUBLISHED)

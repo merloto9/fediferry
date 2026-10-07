@@ -23,6 +23,11 @@ import app.fediferry.api.LibraryItemPatch
 import app.fediferry.api.FolderInput
 import app.fediferry.api.CreatePost
 import app.fediferry.api.IngestModes
+import app.fediferry.api.PlanModes
+import app.fediferry.api.PlanRequest
+import app.fediferry.api.Violation
+import app.fediferry.R
+import app.fediferry.work.Notifications
 import app.fediferry.client.ServerClient
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -55,7 +60,14 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
         for (share in pending.all.value) {
             try {
-                send(app, client, share)
+                val draft = send(app, client, share)
+                // Shared with "Post now" while offline: it goes now that it is up.
+                // The undo window has long passed, so there is none.
+                if (draft != null && share.mode == IngestModes.POST_NOW) {
+                    if (postNow(client, draft, delaySeconds = 0) is PostNowOutcome.NotReady) {
+                        Notifications.showResult(app, draft, app.getString(R.string.post_now_not_ready_title), app.getString(R.string.post_now_not_ready_text))
+                    }
+                }
             } catch (e: ServerException) {
                 // No server, or a passing fault: try again later. Anything else
                 // (a revoked token, a refused file) needs a person, not a retry.
@@ -65,15 +77,39 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         return Result.success()
     }
 
+    /** How a "Post now" went on the server. */
+    sealed interface PostNowOutcome {
+        /** In the queue; it goes after [delaySeconds], unless undone. */
+        data class Queued(val postId: String, val delaySeconds: Int) : PostNowOutcome
+        /** The channel would not take it as it is; it stays a draft. */
+        data class NotReady(val postId: String, val violations: List<Violation>) : PostNowOutcome
+    }
+
     companion object {
         private const val LOG = "upload"
+
+        /**
+         * Takes a fresh draft straight through: ready (checked against the
+         * channel like any other) and into the queue for now plus [delaySeconds].
+         */
+        suspend fun postNow(client: ServerClient, postId: String, delaySeconds: Int): PostNowOutcome {
+            val draft = client.post(postId)
+            try {
+                client.markReady(postId, draft.version)
+            } catch (e: ServerException) {
+                if (e.code == "post.not_ready") return PostNowOutcome.NotReady(postId, e.violations)
+                throw e
+            }
+            client.plan(postId, PlanRequest(PlanModes.NOW, delaySeconds = delaySeconds))
+            return PostNowOutcome.Queued(postId, delaySeconds)
+        }
 
         /** One upload at a time, whether from here or straight from a share. */
         private val sending = Mutex()
 
         /**
          * Sends one waiting share and lets go of it once the server has it. A
-         * Compose share also starts a draft from what arrived; its id comes back.
+         * Compose or Post-now share also starts a draft from what arrived; its id comes back.
          * Null when the share had already gone.
          */
         suspend fun send(context: Context, client: ServerClient, share: PendingShare): String? = sending.withLock {
@@ -89,7 +125,7 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 }
                 // The share stays waiting until its draft exists too, so a
                 // failure here starts the draft on the next try.
-                val draft = if (share.mode == IngestModes.COMPOSE) {
+                val draft = if (share.mode == IngestModes.COMPOSE || share.mode == IngestModes.POST_NOW) {
                     client.createPost(CreatePost(listOf(result.item.id))).id
                 } else {
                     null

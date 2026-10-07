@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_publishing">Veröffentlichen</string>
+    <string name="publishing_title">Veröffentlichen</string>
+    <string name="publishing_loading">Warteschlange wird gelesen…</string>
+    <string name="publishing_failed">Fehlgeschlagen</string>
+    <string name="publishing_queue">Warteschlange</string>
+    <string name="publishing_queue_empty">Nichts geplant. Plane einen fertigen Beitrag im Review. Der Server postet ihn pünktlich; dafür muss kein Handy an sein.</string>
+    <string name="publishing_sending">Wird gerade gesendet</string>
+    <string name="publishing_retry_at">Neuer Versuch um %1$s</string>
+    <string name="publishing_published">Veröffentlicht</string>
+
+    <string name="schedules_title">Upload-Pläne</string>
+    <string name="schedules_new">Neuer Plan</string>
+    <string name="schedules_edit">Plan bearbeiten</string>
+    <string name="schedules_explain">Ein Plan gibt einem Kanal wöchentliche Slots. „Nächster freier Slot“ legt einen Beitrag in den frühesten Slot, den noch kein anderer Beitrag belegt.</string>
+    <string name="schedules_no_slots">Noch keine Slots.</string>
+    <string name="schedules_next_free">Nächster freier Slot: %1$s</string>
+    <string name="schedules_zone">Zeiten nach der Uhr von %1$s.</string>
+    <string name="schedules_every_day">Jeden Tag</string>
+    <string name="schedules_name">Name</string>
+    <string name="schedules_name_example">Abends</string>
+    <string name="schedules_remove_slot">Slot entfernen</string>
+    <string name="schedules_add_slot">Slot hinzufügen</string>
+    <string name="schedules_delete">Plan löschen</string>
+
+    <string name="post_title_planned">Geplanter Beitrag</string>
+    <string name="post_title_sending">Wird gesendet</string>
+    <string name="post_title_published">Veröffentlichter Beitrag</string>
+    <string name="post_title_failed">Beitrag fehlgeschlagen</string>
+    <string name="post_plan">Planen</string>
+    <string name="post_goes_out">Geht raus: %1$s</string>
+    <string name="post_went_out">Ging raus: %1$s</string>
+    <string name="post_failed_because">Nicht gepostet: %1$s</string>
+    <string name="post_in_slot">In einem Slot von „%1$s“</string>
+    <plurals name="post_tried">
+        <item quantity="one">%1$d Versuch; zuletzt: %2$s</item>
+        <item quantity="other">%1$d Versuche; zuletzt: %2$s</item>
+    </plurals>
+    <string name="post_move">Zeit ändern</string>
+    <string name="post_unplan">Zurück ins Review</string>
+    <string name="post_retry_now">Jetzt erneut versuchen</string>
+    <string name="post_plan_again">Neu planen</string>
+    <string name="post_open_remote">Auf Mastodon öffnen</string>
+    <string name="post_pick_time">Zeit wählen</string>
+    <string name="post_now">Jetzt posten</string>
+    <string name="post_now_title">Jetzt posten?</string>
+    <string name="post_now_text">Der Server sendet ihn sofort. Von hier aus gibt es kein Rückgängig.</string>
+    <string name="post_now_hint">Sofort, ohne Rückgängig</string>
+    <string name="post_next_slot">Nächster freier Slot</string>
+    <string name="post_no_slot">Für diesen Kanal gibt es noch keinen Plan. Leg einen an unter Veröffentlichen → Upload-Pläne.</string>
+    <string name="review_plan_into_slots">In die nächsten freien Slots planen</string>
+    <plurals name="review_planned">
+        <item quantity="one">%1$d Beitrag geplant.</item>
+        <item quantity="other">%1$d Beiträge geplant, in der angezeigten Reihenfolge.</item>
+    </plurals>
+
+    <string name="plan_error_no_schedule">Der Kanal hat keinen aktiven Plan. Leg einen an unter Veröffentlichen → Upload-Pläne.</string>
+    <string name="plan_error_no_free_slot">Der Plan hat im kommenden Jahr keinen freien Slot mehr.</string>
+    <string name="plan_error_in_past">Diese Zeit ist vorbei.</string>
+    <string name="plan_error_publishing">Der Beitrag wird gerade gesendet.</string>
+    <string name="plan_error_stage">Das geht bei einem Beitrag in diesem Stadium nicht.</string>
+
+    <string name="publish_error_unauthorized">Das Konto lässt FediFerry nicht mehr posten. Melde dich neu an.</string>
+    <string name="publish_error_rejected">Die Instanz hat den Beitrag abgelehnt.</string>
+    <string name="publish_error_rate_limited">Die Instanz bittet um eine Pause.</string>
+    <string name="publish_error_unreachable">Die Instanz war nicht erreichbar.</string>
+    <string name="publish_error_busy">Die Instanz hatte ein eigenes Problem.</string>
+    <string name="publish_error_too_large">Ein Bild ist zu groß für die Instanz.</string>
+    <string name="publish_error_media_processing">Die Instanz hat zu lange für das Bild gebraucht.</string>
+    <string name="publish_error_no_token">Der Kanal hat keine Anmeldung. Verbinde das Konto neu.</string>
+    <string name="publish_error_interrupted">Der Server wurde beim Senden gestoppt.</string>
+    <string name="publish_error_unknown">Etwas ist schiefgegangen (%1$s).</string>
+
+    <string name="schedule_too_soon_server">Wähle eine Zeit mindestens eine Minute in der Zukunft.</string>
+    <string name="schedule_hint_server">Der FediFerry-Server postet ihn %1$s. Dafür muss kein Handy an sein.</string>
+
+    <string name="post_now_not_ready_title">Nicht gepostet</string>
+    <string name="post_now_not_ready_text">Der Kanal würde den Beitrag so nicht annehmen. Er wartet in den Entwürfen.</string>
+    <string name="receiver_posting_title">Wird über „%1$s“ gepostet</string>
+    <string name="receiver_post_later">Keine Verbindung zu „%1$s“. Das Geteilte wird aufbewahrt und geht raus, sobald es hochgeladen ist.</string>
+    <string name="receiver_post_not_ready">Nicht gepostet: %1$s Er ist als Entwurf geöffnet.</string>
+    <string name="notify_undone_server">Rückgängig gemacht. Der Beitrag wartet im Review.</string>
+    <string name="notify_undo_too_late">Zu spät für Rückgängig, oder keine Verbindung zum Server.</string>
+</resources>

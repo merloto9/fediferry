@@ -28,6 +28,24 @@ import java.util.Date
 
 /** Words a server error code for the person holding the phone. */
 object ServerMessages {
+    /** Why the server could not publish a post, from the code it kept. */
+    fun publishFailure(resources: Resources, code: String?): String = when (code) {
+        "mastodon.unauthorized" -> resources.getString(R.string.publish_error_unauthorized)
+        "mastodon.rejected" -> resources.getString(R.string.publish_error_rejected)
+        "mastodon.rate_limited" -> resources.getString(R.string.publish_error_rate_limited)
+        "mastodon.unreachable" -> resources.getString(R.string.publish_error_unreachable)
+        "mastodon.too_large" -> resources.getString(R.string.publish_error_too_large)
+        "mastodon.media_processing" -> resources.getString(R.string.publish_error_media_processing)
+        "channel.no_token" -> resources.getString(R.string.publish_error_no_token)
+        "server.interrupted" -> resources.getString(R.string.publish_error_interrupted)
+        null -> resources.getString(R.string.publish_error_unknown, "?")
+        else -> if (code.startsWith("mastodon.http_5")) {
+            resources.getString(R.string.publish_error_busy)
+        } else {
+            resources.getString(R.string.publish_error_unknown, code)
+        }
+    }
+
     /** One reason a post cannot become ready, or a warning about it. */
     fun violation(resources: Resources, v: Violation): String {
         val a = v.args
@@ -63,6 +81,12 @@ object ServerMessages {
         "media.not_editable" -> resources.getString(R.string.server_error_not_editable)
         "post.not_ready" -> resources.getString(R.string.server_error_not_ready)
         "post.not_ready_stage" -> resources.getString(R.string.server_error_not_ready_stage)
+        "plan.no_schedule" -> resources.getString(R.string.plan_error_no_schedule)
+        "plan.no_free_slot" -> resources.getString(R.string.plan_error_no_free_slot)
+        "plan.in_past" -> resources.getString(R.string.plan_error_in_past)
+        "post.publishing" -> resources.getString(R.string.plan_error_publishing)
+        "post.not_plannable", "post.not_deletable" -> resources.getString(R.string.plan_error_stage)
+        "post.no_channel" -> resources.getString(R.string.ready_no_channel)
         else -> resources.getString(R.string.library_action_failed, code)
     }
 }

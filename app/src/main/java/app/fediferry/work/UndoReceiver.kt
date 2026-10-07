@@ -39,8 +39,12 @@ class UndoReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_UNDO) return
-        val itemId = intent.getStringExtra(EXTRA_ITEM_ID) ?: return
         val appContext = context.applicationContext
+        intent.getStringExtra(EXTRA_POST_ID)?.let { postId ->
+            undoOnServer(appContext, postId)
+            return
+        }
+        val itemId = intent.getStringExtra(EXTRA_ITEM_ID) ?: return
         val pending = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -58,8 +62,25 @@ class UndoReceiver : BroadcastReceiver() {
         }
     }
 
+    /** Takes the post out of the server's queue, back to review, if it has not gone yet. */
+    private fun undoOnServer(context: Context, postId: String) {
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val connections = ServiceLocator.serverConnections(context)
+                val outcome = connections.current()?.let(connections::client)?.let { api -> runCatching { api.unplan(postId) } }
+                Notifications.cancel(context, postId)
+                val text = if (outcome?.isSuccess == true) R.string.notify_undone_server else R.string.notify_undo_too_late
+                withContext(Dispatchers.Main) { Toast.makeText(context, context.getString(text), Toast.LENGTH_LONG).show() }
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
     companion object {
         const val ACTION_UNDO = "app.fediferry.action.UNDO"
         const val EXTRA_ITEM_ID = "app.fediferry.extra.ITEM_ID"
+        const val EXTRA_POST_ID = "app.fediferry.extra.POST_ID"
     }
 }

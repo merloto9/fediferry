@@ -27,6 +27,8 @@ import app.fediferry.api.LabelDto
 import app.fediferry.api.PostDto
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewPatch
+import app.fediferry.api.PlanRequest
+import app.fediferry.api.ScheduleDto
 import app.fediferry.client.ServerClient
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
@@ -41,10 +43,17 @@ data class ReviewPostState(
     val channels: List<ChannelDto> = emptyList(),
     val folders: List<ReviewFolderDto> = emptyList(),
     val labels: List<LabelDto> = emptyList(),
+    val schedules: List<ScheduleDto> = emptyList(),
     /** An error code, for the screen to word. */
     val message: String? = null,
 ) {
     val channel: ChannelDto? get() = channels.firstOrNull { it.id == post?.channelId }
+
+    /** The soonest free slot among the post's channel's active schedules, and which schedule offers it. */
+    val nextSlot: Pair<Long, ScheduleDto>?
+        get() = schedules.filter { it.active && it.channelId == post?.channelId }
+            .mapNotNull { s -> s.nextFree.firstOrNull()?.let { it to s } }
+            .minByOrNull { it.first }
 }
 
 /** One ready post: read-only, but it can be sorted, sent back to draft or deleted. */
@@ -73,6 +82,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
             }
         runCatching { Triple(api.channels(), api.reviewFolders(), api.labels()) }
             .onSuccess { (channels, folders, labels) -> _state.update { it.copy(channels = channels, folders = folders, labels = labels) } }
+        runCatching { api.schedules() }.onSuccess { schedules -> _state.update { it.copy(schedules = schedules) } }
     }
 
     fun setFolder(folderId: String?) = sort(ReviewPatch(folderId = folderId ?: ""))
@@ -90,6 +100,25 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
             .onSuccess { post -> _state.update { it.copy(post = post) } }
             .onFailure { e -> _state.update { it.copy(message = code(e)) } }
         runCatching { api.labels() }.onSuccess { labels -> _state.update { it.copy(labels = labels) } }
+    }
+
+    /** Into the queue: now, at [at], or into the next free slot. Also moves a planned post and retries a failed one. */
+    fun plan(request: PlanRequest) = viewModelScope.launch {
+        val api = client ?: return@launch
+        val id = postId ?: return@launch
+        runCatching { api.plan(id, request) }
+            .onSuccess { post -> _state.update { it.copy(post = post) } }
+            .onFailure { e -> _state.update { it.copy(message = code(e)) } }
+        runCatching { api.schedules() }.onSuccess { schedules -> _state.update { it.copy(schedules = schedules) } }
+    }
+
+    /** Out of the queue, back to review. */
+    fun unplan() = viewModelScope.launch {
+        val api = client ?: return@launch
+        val id = postId ?: return@launch
+        runCatching { api.unplan(id) }
+            .onSuccess { post -> _state.update { it.copy(post = post) } }
+            .onFailure { e -> _state.update { it.copy(message = code(e)) } }
     }
 
     /** Opens the post for editing again; [onDraft] then shows it in the editor. */

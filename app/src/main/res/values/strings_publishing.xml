@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_publishing">Publishing</string>
+    <string name="publishing_title">Publishing</string>
+    <string name="publishing_loading">Reading the queue…</string>
+    <string name="publishing_failed">Failed</string>
+    <string name="publishing_queue">Queue</string>
+    <string name="publishing_queue_empty">Nothing planned. Plan a ready post from Review. The server posts it on time; no phone needs to be on.</string>
+    <string name="publishing_sending">Being sent now</string>
+    <string name="publishing_retry_at">Trying again at %1$s</string>
+    <string name="publishing_published">Published</string>
+
+    <string name="schedules_title">Schedules</string>
+    <string name="schedules_new">New schedule</string>
+    <string name="schedules_edit">Edit schedule</string>
+    <string name="schedules_explain">A schedule gives a channel weekly slots. “Next free slot” puts a post into the soonest slot no other post has taken.</string>
+    <string name="schedules_no_slots">No slots yet.</string>
+    <string name="schedules_next_free">Next free slot: %1$s</string>
+    <string name="schedules_zone">Times on the %1$s clock.</string>
+    <string name="schedules_every_day">Every day</string>
+    <string name="schedules_name">Name</string>
+    <string name="schedules_name_example">Evenings</string>
+    <string name="schedules_remove_slot">Remove slot</string>
+    <string name="schedules_add_slot">Add slot</string>
+    <string name="schedules_delete">Delete schedule</string>
+
+    <string name="post_title_planned">Planned post</string>
+    <string name="post_title_sending">Being sent</string>
+    <string name="post_title_published">Published post</string>
+    <string name="post_title_failed">Post failed</string>
+    <string name="post_plan">Plan</string>
+    <string name="post_goes_out">Goes out %1$s</string>
+    <string name="post_went_out">Went out %1$s</string>
+    <string name="post_failed_because">Not posted: %1$s</string>
+    <string name="post_in_slot">In a slot of “%1$s”</string>
+    <plurals name="post_tried">
+        <item quantity="one">Tried %1$d time; last time: %2$s</item>
+        <item quantity="other">Tried %1$d times; last time: %2$s</item>
+    </plurals>
+    <string name="post_move">Change time</string>
+    <string name="post_unplan">Back to review</string>
+    <string name="post_retry_now">Try again now</string>
+    <string name="post_plan_again">Plan again</string>
+    <string name="post_open_remote">Open on Mastodon</string>
+    <string name="post_pick_time">Pick a time</string>
+    <string name="post_now">Post now</string>
+    <string name="post_now_title">Post this now?</string>
+    <string name="post_now_text">The server sends it right away. There is no undo from here.</string>
+    <string name="post_now_hint">Right away, no undo</string>
+    <string name="post_next_slot">Next free slot</string>
+    <string name="post_no_slot">No schedule for this channel yet. Set one up under Publishing → Schedules.</string>
+    <string name="review_plan_into_slots">Plan into the next free slots</string>
+    <plurals name="review_planned">
+        <item quantity="one">%1$d post planned.</item>
+        <item quantity="other">%1$d posts planned, in the order shown.</item>
+    </plurals>
+
+    <string name="plan_error_no_schedule">The channel has no active schedule. Set one up under Publishing → Schedules.</string>
+    <string name="plan_error_no_free_slot">The schedule has no free slot left in the coming year.</string>
+    <string name="plan_error_in_past">That time has passed.</string>
+    <string name="plan_error_publishing">The post is being sent right now.</string>
+    <string name="plan_error_stage">That doesn\'t work for a post at this stage.</string>
+
+    <string name="publish_error_unauthorized">The account no longer lets FediFerry post. Sign in to it again.</string>
+    <string name="publish_error_rejected">The instance refused the post.</string>
+    <string name="publish_error_rate_limited">The instance asked to slow down.</string>
+    <string name="publish_error_unreachable">The instance could not be reached.</string>
+    <string name="publish_error_busy">The instance had a problem of its own.</string>
+    <string name="publish_error_too_large">A picture is too large for the instance.</string>
+    <string name="publish_error_media_processing">The instance took too long with the picture.</string>
+    <string name="publish_error_no_token">The channel has no sign-in. Connect the account again.</string>
+    <string name="publish_error_interrupted">The server stopped while sending it.</string>
+    <string name="publish_error_unknown">Something went wrong (%1$s).</string>
+
+    <string name="schedule_too_soon_server">Pick a time at least a minute from now.</string>
+    <string name="schedule_hint_server">The FediFerry server posts it %1$s. No phone needs to be on then.</string>
+
+    <string name="post_now_not_ready_title">Not posted</string>
+    <string name="post_now_not_ready_text">The channel wouldn\'t take the post as it is. It waits in Drafts.</string>
+    <string name="receiver_posting_title">Posting via “%1$s”</string>
+    <string name="receiver_post_later">No connection to “%1$s”. The share is kept and goes out once it is up.</string>
+    <string name="receiver_post_not_ready">Not posted: %1$s It is open as a draft.</string>
+    <string name="notify_undone_server">Undone. The post waits in Review.</string>
+    <string name="notify_undo_too_late">Too late to undo, or no connection to the server.</string>
+</resources>

@@ -75,6 +75,8 @@ data class PostDto(
     /** Where the post sits in review; only set once it is ready. */
     val reviewFolderId: String? = null,
     val labels: List<String> = emptyList(),
+    /** Its way out, once it is planned. */
+    val publication: PublicationDto? = null,
 )
 
 /** `POST /posts`: a draft from library items, rendered with the template. */

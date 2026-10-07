@@ -19,6 +19,8 @@
  */
 package app.fediferry.server
 
+import app.fediferry.channel.ChannelPublisher
+import app.fediferry.channel.MastodonPublisher
 import app.fediferry.mastodon.MastodonAccounts
 import java.util.concurrent.TimeUnit
 import java.io.File
@@ -66,6 +68,7 @@ class Services(
     resolvers: List<LinkResolver> = defaultResolvers(version),
     fetcher: MediaFetcher = OkHttpMediaFetcher(outboundHttp),
     mastodon: MastodonAccounts = MastodonAccounts(outboundHttp),
+    publisher: ChannelPublisher = MastodonPublisher(outboundHttp),
 ) {
     val projects = Projects(storage, clock)
     val feed = ChangeFeed(storage, clock)
@@ -76,6 +79,7 @@ class Services(
     val settings = SettingsStore(storage, feed, clock)
     val channels = Channels(storage, secrets, crypto, feed, mastodon, clock)
     val posts = Posts(storage, feed, settings, secrets, media, outboundHttp, clock)
+    val publishing = Publishing(storage, feed, posts, channels, media, settings, publisher, clock)
 }
 
 /** One HTTP client for everything the server fetches from services. */

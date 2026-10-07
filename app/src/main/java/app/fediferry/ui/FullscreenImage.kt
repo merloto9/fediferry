@@ -19,6 +19,16 @@
  */
 package app.fediferry.ui
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -55,8 +65,8 @@ import coil3.compose.AsyncImage
 
 /**
  * A picture on its own, filling the screen: pinch or double-tap to zoom, drag
- * to look around, back or the cross to close. The alt text, if any, is shown
- * along the bottom.
+ * to look around, back or the cross to close. The alt text, if any, opens
+ * from the ALT badge in the corner.
  *
  * Black and white rather than theme colours: this sits over a photo, the one
  * place the app's colours give way.
@@ -100,19 +110,53 @@ fun FullscreenImage(model: Any?, description: String?, onDismiss: () -> Unit) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.media_close), tint = Color.White)
             }
             if (!description.isNullOrBlank()) {
-                Text(
-                    description,
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .safeDrawingPadding()
-                        .padding(16.dp),
-                )
+                AltText(description, Modifier.align(Alignment.BottomStart))
             }
         }
+    }
+}
+
+/**
+ * An "ALT" badge in the corner, as Mastodon shows it; tapping it opens the alt
+ * text above it, and tapping again closes it. Long text scrolls within a
+ * limited height, so the picture always stays in view.
+ */
+@Composable
+private fun AltText(description: String, modifier: Modifier = Modifier) {
+    var open by remember { mutableStateOf(false) }
+    Column(
+        modifier = modifier.fillMaxWidth().safeDrawingPadding().padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (open) {
+            Text(
+                description,
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 220.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black.copy(alpha = 0.8f))
+                    .clickable(onClickLabel = stringResource(R.string.media_hide_alt)) { open = false }
+                    .verticalScroll(rememberScrollState())
+                    .padding(12.dp),
+            )
+        }
+        Text(
+            stringResource(R.string.media_alt_badge),
+            color = if (open) Color.Black else Color.White,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(if (open) Color.White else Color.Black.copy(alpha = 0.7f))
+                .border(1.dp, Color.White, RoundedCornerShape(6.dp))
+                .clickable(
+                    onClickLabel = stringResource(if (open) R.string.media_hide_alt else R.string.media_show_alt),
+                ) { open = !open }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        )
     }
 }
 

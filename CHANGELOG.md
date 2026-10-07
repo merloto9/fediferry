@@ -8,6 +8,16 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.21.1] — 2026-10-07
+
+### Changed
+
+- **Alt text in full screen sits behind an ALT badge**, as in Mastodon's app.
+  It used to run along the bottom all the time, and a long one covered the
+  picture. Tap *ALT* in the bottom-left corner to show it — long text scrolls
+  within a limited height — and tap again to hide it. Applies in the editor
+  and on a scheduled post's screen.
+
 ## [0.21.0] — 2026-10-07
 
 ### Added

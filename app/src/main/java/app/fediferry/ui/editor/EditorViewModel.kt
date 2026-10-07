@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.editor
 
+import app.fediferry.template.inputsOf
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope

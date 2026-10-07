@@ -19,6 +19,7 @@
  */
 package app.fediferry.work
 
+import app.fediferry.template.postTextOf
 import app.fediferry.R
 import android.content.Context
 import androidx.work.CoroutineWorker

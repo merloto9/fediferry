@@ -1,0 +1,22 @@
+-- Who is editing a post. Expires if the device goes quiet.
+CREATE TABLE post_lock (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    post_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    device_name TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, post_id)
+);
+
+byPost:
+SELECT * FROM post_lock WHERE project_id = ? AND post_id = ?;
+
+upsert:
+INSERT INTO post_lock(project_id, post_id, device_id, device_name, expires_at) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(project_id, post_id) DO UPDATE SET device_id = excluded.device_id, device_name = excluded.device_name, expires_at = excluded.expires_at;
+
+release:
+DELETE FROM post_lock WHERE project_id = ? AND post_id = ? AND device_id = ?;
+
+clear:
+DELETE FROM post_lock WHERE project_id = ? AND post_id = ?;

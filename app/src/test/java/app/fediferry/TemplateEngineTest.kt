@@ -24,6 +24,8 @@ import app.fediferry.data.model.Item
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.template.TemplateEngine
+import app.fediferry.template.inputsOf
+import app.fediferry.template.postTextOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

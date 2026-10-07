@@ -19,6 +19,7 @@
  */
 package app.fediferry.data.model
 
+import app.fediferry.template.PlaceholderSpec
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import app.fediferry.module.Modules
@@ -37,14 +38,14 @@ import app.fediferry.module.Modules
 data class PlaceholderKey(
     @PrimaryKey val id: String,
     /** Used in a template body as `{name}`. Letters, digits and underscores. */
-    val name: String,
+    override val name: String,
     /** Recipe per [ContentSource.name]. */
     val mappings: Map<String, String> = emptyMap(),
     val sortOrder: Int = 0,
-) {
-    fun recipeFor(source: ContentSource): String = mappings[source.name].orEmpty()
+) : PlaceholderSpec {
+    override fun recipeFor(source: ContentSource): String = mappings[source.name].orEmpty()
 
-    val isTags: Boolean get() = id == TAGS_ID
+    override val isTags: Boolean get() = id == TAGS_ID
 
     companion object {
         const val CAPTION_ID = "caption"

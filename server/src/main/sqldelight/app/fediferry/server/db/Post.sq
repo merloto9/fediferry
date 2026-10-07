@@ -1,0 +1,51 @@
+-- A post: made from library items, edited as a draft, frozen once ready,
+-- then scheduled and published to one channel.
+CREATE TABLE post (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    stage TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    channel_id TEXT,
+    template_id TEXT,
+    body TEXT NOT NULL,
+    hashtags TEXT NOT NULL DEFAULT '',
+    add_source_hashtags INTEGER NOT NULL DEFAULT 1,
+    content_warning TEXT,
+    visibility TEXT NOT NULL DEFAULT 'PUBLIC',
+    source_url TEXT,
+    origin TEXT,
+    source_fields_json TEXT NOT NULL DEFAULT '{}',
+    link_may_identify INTEGER NOT NULL DEFAULT 0,
+    final_text TEXT,
+    ready_at INTEGER,
+    review_folder_id TEXT,
+    created_by TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE INDEX post_stage ON post(project_id, deleted_at, stage, updated_at);
+
+insert:
+INSERT INTO post(project_id, id, stage, version, channel_id, template_id, body, hashtags, add_source_hashtags, content_warning,
+    visibility, source_url, origin, source_fields_json, link_may_identify, created_by, created_at, updated_at)
+VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+byId:
+SELECT * FROM post WHERE project_id = ? AND id = ? AND deleted_at IS NULL;
+
+byStage:
+SELECT * FROM post WHERE project_id = ? AND stage = ? AND deleted_at IS NULL ORDER BY updated_at DESC;
+
+update:
+UPDATE post SET channel_id = ?, template_id = ?, body = ?, hashtags = ?, add_source_hashtags = ?, content_warning = ?, visibility = ?,
+    version = version + 1, updated_at = ?
+WHERE project_id = ? AND id = ?;
+
+touch:
+UPDATE post SET version = version + 1, updated_at = ? WHERE project_id = ? AND id = ?;
+
+softDelete:
+UPDATE post SET deleted_at = ?, updated_at = ?, version = version + 1 WHERE project_id = ? AND id = ?;

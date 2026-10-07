@@ -19,12 +19,8 @@
  */
 package app.fediferry.template
 
-import app.fediferry.data.model.fields
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtags
-import app.fediferry.data.model.Item
-import app.fediferry.data.model.PlaceholderKey
-import app.fediferry.data.model.Template
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -41,7 +37,7 @@ import java.time.format.DateTimeFormatter
  * silently swallowing it would hide it.
  *
  * Two layers feed it. `{link}` and `{date}` are built in. Every other
- * placeholder is a [PlaceholderKey] the user defined, filled from the raw
+ * placeholder is a [PlaceholderSpec] the user defined, filled from the raw
  * fields of the source the item came from through that key's recipe for the
  * source — and only when the template reads that source at all.
  *
@@ -58,15 +54,12 @@ object TemplateEngine {
         val link: String? = null,
         /** Where the item's data came from; null leaves every user-defined placeholder empty. */
         val source: ContentSource? = null,
-        /** The source's raw fields, by [app.fediferry.data.model.SourceField.name]. */
+        /** The source's raw fields, by name (see [ContentSource.fieldNames]). */
         val fields: Map<String, String> = emptyMap(),
         val now: Instant = Instant.now(),
     )
 
-    /** Everything an existing item can tell the engine about itself. */
-    fun inputsOf(item: Item) = Inputs(link = item.sourceUrl, source = item.origin, fields = item.sourceFields)
-
-    fun render(template: Template, keys: List<PlaceholderKey>, inputs: Inputs): String {
+    fun render(template: TemplateSpec, keys: List<PlaceholderSpec>, inputs: Inputs): String {
         val values = keys.filterNot { it.isTags }.associate { it.name to valueOf(it, template, inputs) } + mapOf(
             // After the keys, so a built-in always wins. Settings refuses the
             // clash anyway; this only keeps an old row from shadowing {link}.
@@ -74,7 +67,7 @@ object TemplateEngine {
             "date" to dateFormat.format(inputs.now.atZone(ZoneId.systemDefault())),
             // Left for [finish]. Standing in for itself also counts as filled,
             // so its line survives until the hashtags are known.
-            PlaceholderKey.TAGS to TAGS_TOKEN,
+            PlaceholderSpec.TAGS to TAGS_TOKEN,
         )
         return renderText(template.body, values)
     }
@@ -86,10 +79,7 @@ object TemplateEngine {
      * A line that held only `{tags}` disappears when there are none.
      */
     fun finish(body: String, hashtags: List<String>): String =
-        renderText(body, mapOf(PlaceholderKey.TAGS to Hashtags.format(hashtags)))
-
-    /** What [item] will actually post. */
-    fun postTextOf(item: Item): String = finish(item.bodyText, item.hashtagList)
+        renderText(body, mapOf(PlaceholderSpec.TAGS to Hashtags.format(hashtags)))
 
     /**
      * The hashtags a post starts with: the template's picks, then — when
@@ -97,8 +87,8 @@ object TemplateEngine {
      * own tags, say. A tag in both is kept once, spelled as the template has it.
      */
     fun hashtagsFor(
-        template: Template,
-        keys: List<PlaceholderKey>,
+        template: TemplateSpec,
+        keys: List<PlaceholderSpec>,
         inputs: Inputs,
         withSource: Boolean = template.addSourceHashtags,
     ): List<String> {
@@ -107,21 +97,21 @@ object TemplateEngine {
     }
 
     /** What the source's `{tags}` recipe yields for this post, as hashtags. */
-    fun sourceHashtags(template: Template, keys: List<PlaceholderKey>, inputs: Inputs): List<String> =
+    fun sourceHashtags(template: TemplateSpec, keys: List<PlaceholderSpec>, inputs: Inputs): List<String> =
         keys.firstOrNull { it.isTags }?.let { Hashtags.parse(valueOf(it, template, inputs)) }.orEmpty()
 
     /**
      * What [key] comes to for this item. Best-effort only: no downstream code
      * may assume it resolved.
      */
-    fun valueOf(key: PlaceholderKey, template: Template, inputs: Inputs): String {
+    fun valueOf(key: PlaceholderSpec, template: TemplateSpec, inputs: Inputs): String {
         val source = inputs.source ?: return ""
         if (!template.usesSource(source)) return ""
         val recipe = key.recipeFor(source)
         if (recipe.isBlank()) return ""
         // Every field the source declares is known, so a missing one empties
         // its line instead of leaking "{title}" into a post.
-        val fields = source.fields.associate { it.name to "" } + inputs.fields
+        val fields = source.fieldNames.associateWith { "" } + inputs.fields
         return renderText(recipe, fields)
     }
 
@@ -155,7 +145,7 @@ object TemplateEngine {
     // rejects an unmatched `}` outright, where the OpenJDK engine the unit tests
     // run on accepts it — so an unescaped brace compiles on the host and throws
     // PatternSyntaxException on a device.
-    private const val TAGS_TOKEN = "{${PlaceholderKey.TAGS}}"
+    private const val TAGS_TOKEN = "{${PlaceholderSpec.TAGS}}"
 
     private val PLACEHOLDER = Regex("""\{(\w+)\}""")
     private val BLANK_RUN = Regex("""\n{3,}""")

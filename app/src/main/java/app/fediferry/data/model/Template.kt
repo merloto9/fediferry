@@ -19,6 +19,7 @@
  */
 package app.fediferry.data.model
 
+import app.fediferry.template.TemplateSpec
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -44,7 +45,7 @@ enum class AltTextMode {
 data class Template(
     @PrimaryKey val id: String,
     val name: String,
-    val body: String,
+    override val body: String,
     val tags: String = "",
     val visibility: Visibility = Visibility.PUBLIC,
     val contentWarning: String? = null,
@@ -64,12 +65,12 @@ data class Template(
      * source's `{tags}` recipe yields — ticked beside [tags]. Each post can
      * still change it in the editor.
      */
-    @ColumnInfo(defaultValue = "1") val addSourceHashtags: Boolean = true,
-) {
-    fun usesSource(source: ContentSource): Boolean = source !in excludedSources
+    @ColumnInfo(defaultValue = "1") override val addSourceHashtags: Boolean = true,
+) : TemplateSpec {
+    override fun usesSource(source: ContentSource): Boolean = source !in excludedSources
 
     /** [tags] holds the template's picks from the hashtag list, space-separated. */
-    val hashtagList: List<String> get() = Hashtags.parse(tags)
+    override val hashtagList: List<String> get() = Hashtags.parse(tags)
 
     companion object {
         const val DEFAULT_ID = "default"

@@ -19,6 +19,7 @@
  */
 package app.fediferry.data
 
+import app.fediferry.template.inputsOf
 import android.content.Context
 import androidx.annotation.StringRes
 import app.fediferry.R
@@ -47,7 +48,6 @@ import app.fediferry.media.cleanup.MaskPolarity
 import app.fediferry.media.cleanup.NoImageEditProvider
 import app.fediferry.share.SharePayload
 import app.fediferry.template.TemplateEngine
-import app.fediferry.template.TemplateEngine.inputsOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.util.UUID
@@ -98,8 +98,8 @@ class ItemRepository(
      */
     private suspend fun refreshed(before: Item, after: Item): Item {
         val template = resolveTemplate(before.templateId)
-        val body = if (before.bodyText == render(template, inputsOf(before))) {
-            render(template, inputsOf(after))
+        val body = if (before.bodyText == render(template, TemplateEngine.inputsOf(before))) {
+            render(template, TemplateEngine.inputsOf(after))
         } else {
             before.bodyText
         }
@@ -107,8 +107,8 @@ class ItemRepository(
             // A draft from before per-post hashtags: its text already has them.
             null -> null
             // The post's own choice decides whether the source's tags join now.
-            hashtagsFor(template, inputsOf(before), before.addSourceHashtags) ->
-                hashtagsFor(template, inputsOf(after), before.addSourceHashtags)
+            hashtagsFor(template, TemplateEngine.inputsOf(before), before.addSourceHashtags) ->
+                hashtagsFor(template, TemplateEngine.inputsOf(after), before.addSourceHashtags)
             else -> before.hashtags
         }
         return after.copy(bodyText = body, hashtags = hashtags)

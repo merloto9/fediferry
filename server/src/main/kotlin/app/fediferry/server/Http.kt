@@ -75,10 +75,11 @@ class Services(
     val secrets = Secrets(storage.db, crypto, clock)
     val settings = SettingsStore(storage, feed, clock)
     val channels = Channels(storage, secrets, crypto, feed, mastodon, clock)
+    val posts = Posts(storage, feed, settings, secrets, media, outboundHttp, clock)
 }
 
 /** One HTTP client for everything the server fetches from services. */
-private val outboundHttp: OkHttpClient by lazy {
+internal val outboundHttp: OkHttpClient by lazy {
     OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -140,6 +141,7 @@ fun Application.fediferry(services: Services) {
                 libraryRoutes(services)
                 settingsRoutes(services)
                 channelRoutes(services)
+                postRoutes(services)
 
                 get("/changes") {
                     val since = call.request.queryParameters["since"]?.toLongOrNull() ?: 0L

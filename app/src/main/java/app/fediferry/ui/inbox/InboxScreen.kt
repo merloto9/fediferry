@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui.inbox
 
+import app.fediferry.template.postTextOf
 import app.fediferry.ui.DeletePostsDialog
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource

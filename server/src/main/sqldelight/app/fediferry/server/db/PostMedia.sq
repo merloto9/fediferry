@@ -1,0 +1,29 @@
+-- A post's pictures, in order, each with its own alt text.
+CREATE TABLE post_media (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    post_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    asset_id TEXT NOT NULL,
+    library_item_id TEXT,
+    alt_text TEXT,
+    alt_failed INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (project_id, post_id, position)
+);
+
+insert:
+INSERT INTO post_media(project_id, post_id, position, asset_id, library_item_id, alt_text, alt_failed) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+forPost:
+SELECT * FROM post_media WHERE project_id = ? AND post_id = ? ORDER BY position;
+
+setAlt:
+UPDATE post_media SET alt_text = ?, alt_failed = 0 WHERE project_id = ? AND post_id = ? AND position = ?;
+
+setAsset:
+UPDATE post_media SET asset_id = ? WHERE project_id = ? AND post_id = ? AND position = ?;
+
+remove:
+DELETE FROM post_media WHERE project_id = ? AND post_id = ? AND position = ?;
+
+renumber:
+UPDATE post_media SET position = ? WHERE project_id = ? AND post_id = ? AND position = ?;

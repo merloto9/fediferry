@@ -29,6 +29,8 @@ import app.fediferry.api.PostDto
 import app.fediferry.api.PostMediaPatch
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
+import app.fediferry.api.Violation
+import app.fediferry.channel.PostValidator
 import app.fediferry.client.ServerClient
 import app.fediferry.client.ServerException
 import app.fediferry.data.model.CleanupProfile
@@ -84,12 +86,20 @@ data class DraftEditorState(
     val altBusy: Set<Int> = emptySet(),
     /** A picture is being cropped or cleaned on the server. */
     val mediaBusy: Boolean = false,
+    /** Asking the server to freeze the draft. */
+    val readying: Boolean = false,
+    /** Why the server refused "ready", when it disagreed with the phone's own check. */
+    val refusals: List<Violation> = emptyList(),
     /** An error code with its details, for the screen to word. */
     val message: Pair<String, Map<String, String>>? = null,
 ) {
     val editable: Boolean get() = lock == EditLock.Held
     val channel: ChannelDto? get() = channels.firstOrNull { it.id == post?.channelId }
     val template: Template? get() = templates.firstOrNull { it.id == post?.templateId }
+
+    /** What the channel would refuse, and what the person should know, as of the text on screen. */
+    val issues: List<Violation>
+        get() = post?.let { PostValidator.check(it, channel, placeholderKeys.map { k -> k.name }) }.orEmpty()
 }
 
 /**
@@ -221,7 +231,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun edit(block: (PostDto) -> PostDto) {
         if (!_state.value.editable) return
-        _state.update { s -> s.copy(post = s.post?.let(block), unsaved = true) }
+        _state.update { s -> s.copy(post = s.post?.let(block), unsaved = true, refusals = emptyList()) }
         saveJob?.cancel()
         saveJob = viewModelScope.launch {
             delay(SAVE_DELAY_MS)
@@ -367,6 +377,32 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 .onFailure { handle(it) }
         }
+    }
+
+    /**
+     * Saves, then asks the server to freeze the draft for review. The server
+     * checks again: it has the last word on what the channel takes.
+     */
+    fun markReady(onReady: (String) -> Unit) = viewModelScope.launch {
+        val api = client ?: return@launch
+        val id = postId ?: return@launch
+        _state.update { it.copy(readying = true, refusals = emptyList()) }
+        flush()
+        val version = base?.version
+        if (version == null || _state.value.unsaved) {
+            _state.update { it.copy(readying = false) }
+            return@launch
+        }
+        runCatching { api.markReady(id, version) }
+            .onSuccess {
+                // The server let go of the lock with the freeze.
+                _state.update { s -> s.copy(readying = false, lock = EditLock.Frozen(it.stage)) }
+                onReady(it.id)
+            }
+            .onFailure { e ->
+                _state.update { it.copy(readying = false, refusals = (e as? ServerException)?.violations.orEmpty()) }
+                handle(e)
+            }
     }
 
     /** Leaves the draft: saves, lets go of the lock, then [onDone]. */

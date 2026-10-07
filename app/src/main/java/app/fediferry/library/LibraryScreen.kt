@@ -170,7 +170,7 @@ fun LibraryScreen(
     }
     if (moving) {
         FolderPicker(
-            folders = state.folders,
+            folders = state.folders.map { it.id to it.name },
             onPick = { folderId -> viewModel.move(selection, folderId); selection = emptySet(); moving = false },
             onNewFolder = { moving = false; naming = FolderNaming.Create(selection) },
             onDismiss = { moving = false },
@@ -557,9 +557,10 @@ private fun ItemSheet(
     }
 }
 
+/** Picks a folder by id, or none; [folders] are id to name. Shared by the library and review. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FolderPicker(folders: List<FolderDto>, onPick: (String?) -> Unit, onNewFolder: () -> Unit, onDismiss: () -> Unit) {
+internal fun FolderPicker(folders: List<Pair<String, String>>, onPick: (String?) -> Unit, onNewFolder: (() -> Unit)?, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(bottom = 24.dp)) {
             Text(stringResource(R.string.library_move_to), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
@@ -568,24 +569,26 @@ private fun FolderPicker(folders: List<FolderDto>, onPick: (String?) -> Unit, on
                 leadingContent = { Icon(Icons.Outlined.Inbox, contentDescription = null) },
                 modifier = Modifier.clickable { onPick(null) },
             )
-            folders.forEach { f ->
+            folders.forEach { (id, name) ->
                 ListItem(
-                    headlineContent = { Text(f.name) },
+                    headlineContent = { Text(name) },
                     leadingContent = { Icon(Icons.Outlined.Folder, contentDescription = null) },
-                    modifier = Modifier.clickable { onPick(f.id) },
+                    modifier = Modifier.clickable { onPick(id) },
                 )
             }
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.library_new_folder_more)) },
-                leadingContent = { Icon(Icons.Outlined.CreateNewFolder, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onNewFolder),
-            )
+            if (onNewFolder != null) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.library_new_folder_more)) },
+                    leadingContent = { Icon(Icons.Outlined.CreateNewFolder, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = onNewFolder),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun NameDialog(title: String, initial: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+internal fun NameDialog(title: String, initial: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,

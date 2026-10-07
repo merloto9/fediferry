@@ -72,6 +72,9 @@ data class PostDto(
     val createdAt: Long,
     val updatedAt: Long,
     val readyAt: Long? = null,
+    /** Where the post sits in review; only set once it is ready. */
+    val reviewFolderId: String? = null,
+    val labels: List<String> = emptyList(),
 )
 
 /** `POST /posts`: a draft from library items, rendered with the template. */
@@ -111,3 +114,27 @@ data class CropRect(val left: Float, val top: Float, val right: Float, val botto
 
 @Serializable
 data class AltSuggestion(val text: String)
+
+/**
+ * Something about a post its channel would not take, or that the person
+ * posting should know. A [blocking] one keeps the post from becoming ready.
+ */
+@Serializable
+data class Violation(val code: String, val args: Map<String, String> = emptyMap(), val blocking: Boolean = true)
+
+/**
+ * `PATCH /posts/{id}/review`: sorting a ready post. Allowed without the edit
+ * lock, since the post itself does not change. `folderId = ""` takes it out
+ * of its folder.
+ */
+@Serializable
+data class ReviewPatch(val folderId: String? = null, val labels: List<String>? = null)
+
+@Serializable
+data class ReviewFolderDto(val id: String, val name: String, val sortOrder: Int = 0)
+
+@Serializable
+data class ReviewFolderInput(val name: String, val sortOrder: Int? = null)
+
+@Serializable
+data class LabelDto(val name: String, val uses: Int = 0)

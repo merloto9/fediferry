@@ -43,6 +43,9 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material3.OutlinedButton
+import app.fediferry.api.Violation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -88,8 +91,7 @@ import app.fediferry.api.PostMediaDto
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Visibility
 import app.fediferry.di.ServiceLocator
-import app.fediferry.mastodon.MastodonText
-import app.fediferry.template.TemplateEngine
+import app.fediferry.channel.PostValidator
 import app.fediferry.ui.ContentWarningField
 import app.fediferry.ui.DeletePostsDialog
 import app.fediferry.ui.FullscreenImage
@@ -110,6 +112,7 @@ import java.util.Date
 fun DraftEditorScreen(
     postId: String,
     onDone: () -> Unit,
+    onReady: (String) -> Unit = { onDone() },
     viewModel: DraftEditorViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -258,8 +261,54 @@ fun DraftEditorScreen(
 
             ChannelPicker(state, enabled = editable, onPick = viewModel::setChannel)
 
-            Button(onClick = { viewModel.close(onDone) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Text(stringResource(R.string.draft_done))
+            val issues = (state.issues + state.refusals).distinctBy { it.code to it.args }
+            if (issues.isNotEmpty()) Issues(issues)
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(onClick = { viewModel.close(onDone) }, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.draft_done))
+                }
+                Button(
+                    onClick = { viewModel.markReady(onReady) },
+                    enabled = editable && !state.readying && issues.none { it.blocking },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(Icons.Outlined.TaskAlt, contentDescription = null)
+                    Text(stringResource(R.string.draft_ready), modifier = Modifier.padding(start = 8.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * What stands between the draft and "ready": what the channel would refuse,
+ * in the warning colours, and below it what is merely worth a look.
+ */
+@Composable
+private fun Issues(issues: List<Violation>) {
+    val resources = LocalResources.current
+    val blocking = issues.filter { it.blocking }
+    val notes = issues.filterNot { it.blocking }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (blocking.isNotEmpty()) {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.draft_cannot_be_ready), style = MaterialTheme.typography.titleSmall)
+                    blocking.forEach { Text("• " + ServerMessages.violation(resources, it), style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+        }
+        if (notes.isNotEmpty()) {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.draft_worth_a_look), style = MaterialTheme.typography.titleSmall)
+                    notes.forEach { Text("• " + ServerMessages.violation(resources, it), style = MaterialTheme.typography.bodySmall) }
+                }
             }
         }
     }
@@ -436,7 +485,7 @@ private fun CropDialog(model: Any, aspect: Float, onApply: (CropRect) -> Unit, o
  */
 @Composable
 private fun Counter(post: PostDto, max: Int?) {
-    val length = MastodonText.length(TemplateEngine.finish(post.body, post.hashtags)) + post.contentWarning.orEmpty().length
+    val length = PostValidator.length(post)
     if (max == null) {
         Text(stringResource(R.string.draft_length, length))
     } else {

@@ -30,6 +30,11 @@ import app.fediferry.api.PostDto
 import app.fediferry.api.PostMediaDto
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
+import app.fediferry.api.LabelDto
+import app.fediferry.api.ReviewFolderDto
+import app.fediferry.api.ReviewFolderInput
+import app.fediferry.api.ReviewPatch
+import app.fediferry.channel.PostValidator
 import app.fediferry.api.SettingsKinds
 import app.fediferry.api.TemplateData
 import app.fediferry.data.model.ContentSource
@@ -95,6 +100,8 @@ class Posts(
             createdAt = post.created_at,
             updatedAt = post.updated_at,
             readyAt = post.ready_at,
+            reviewFolderId = post.review_folder_id,
+            labels = db.postLabelQueries.forPost(projectId, post.id).executeAsList(),
         )
     }
 
@@ -209,6 +216,94 @@ class Posts(
         }
     }
 
+    // --- review --------------------------------------------------------------------
+
+    /**
+     * Freezes a draft: checks it against its channel, writes the text as it
+     * will be posted — `{tags}` filled in — and lets go of the edit lock. A
+     * post the channel would not take is refused with every reason at once.
+     */
+    fun markReady(projectId: String, postId: String, deviceId: String?, version: Long?): PostDto {
+        val post = row(projectId, postId)
+        if (post.stage != PostStages.DRAFT) throw ApiException(HttpStatusCode.Conflict, "post.not_draft", mapOf("stage" to post.stage))
+        val held = db.postLockQueries.byPost(projectId, postId).executeAsOneOrNull()?.takeIf { it.expires_at > clock() }
+        if (held != null && held.device_id != deviceId) throw locked(held.device_name, held.expires_at)
+        if (version != null && version != post.version) {
+            throw ApiException(HttpStatusCode.Conflict, "post.version_conflict", mapOf("current" to post.version.toString()))
+        }
+        val dto = dto(projectId, post)
+        val channel = post.channel_id?.let { db.channelQueries.byId(projectId, it).executeAsOneOrNull() }?.let(Channels::dto)
+        val blocking = PostValidator.check(dto, channel, keys(projectId).map { it.name }).filter { it.blocking }
+        if (blocking.isNotEmpty()) throw ApiException(HttpStatusCode.UnprocessableEntity, "post.not_ready", violations = blocking)
+        val now = clock()
+        feed.change(projectId, "post", postId) {
+            db.postQueries.markReady(PostValidator.finalText(dto), now, now, projectId, postId)
+            db.postLockQueries.clear(projectId, postId)
+        }
+        return get(projectId, postId)
+    }
+
+    /** Back to draft, while nothing has been scheduled for it. */
+    fun backToDraft(projectId: String, postId: String): PostDto {
+        val post = row(projectId, postId)
+        if (post.stage == PostStages.DRAFT) return dto(projectId, post)
+        if (post.stage != PostStages.READY) throw ApiException(HttpStatusCode.Conflict, "post.not_ready_stage", mapOf("stage" to post.stage))
+        feed.change(projectId, "post", postId) { db.postQueries.markDraft(clock(), projectId, postId) }
+        return get(projectId, postId)
+    }
+
+    /** Sorts a ready (or later) post: its review folder and labels. The post itself stays as it is. */
+    fun sortForReview(projectId: String, postId: String, patch: ReviewPatch): PostDto {
+        val post = row(projectId, postId)
+        if (post.stage == PostStages.DRAFT) throw ApiException(HttpStatusCode.Conflict, "post.not_ready_stage", mapOf("stage" to post.stage))
+        val folder = when (val f = patch.folderId) {
+            null -> post.review_folder_id
+            "" -> null
+            else -> f.also { db.reviewFolderQueries.byId(projectId, it).executeAsOneOrNull() ?: throw ApiException.notFound("review_folder") }
+        }
+        feed.change(projectId, "post", postId) {
+            db.postQueries.setReviewFolder(folder, clock(), projectId, postId)
+            patch.labels?.let { labels ->
+                db.postLabelQueries.clear(projectId, postId)
+                labels.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
+                    .forEach { db.postLabelQueries.add(projectId, postId, it.take(MAX_LABEL)) }
+            }
+        }
+        return get(projectId, postId)
+    }
+
+    fun reviewFolders(projectId: String): List<ReviewFolderDto> =
+        db.reviewFolderQueries.all(projectId).executeAsList().map { ReviewFolderDto(it.id, it.name, it.sort_order.toInt()) }
+
+    fun createReviewFolder(projectId: String, input: ReviewFolderInput): ReviewFolderDto {
+        val name = input.name.trim().takeIf { it.isNotEmpty() } ?: throw ApiException.badRequest("name")
+        val id = UUID.randomUUID().toString()
+        val now = clock()
+        val order = input.sortOrder ?: db.reviewFolderQueries.count(projectId).executeAsOne().toInt()
+        feed.change(projectId, "review_folder", id) { db.reviewFolderQueries.insert(projectId, id, name, order.toLong(), now, now) }
+        return ReviewFolderDto(id, name, order)
+    }
+
+    fun updateReviewFolder(projectId: String, id: String, input: ReviewFolderInput): ReviewFolderDto {
+        val folder = db.reviewFolderQueries.byId(projectId, id).executeAsOneOrNull() ?: throw ApiException.notFound("review_folder")
+        val name = input.name.trim().takeIf { it.isNotEmpty() } ?: folder.name
+        val order = input.sortOrder?.toLong() ?: folder.sort_order
+        feed.change(projectId, "review_folder", id) { db.reviewFolderQueries.update(name, order, clock(), projectId, id) }
+        return ReviewFolderDto(id, name, order.toInt())
+    }
+
+    /** Deletes a folder; its posts stay, out of any folder. */
+    fun deleteReviewFolder(projectId: String, id: String) {
+        db.reviewFolderQueries.byId(projectId, id).executeAsOneOrNull() ?: throw ApiException.notFound("review_folder")
+        feed.change(projectId, "review_folder", id, deleted = true) {
+            db.postQueries.releaseReviewFolder(clock(), projectId, id)
+            db.reviewFolderQueries.delete(projectId, id)
+        }
+    }
+
+    fun labels(projectId: String): List<LabelDto> =
+        db.postLabelQueries.counts(projectId).executeAsList().map { LabelDto(it.name, it.uses.toInt()) }
+
     fun delete(projectId: String, postId: String, deviceId: String?) {
         val post = row(projectId, postId)
         if (post.stage != PostStages.DRAFT && post.stage != PostStages.READY) {
@@ -272,6 +367,7 @@ class Posts(
 
     companion object {
         const val LOCK_TTL_MS = 5 * 60 * 1000L
+        const val MAX_LABEL = 40
         const val VISION_PROMPT = "Describe this image for a blind reader in one or two plain sentences. " +
             "Transcribe any text in the image verbatim. No preamble."
     }

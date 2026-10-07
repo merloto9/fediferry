@@ -23,6 +23,10 @@ import app.fediferry.di.ServiceLocator
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inbox
@@ -36,10 +40,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import app.fediferry.R
 
-/** The app's spaces. The library and drafts are there only while the phone works with a FediFerry server. */
+/** The app's spaces. Library, drafts and review are there only while the phone works with a FediFerry server. */
 enum class Space(val route: String, @StringRes val labelRes: Int) {
     LIBRARY(Routes.LIBRARY, R.string.nav_library),
     DRAFTS(Routes.DRAFTS, R.string.nav_drafts),
+    REVIEW(Routes.REVIEW, R.string.nav_review),
     INBOX(Routes.INBOX, R.string.nav_inbox),
     QUEUE(Routes.QUEUE, R.string.nav_queue),
     SOURCES(Routes.SOURCES, R.string.nav_sources),
@@ -47,9 +52,20 @@ enum class Space(val route: String, @StringRes val labelRes: Int) {
 
 @Composable
 fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
-    val connected = ServiceLocator.serverConnections(LocalContext.current).current() != null
+    val context = LocalContext.current
+    val connected = ServiceLocator.serverConnections(context).current() != null
+    // With a server, the inbox steps aside once what was in it has moved on;
+    // five spaces are what a bottom bar holds.
+    val inbox by remember { ServiceLocator.items(context).observeInbox() }.collectAsState(initial = null)
+    val shown = Space.entries.filter { space ->
+        when (space) {
+            Space.LIBRARY, Space.DRAFTS, Space.REVIEW -> connected
+            Space.INBOX -> !connected || space == current || !inbox.isNullOrEmpty()
+            else -> true
+        }
+    }
     NavigationBar {
-        Space.entries.filter { connected || (it != Space.LIBRARY && it != Space.DRAFTS) }.forEach { space ->
+        shown.forEach { space ->
             val label = stringResource(space.labelRes)
             NavigationBarItem(
                 selected = space == current,
@@ -59,6 +75,7 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
                         when (space) {
                             Space.LIBRARY -> Icons.Outlined.PhotoLibrary
                             Space.DRAFTS -> Icons.Outlined.EditNote
+                            Space.REVIEW -> Icons.Outlined.TaskAlt
                             Space.INBOX -> Icons.Default.Inbox
                             Space.QUEUE -> Icons.Default.Schedule
                             Space.SOURCES -> Icons.Default.Subscriptions

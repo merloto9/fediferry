@@ -22,6 +22,8 @@ package app.fediferry.server
 import app.fediferry.api.CreatePost
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.PostPatch
+import app.fediferry.api.ReviewFolderInput
+import app.fediferry.api.ReviewPatch
 import app.fediferry.api.ProfileRuleData
 import app.fediferry.api.SettingsKinds
 import app.fediferry.media.cleanup.CleanupRule
@@ -61,6 +63,24 @@ fun Route.postRoutes(services: Services) {
         posts.delete(call.projectId(), call.parameters["id"].orEmpty(), call.deviceId())
         call.respond(HttpStatusCode.NoContent)
     }
+    post("/posts/{id}/ready") {
+        val version = call.request.headers[HttpHeaders.IfMatch]?.trim('"', ' ')?.toLongOrNull()
+        call.respond(posts.markReady(call.projectId(), call.parameters["id"].orEmpty(), call.deviceId(), version))
+    }
+    post("/posts/{id}/unready") { call.respond(posts.backToDraft(call.projectId(), call.parameters["id"].orEmpty())) }
+    patch("/posts/{id}/review") {
+        call.respond(posts.sortForReview(call.projectId(), call.parameters["id"].orEmpty(), call.receive<ReviewPatch>()))
+    }
+    get("/review/folders") { call.respond(posts.reviewFolders(call.projectId())) }
+    post("/review/folders") { call.respond(HttpStatusCode.Created, posts.createReviewFolder(call.projectId(), call.receive<ReviewFolderInput>())) }
+    patch("/review/folders/{id}") {
+        call.respond(posts.updateReviewFolder(call.projectId(), call.parameters["id"].orEmpty(), call.receive<ReviewFolderInput>()))
+    }
+    delete("/review/folders/{id}") {
+        posts.deleteReviewFolder(call.projectId(), call.parameters["id"].orEmpty())
+        call.respond(HttpStatusCode.NoContent)
+    }
+    get("/labels") { call.respond(posts.labels(call.projectId())) }
     post("/posts/{id}/lock") {
         call.respond(posts.lock(call.projectId(), call.parameters["id"].orEmpty(), call.deviceId(), call.request.queryParameters["force"] == "true"))
     }

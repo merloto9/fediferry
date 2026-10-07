@@ -21,6 +21,11 @@ package app.fediferry.client
 
 import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.AltSuggestion
+import app.fediferry.api.LabelDto
+import app.fediferry.api.ReviewFolderDto
+import app.fediferry.api.ReviewFolderInput
+import app.fediferry.api.ReviewPatch
+import app.fediferry.api.Violation
 import app.fediferry.api.CreatePost
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.LockDto
@@ -66,8 +71,14 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** A failed call: [status] 0 means the server was not reached at all. */
-class ServerException(val status: Int, val code: String, val args: Map<String, String> = emptyMap(), cause: Throwable? = null) :
-    Exception(code, cause) {
+class ServerException(
+    val status: Int,
+    val code: String,
+    val args: Map<String, String> = emptyMap(),
+    cause: Throwable? = null,
+    /** Why a post cannot become ready, when that is what failed. */
+    val violations: List<Violation> = emptyList(),
+) : Exception(code, cause) {
     val unreachable: Boolean get() = status == 0
 }
 
@@ -185,6 +196,26 @@ class ServerClient(
 
     suspend fun unlockPost(id: String) = sendNoContent("posts/$id/lock", "DELETE")
 
+    /** Freezes a draft for review; refused with the [ServerException.violations] the channel would not take. */
+    suspend fun markReady(id: String, version: Long): PostDto =
+        call(request("posts/$id/ready", auth = true).header("If-Match", version.toString()).post("{}".toRequestBody(JSON_TYPE)).build())
+
+    /** Takes a ready post back to draft, as long as it is not scheduled yet. */
+    suspend fun backToDraft(id: String): PostDto = post("posts/$id/unready", "{}")
+
+    suspend fun sortForReview(id: String, patch: ReviewPatch): PostDto = send("posts/$id/review", "PATCH", json.encodeToString(patch))
+
+    suspend fun reviewFolders(): List<ReviewFolderDto> = get("review/folders")
+
+    suspend fun createReviewFolder(input: ReviewFolderInput): ReviewFolderDto = post("review/folders", json.encodeToString(input))
+
+    suspend fun updateReviewFolder(id: String, input: ReviewFolderInput): ReviewFolderDto =
+        send("review/folders/$id", "PATCH", json.encodeToString(input))
+
+    suspend fun deleteReviewFolder(id: String) = sendNoContent("review/folders/$id", "DELETE")
+
+    suspend fun labels(): List<LabelDto> = get("labels")
+
     suspend fun suggestAlt(postId: String, position: Int): AltSuggestion = post("posts/$postId/media/$position/alt-suggestion", "{}")
 
     /** A new picture made from [assetId]: cropped and/or cleaned. The original stays as it is. */
@@ -295,7 +326,7 @@ class ServerClient(
         val body = response.body.string()
         if (!response.isSuccessful) {
             val error = runCatching { json.decodeFromString<ApiErrorBody>(body) }.getOrNull()
-            throw ServerException(response.code, error?.code ?: "http.${response.code}", error?.args.orEmpty())
+            throw ServerException(response.code, error?.code ?: "http.${response.code}", error?.args.orEmpty(), violations = error?.violations.orEmpty())
         }
         return try {
             json.decodeFromString(body)

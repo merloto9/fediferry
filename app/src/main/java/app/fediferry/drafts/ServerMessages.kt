@@ -21,11 +21,33 @@ package app.fediferry.drafts
 
 import android.content.res.Resources
 import app.fediferry.R
+import app.fediferry.api.Violation
+import app.fediferry.channel.PostValidator
 import java.text.DateFormat
 import java.util.Date
 
 /** Words a server error code for the person holding the phone. */
 object ServerMessages {
+    /** One reason a post cannot become ready, or a warning about it. */
+    fun violation(resources: Resources, v: Violation): String {
+        val a = v.args
+        return when (v.code) {
+            PostValidator.NO_CHANNEL -> resources.getString(R.string.ready_no_channel)
+            PostValidator.EMPTY -> resources.getString(R.string.ready_empty)
+            PostValidator.TOO_LONG -> resources.getString(R.string.ready_too_long, a["length"].orEmpty(), a["max"].orEmpty())
+            PostValidator.TOO_MANY_MEDIA -> resources.getString(R.string.ready_too_many_media, a["count"].orEmpty(), a["max"].orEmpty())
+            PostValidator.NEEDS_MEDIA -> resources.getString(R.string.ready_needs_media)
+            PostValidator.MEDIA_TYPE -> resources.getString(R.string.ready_media_type, a["picture"].orEmpty(), a["type"].orEmpty())
+            PostValidator.MEDIA_TOO_BIG -> resources.getString(R.string.ready_media_too_big, a["picture"].orEmpty(), a["mb"].orEmpty(), a["max"].orEmpty())
+            PostValidator.ALT_TOO_LONG -> resources.getString(R.string.ready_alt_too_long, a["picture"].orEmpty(), a["length"].orEmpty(), a["max"].orEmpty())
+            PostValidator.NO_CONTENT_WARNING -> resources.getString(R.string.ready_no_content_warning)
+            PostValidator.UNKNOWN_PLACEHOLDER -> resources.getString(R.string.ready_unknown_placeholder, a["names"].orEmpty())
+            PostValidator.NO_ALT -> resources.getString(R.string.ready_no_alt, a["picture"].orEmpty())
+            PostValidator.LINK_MAY_IDENTIFY -> resources.getString(R.string.ready_link_may_identify)
+            else -> v.code
+        }
+    }
+
     fun describe(resources: Resources, code: String, args: Map<String, String> = emptyMap()): String = when (code) {
         "client.unreachable" -> resources.getString(R.string.draft_offline)
         "post.locked" -> resources.getString(
@@ -39,6 +61,8 @@ object ServerMessages {
         "alt.no_model" -> resources.getString(R.string.server_error_alt_no_model)
         "alt.failed" -> resources.getString(R.string.server_error_alt_failed, args["reason"].orEmpty())
         "media.not_editable" -> resources.getString(R.string.server_error_not_editable)
+        "post.not_ready" -> resources.getString(R.string.server_error_not_ready)
+        "post.not_ready_stage" -> resources.getString(R.string.server_error_not_ready_stage)
         else -> resources.getString(R.string.library_action_failed, code)
     }
 }

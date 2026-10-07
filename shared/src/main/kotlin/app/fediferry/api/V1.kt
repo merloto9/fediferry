@@ -74,7 +74,12 @@ data class Change(val rev: Long, val type: String, val id: String, val deleted: 
  * words it in its own language. [args] fill in the details.
  */
 @Serializable
-data class ApiErrorBody(val code: String, val args: Map<String, String> = emptyMap())
+data class ApiErrorBody(
+    val code: String,
+    val args: Map<String, String> = emptyMap(),
+    /** Why a post cannot become ready; empty for every other error. */
+    val violations: List<Violation> = emptyList(),
+)
 
 /** The error codes the server sends. */
 object ErrorCodes {

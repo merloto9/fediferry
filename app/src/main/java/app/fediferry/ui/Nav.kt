@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.LocalContext
 import app.fediferry.library.LibraryScreen
 import app.fediferry.drafts.DraftEditorScreen
 import app.fediferry.drafts.DraftsScreen
+import app.fediferry.review.ReviewPostScreen
+import app.fediferry.review.ReviewScreen
 import app.fediferry.ui.queue.QueuedPostScreen
 import android.net.Uri
 import app.fediferry.ui.queue.QueueScreen
@@ -51,6 +53,8 @@ object Routes {
     const val LIBRARY = "library"
     const val DRAFTS = "drafts"
     const val DRAFT = "draft/{postId}"
+    const val REVIEW = "review"
+    const val REVIEW_POST = "review/{postId}"
     const val QUEUE = "queue"
     const val QUEUED_POST = "queue/{accountId}/{statusId}"
     const val SOURCES = "sources"
@@ -63,6 +67,7 @@ object Routes {
 
     fun editor(itemId: String) = "editor/$itemId"
     fun draft(postId: String) = "draft/$postId"
+    fun reviewPost(postId: String) = "review/$postId"
     fun crop(itemId: String) = "crop/$itemId"
     fun cleanup(itemId: String) = "cleanup/$itemId"
     fun channel(sourceId: String) = "channel/$sourceId"
@@ -123,6 +128,25 @@ fun FediFerryNavHost(
             DraftEditorScreen(
                 postId = entry.arguments?.getString("postId").orEmpty(),
                 onDone = { if (!navController.popBackStack()) navController.navigate(Routes.DRAFTS) },
+                // Ready: the post is in review now, so that is where it is shown.
+                onReady = { id -> navController.navigate(Routes.reviewPost(id)) { popUpTo(Routes.DRAFT) { inclusive = true } } },
+            )
+        }
+        composable(Routes.REVIEW) {
+            ReviewScreen(
+                onOpenPost = { navController.navigate(Routes.reviewPost(it)) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(
+            route = Routes.REVIEW_POST,
+            arguments = listOf(navArgument("postId") { type = NavType.StringType }),
+        ) { entry ->
+            ReviewPostScreen(
+                postId = entry.arguments?.getString("postId").orEmpty(),
+                onBack = { if (!navController.popBackStack()) navController.navigate(Routes.REVIEW) },
+                onOpenDraft = { id -> navController.navigate(Routes.draft(id)) { popUpTo(Routes.REVIEW_POST) { inclusive = true } } },
             )
         }
         composable(Routes.INBOX) {

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_review">Review</string>
+    <string name="review_title">Review</string>
+    <string name="review_loading">Fertige Beiträge werden gelesen…</string>
+    <string name="review_empty">Noch nichts bereit. Stelle einen Entwurf fertig und tippe auf „Bereit“.</string>
+    <string name="review_empty_filtered">Hier gibt es keine fertigen Beiträge.</string>
+    <string name="review_labels">Labels</string>
+    <string name="review_labels_none">Noch keine Labels. Tippe unten eins ein.</string>
+    <string name="review_new_label">Neues Label</string>
+    <string name="review_add_label">Label hinzufügen</string>
+    <string name="review_post_title">Fertiger Beitrag</string>
+    <string name="review_not_ready_any_more">Dieser Beitrag ist nicht mehr im Review.</string>
+    <string name="review_alt">Bildbeschreibung: %1$s</string>
+    <string name="review_no_alt">Keine Bildbeschreibung</string>
+    <string name="review_cw">Inhaltswarnung: %1$s</string>
+    <string name="review_channel">Wird gepostet auf</string>
+    <string name="review_ready_since">Bereit seit</string>
+    <string name="review_back_to_draft">Zurück zum Entwurf</string>
+    <string name="review_back_to_draft_hint">Ein fertiger Beitrag lässt sich nicht ändern. Um ihn zu ändern, hol ihn zurück zum Entwurf und setze ihn danach wieder auf „Bereit“.</string>
+
+    <string name="draft_ready">Bereit</string>
+    <string name="draft_cannot_be_ready">Noch nicht bereit</string>
+    <string name="draft_worth_a_look">Einen Blick wert</string>
+    <string name="server_error_not_ready">Der Beitrag kann noch nicht bereit sein. Die Gründe stehen über „Bereit“.</string>
+    <string name="server_error_not_ready_stage">Das geht nur mit einem fertigen Beitrag.</string>
+
+    <string name="ready_no_channel">Wähle einen Kanal, auf dem gepostet wird.</string>
+    <string name="ready_empty">Der Beitrag hat weder Text noch Bild.</string>
+    <string name="ready_too_long">Der Beitrag ist %1$s Zeichen lang; der Kanal nimmt %2$s. Links zählen als 23, die Inhaltswarnung zählt mit.</string>
+    <string name="ready_too_many_media">Der Beitrag hat %1$s Bilder; der Kanal nimmt %2$s.</string>
+    <string name="ready_needs_media">Der Kanal nimmt nur Beiträge mit Bild.</string>
+    <string name="ready_media_type">Der Kanal nimmt Bild %1$s nicht an (%2$s).</string>
+    <string name="ready_media_too_big">Bild %1$s ist %2$s MB groß; der Kanal nimmt bis %3$s MB.</string>
+    <string name="ready_alt_too_long">Die Bildbeschreibung von Bild %1$s ist %2$s Zeichen lang; der Kanal nimmt %3$s.</string>
+    <string name="ready_no_content_warning">Der Kanal nimmt keine Inhaltswarnungen an.</string>
+    <string name="ready_unknown_placeholder">%1$s ist kein Platzhalter, den etwas ausfüllt; er würde so gepostet, wie er dasteht.</string>
+    <string name="ready_no_alt">Bild %1$s hat keine Bildbeschreibung.</string>
+    <string name="ready_link_may_identify">Der Link nennt womöglich, wer ihn geteilt hat.</string>
+</resources>

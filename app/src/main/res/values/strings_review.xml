@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_review">Review</string>
+    <string name="review_title">Review</string>
+    <string name="review_loading">Reading the ready posts…</string>
+    <string name="review_empty">Nothing ready yet. Finish a draft and tap “Ready”.</string>
+    <string name="review_empty_filtered">No ready posts here.</string>
+    <string name="review_labels">Labels</string>
+    <string name="review_labels_none">No labels yet. Type one below.</string>
+    <string name="review_new_label">New label</string>
+    <string name="review_add_label">Add label</string>
+    <string name="review_post_title">Ready post</string>
+    <string name="review_not_ready_any_more">This post is no longer in review.</string>
+    <string name="review_alt">Alt text: %1$s</string>
+    <string name="review_no_alt">No alt text</string>
+    <string name="review_cw">Content warning: %1$s</string>
+    <string name="review_channel">Posts to</string>
+    <string name="review_ready_since">Ready since</string>
+    <string name="review_back_to_draft">Back to draft</string>
+    <string name="review_back_to_draft_hint">A ready post can\'t be changed. To change it, take it back to draft, then mark it ready again.</string>
+
+    <string name="draft_ready">Ready</string>
+    <string name="draft_cannot_be_ready">Not ready yet</string>
+    <string name="draft_worth_a_look">Worth a look</string>
+    <string name="server_error_not_ready">The post can\'t be ready yet. The reasons are shown above “Ready”.</string>
+    <string name="server_error_not_ready_stage">Only a ready post can do that.</string>
+
+    <string name="ready_no_channel">Pick a channel to post to.</string>
+    <string name="ready_empty">The post has neither text nor a picture.</string>
+    <string name="ready_too_long">The post is %1$s characters long; the channel takes %2$s. Links count as 23, the content warning counts too.</string>
+    <string name="ready_too_many_media">The post has %1$s pictures; the channel takes %2$s.</string>
+    <string name="ready_needs_media">The channel only takes posts with a picture.</string>
+    <string name="ready_media_type">The channel doesn\'t take picture %1$s (%2$s).</string>
+    <string name="ready_media_too_big">Picture %1$s is %2$s MB; the channel takes up to %3$s MB.</string>
+    <string name="ready_alt_too_long">The alt text of picture %1$s is %2$s characters long; the channel takes %3$s.</string>
+    <string name="ready_no_content_warning">The channel doesn\'t take content warnings.</string>
+    <string name="ready_unknown_placeholder">%1$s isn\'t a placeholder anything fills in, so it would be posted as written.</string>
+    <string name="ready_no_alt">Picture %1$s has no alt text.</string>
+    <string name="ready_link_may_identify">The link may name whoever shared it.</string>
+</resources>

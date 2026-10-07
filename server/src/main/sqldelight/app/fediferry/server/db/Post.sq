@@ -49,3 +49,18 @@ UPDATE post SET version = version + 1, updated_at = ? WHERE project_id = ? AND i
 
 softDelete:
 UPDATE post SET deleted_at = ?, updated_at = ?, version = version + 1 WHERE project_id = ? AND id = ?;
+
+-- Frozen: the text as it will be posted is fixed, and only sorting changes from here.
+markReady:
+UPDATE post SET stage = 'READY', final_text = ?, ready_at = ?, version = version + 1, updated_at = ?
+WHERE project_id = ? AND id = ? AND stage = 'DRAFT';
+
+markDraft:
+UPDATE post SET stage = 'DRAFT', final_text = NULL, ready_at = NULL, review_folder_id = NULL, version = version + 1, updated_at = ?
+WHERE project_id = ? AND id = ? AND stage = 'READY';
+
+setReviewFolder:
+UPDATE post SET review_folder_id = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+releaseReviewFolder:
+UPDATE post SET review_folder_id = NULL, updated_at = :now WHERE project_id = :project AND review_folder_id = :folder;

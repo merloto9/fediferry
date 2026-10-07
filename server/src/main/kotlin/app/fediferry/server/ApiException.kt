@@ -21,6 +21,7 @@ package app.fediferry.server
 
 import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.ErrorCodes
+import app.fediferry.api.Violation
 import io.ktor.http.HttpStatusCode
 
 /**
@@ -31,8 +32,9 @@ class ApiException(
     val status: HttpStatusCode,
     val code: String,
     val args: Map<String, String> = emptyMap(),
+    val violations: List<Violation> = emptyList(),
 ) : Exception(code) {
-    val body: ApiErrorBody get() = ApiErrorBody(code, args)
+    val body: ApiErrorBody get() = ApiErrorBody(code, args, violations)
 
     companion object {
         fun notFound(what: String) = ApiException(HttpStatusCode.NotFound, ErrorCodes.NOT_FOUND, mapOf("what" to what))

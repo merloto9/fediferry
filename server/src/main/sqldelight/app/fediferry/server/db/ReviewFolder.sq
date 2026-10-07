@@ -1,0 +1,29 @@
+-- Folders for ready posts, kept apart from the library's: review is sorted by
+-- when and where a post goes, the library by what a picture is.
+CREATE TABLE review_folder (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+insert:
+INSERT INTO review_folder(project_id, id, name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);
+
+all:
+SELECT * FROM review_folder WHERE project_id = ? ORDER BY sort_order, name;
+
+byId:
+SELECT * FROM review_folder WHERE project_id = ? AND id = ?;
+
+update:
+UPDATE review_folder SET name = ?, sort_order = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+delete:
+DELETE FROM review_folder WHERE project_id = ? AND id = ?;
+
+count:
+SELECT COUNT(*) FROM review_folder WHERE project_id = ?;

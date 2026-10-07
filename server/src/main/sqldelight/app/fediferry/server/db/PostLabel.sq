@@ -1,0 +1,23 @@
+-- Free labels on posts ("evening", "needs a second look").
+CREATE TABLE post_label (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    post_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY (project_id, post_id, name)
+);
+
+forPost:
+SELECT name FROM post_label WHERE project_id = ? AND post_id = ? ORDER BY name;
+
+add:
+INSERT OR IGNORE INTO post_label(project_id, post_id, name) VALUES (?, ?, ?);
+
+clear:
+DELETE FROM post_label WHERE project_id = ? AND post_id = ?;
+
+-- Labels in use on posts that still exist, with how many carry each.
+counts:
+SELECT l.name, COUNT(*) AS uses FROM post_label l
+JOIN post p ON p.project_id = l.project_id AND p.id = l.post_id
+WHERE l.project_id = ? AND p.deleted_at IS NULL
+GROUP BY l.name ORDER BY l.name;

@@ -178,18 +178,6 @@ class Channels(
         throw ApiException(HttpStatusCode.BadGateway, e.message ?: "mastodon.error", mapOf("status" to e.code.toString()))
     }
 
-    private fun dto(row: Channel) = ChannelDto(
-        id = row.id,
-        type = row.type,
-        name = row.name,
-        instance = row.instance,
-        acct = row.acct,
-        displayName = row.display_name,
-        avatarUrl = row.avatar_url,
-        isDefault = row.is_default != 0L,
-        capabilities = runCatching { json.decodeFromString<ChannelCapabilities>(row.capabilities_json) }.getOrDefault(ChannelCapabilities()),
-        defaults = runCatching { json.decodeFromString<ChannelDefaults>(row.defaults_json) }.getOrDefault(ChannelDefaults()),
-    )
 
     private fun randomState(): String = ByteArray(24).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
 
@@ -200,6 +188,21 @@ class Channels(
         private const val PENDING_TTL_MS = 30 * 60 * 1000L
 
         fun tokenId(channelId: String) = "channel-token:$channelId"
+
+        private val dtoJson = Json { ignoreUnknownKeys = true }
+
+        fun dto(row: Channel) = ChannelDto(
+            id = row.id,
+            type = row.type,
+            name = row.name,
+            instance = row.instance,
+            acct = row.acct,
+            displayName = row.display_name,
+            avatarUrl = row.avatar_url,
+            isDefault = row.is_default != 0L,
+            capabilities = runCatching { dtoJson.decodeFromString<ChannelCapabilities>(row.capabilities_json) }.getOrDefault(ChannelCapabilities()),
+            defaults = runCatching { dtoJson.decodeFromString<ChannelDefaults>(row.defaults_json) }.getOrDefault(ChannelDefaults()),
+        )
     }
 }
 

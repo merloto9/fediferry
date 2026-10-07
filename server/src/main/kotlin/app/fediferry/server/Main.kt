@@ -74,7 +74,7 @@ private class Serve : DataCommand("serve") {
 
     override fun run() {
         val storage = Storage.open(File(data, "fediferry.db"))
-        val services = Services(storage)
+        val services = Services(storage, File(data))
         echo("FediFerry server $SERVER_VERSION on http://$host:$port — data in ${File(data).absolutePath}")
         if (services.projects.all().isEmpty()) echo("No projects yet. Create one with: fediferry project create \"Name\"")
         embeddedServer(Netty, port = port, host = host) { fediferry(services) }.start(wait = true)

@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.sqldelight.sqlite.driver)
     implementation(libs.clikt)
     implementation(libs.logback.classic)
+    // WebP for ImageIO, so sizes and thumbnails work for every picture a phone sends.
+    implementation(libs.twelvemonkeys.webp)
 
     testImplementation(libs.junit)
     testImplementation(libs.ktor.server.test.host)

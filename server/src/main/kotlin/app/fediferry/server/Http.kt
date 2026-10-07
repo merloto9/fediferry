@@ -19,6 +19,15 @@
  */
 package app.fediferry.server
 
+import java.util.concurrent.TimeUnit
+import java.io.File
+import okhttp3.OkHttpClient
+import app.fediferry.module.reddit.RedditResolver
+import app.fediferry.module.pinterest.PinterestResolver
+import app.fediferry.module.ninegag.NineGagResolver
+import app.fediferry.link.OkHttpMediaFetcher
+import app.fediferry.link.MediaFetcher
+import app.fediferry.link.LinkResolver
 import app.fediferry.api.Api
 import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.DeviceInfo
@@ -50,12 +59,33 @@ import org.slf4j.LoggerFactory
 /** Everything the HTTP layer works with, built once per process (or per test). */
 class Services(
     val storage: Storage,
+    val dataDir: File,
     val clock: () -> Long = System::currentTimeMillis,
     val version: String = SERVER_VERSION,
+    resolvers: List<LinkResolver> = defaultResolvers(version),
+    fetcher: MediaFetcher = OkHttpMediaFetcher(outboundHttp),
 ) {
     val projects = Projects(storage, clock)
     val feed = ChangeFeed(storage, clock)
+    val media = MediaStore(storage, dataDir, clock)
+    val library = Library(storage, media, feed, resolvers, fetcher, clock)
 }
+
+/** One HTTP client for everything the server fetches from services. */
+private val outboundHttp: OkHttpClient by lazy {
+    OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .build()
+}
+
+/** The source modules whose shared links the server can clean and resolve. */
+fun defaultResolvers(version: String): List<LinkResolver> = listOf(
+    NineGagResolver(outboundHttp),
+    PinterestResolver(outboundHttp),
+    RedditResolver(outboundHttp, version),
+)
 
 private val log = LoggerFactory.getLogger("fediferry")
 
@@ -101,6 +131,7 @@ fun Application.fediferry(services: Services) {
                 }
 
                 deviceRoutes(services)
+                libraryRoutes(services)
 
                 get("/changes") {
                     val since = call.request.queryParameters["since"]?.toLongOrNull() ?: 0L

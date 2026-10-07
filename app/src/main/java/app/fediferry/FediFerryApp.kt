@@ -70,6 +70,8 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         Notifications.ensureChannels(this)
+        // Loads the server connection, so pictures from the server get their token from the start.
+        ServiceLocator.serverConnections(this)
         ShortcutPublisher.publish(this)
 
         // Installed before anything can log, and left off until the setting

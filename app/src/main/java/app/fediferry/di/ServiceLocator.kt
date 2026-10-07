@@ -19,6 +19,8 @@
  */
 package app.fediferry.di
 
+import app.fediferry.connect.ServerAuth
+import app.fediferry.library.PendingShares
 import app.fediferry.connect.ServerConnections
 import android.annotation.SuppressLint
 import android.content.Context
@@ -67,6 +69,7 @@ object ServiceLocator {
     @Volatile private var api: MastodonClient? = null
     @Volatile private var tokenStore: TokenStore? = null
     @Volatile private var serverConnections: ServerConnections? = null
+    @Volatile private var pendingShares: PendingShares? = null
     @Volatile private var aiModelStore: AiModels? = null
     @Volatile private var settingsStore: SettingsStore? = null
     @Volatile private var authManager: AuthManager? = null
@@ -114,6 +117,8 @@ object ServiceLocator {
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
+            // The project token, for pictures loaded from the FediFerry server only.
+            .addInterceptor(ServerAuth)
             .build()
             .also { http = it }
     }
@@ -146,6 +151,10 @@ object ServiceLocator {
 
     fun mastodon(context: Context): MastodonClient = api ?: synchronized(this) {
         api ?: MastodonClient(http(), context.applicationContext).also { api = it }
+    }
+
+    fun pendingShares(context: Context): PendingShares = pendingShares ?: synchronized(this) {
+        pendingShares ?: PendingShares(context.applicationContext).also { pendingShares = it }
     }
 
     fun serverConnections(context: Context): ServerConnections = serverConnections ?: synchronized(this) {

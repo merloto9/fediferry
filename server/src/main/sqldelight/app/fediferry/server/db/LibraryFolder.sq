@@ -1,0 +1,36 @@
+-- Folders in the library, nestable.
+CREATE TABLE library_folder (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    parent_id TEXT,
+    name TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+insert:
+INSERT INTO library_folder(project_id, id, parent_id, name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+all:
+SELECT * FROM library_folder WHERE project_id = ? ORDER BY sort_order, name;
+
+byId:
+SELECT * FROM library_folder WHERE project_id = ? AND id = ?;
+
+update:
+UPDATE library_folder SET name = ?, parent_id = ?, sort_order = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+delete:
+DELETE FROM library_folder WHERE project_id = ? AND id = ?;
+
+-- A deleted folder's items and sub-folders move up to where it was.
+releaseItems:
+UPDATE library_item SET folder_id = :parent, updated_at = :now WHERE project_id = :project AND folder_id = :folder;
+
+releaseFolders:
+UPDATE library_folder SET parent_id = :parent, updated_at = :now WHERE project_id = :project AND parent_id = :folder;
+
+count:
+SELECT COUNT(*) FROM library_folder WHERE project_id = ?;

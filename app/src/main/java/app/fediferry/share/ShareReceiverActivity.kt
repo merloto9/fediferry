@@ -19,6 +19,8 @@
  */
 package app.fediferry.share
 
+import app.fediferry.library.UploadWorker
+import app.fediferry.api.IngestModes
 import app.fediferry.i18n.AppLocale
 import android.content.Context
 import android.content.Intent
@@ -81,6 +83,27 @@ class ShareReceiverActivity : ComponentActivity() {
             "$mode share from ${callingPackage ?: referrer?.host ?: "an unknown app"}: " +
                 "${payload.imageUris.size} image(s), link ${if (payload.link == null) "no" else "yes"}",
         )
+
+        // Connected to a FediFerry server: a share kept for later goes to the
+        // project's library there. Compose and Post now stay on the phone until
+        // drafts and publishing move to the server too.
+        val server = ServiceLocator.serverConnections(this).current()
+        if (server != null && mode == ShareMode.SAVE_FOR_LATER) {
+            lifecycleScope.launch {
+                runCatching {
+                    ServiceLocator.pendingShares(this@ShareReceiverActivity)
+                        .add(IngestModes.SAVE, payload.imageUris, payload.link, payload.text)
+                }.onSuccess { shares ->
+                    UploadWorker.enqueue(this@ShareReceiverActivity)
+                    toast(resources.getQuantityString(R.plurals.receiver_to_library, shares.size, shares.size, server.projectName))
+                }.onFailure { error ->
+                    DebugLog.w(LOG, "Keeping a share for the server failed", error)
+                    toast(getString(R.string.receiver_read_failed, error.describe()))
+                }
+                finish()
+            }
+            return
+        }
 
         lifecycleScope.launch {
             val repo = ServiceLocator.items(this@ShareReceiverActivity)

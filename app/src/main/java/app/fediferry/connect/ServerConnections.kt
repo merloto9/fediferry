@@ -62,7 +62,14 @@ class ServerConnections(context: Context, private val tokens: TokenStore, privat
         appVersion = BuildConfig.VERSION_NAME,
     )
 
-    fun current(): ServerConnection? {
+    init {
+        ServerAuth.connection = read()
+    }
+
+    /** The connection in use, or null when the phone works on its own. */
+    fun current(): ServerConnection? = ServerAuth.connection
+
+    private fun read(): ServerConnection? {
         val address = prefs.getString(KEY_ADDRESS, null) ?: return null
         val token = tokens.get(TOKEN_KEY) ?: return null
         return ServerConnection(
@@ -79,6 +86,7 @@ class ServerConnections(context: Context, private val tokens: TokenStore, privat
     fun client(connection: ServerConnection): ServerClient = client(connection.address, connection.token)
 
     fun save(connection: ServerConnection) {
+        ServerAuth.connection = connection
         tokens.put(TOKEN_KEY, connection.token)
         prefs.edit {
             putString(KEY_ADDRESS, connection.address)
@@ -89,6 +97,7 @@ class ServerConnections(context: Context, private val tokens: TokenStore, privat
 
     /** Forgets the server and its token; the device id stays, so it is the same device next time. */
     fun clear() {
+        ServerAuth.connection = null
         tokens.remove(TOKEN_KEY)
         prefs.edit {
             remove(KEY_ADDRESS)

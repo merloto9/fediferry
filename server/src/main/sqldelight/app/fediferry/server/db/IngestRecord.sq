@@ -1,0 +1,15 @@
+-- Which share a device already sent, so a retried upload returns the same
+-- item instead of making a second.
+CREATE TABLE ingest_record (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    client_share_id TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, client_share_id)
+);
+
+insert:
+INSERT INTO ingest_record(project_id, client_share_id, item_id, created_at) VALUES (?, ?, ?, ?);
+
+byShare:
+SELECT item_id FROM ingest_record WHERE project_id = ? AND client_share_id = ?;

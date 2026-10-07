@@ -19,6 +19,10 @@
  */
 package app.fediferry.ui
 
+import app.fediferry.di.ServiceLocator
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import app.fediferry.library.LibraryScreen
 import app.fediferry.ui.queue.QueuedPostScreen
 import android.net.Uri
 import app.fediferry.ui.queue.QueueScreen
@@ -42,6 +46,7 @@ import androidx.navigation.NavController
 
 object Routes {
     const val INBOX = "inbox"
+    const val LIBRARY = "library"
     const val QUEUE = "queue"
     const val QUEUED_POST = "queue/{accountId}/{statusId}"
     const val SOURCES = "sources"
@@ -85,7 +90,16 @@ fun FediFerryNavHost(
     // Asks once whether to clean the links of posts shared before links were cleaned.
     OldLinkCleanupPrompt()
 
-    NavHost(navController = navController, startDestination = Routes.INBOX) {
+    // Working with a server, the library is home; on its own, the inbox is.
+    val context = LocalContext.current
+    val start = remember { if (ServiceLocator.serverConnections(context).current() != null) Routes.LIBRARY else Routes.INBOX }
+    NavHost(navController = navController, startDestination = start) {
+        composable(Routes.LIBRARY) {
+            LibraryScreen(
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
         composable(Routes.INBOX) {
             InboxScreen(
                 onOpenItem = { navController.navigate(Routes.editor(it)) },
@@ -198,7 +212,8 @@ fun FediFerryNavHost(
  */
 private fun NavController.switchSpace(space: Space) {
     navigate(space.route) {
-        popUpTo(Routes.INBOX) { inclusive = space.route == Routes.INBOX }
+        // Spaces sit side by side: switching never builds up a back stack.
+        popUpTo(graph.startDestinationId) { inclusive = space.route == graph.startDestinationRoute }
         launchSingleTop = true
     }
 }

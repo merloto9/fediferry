@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="receiver_to_library">
+        <item quantity="one">In der Bibliothek von „%2$s“ gespeichert. Es wird hochgeladen, sobald eine Verbindung besteht.</item>
+        <item quantity="other">%1$d Bilder in der Bibliothek von „%2$s“ gespeichert. Sie werden hochgeladen, sobald eine Verbindung besteht.</item>
+    </plurals>
+    <string name="nav_library">Bibliothek</string>
+    <string name="library_title">Bibliothek</string>
+    <string name="library_loading_title">Bibliothek wird geöffnet</string>
+    <string name="library_loading_detail">Der Inhalt des Projekts wird vom FediFerry-Server gelesen.</string>
+    <string name="library_all">Alle</string>
+    <string name="library_unsorted">Unsortiert</string>
+    <string name="library_search">Suchen</string>
+    <string name="library_search_hint">Titel, Texte und Links durchsuchen</string>
+    <string name="library_new_folder">Neuer Ordner</string>
+    <string name="library_new_folder_more">Neuer Ordner…</string>
+    <string name="library_rename_folder">Ordner umbenennen</string>
+    <string name="library_delete_folder">Ordner löschen – die Bilder bleiben</string>
+    <string name="library_folder_name">Name</string>
+    <string name="library_save">Speichern</string>
+    <string name="library_move">In Ordner verschieben</string>
+    <string name="library_move_to">Verschieben nach</string>
+    <string name="library_delete">Aus der Bibliothek löschen</string>
+    <string name="library_clear_selection">Auswahl aufheben</string>
+    <plurals name="library_selected">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <plurals name="library_delete_title">
+        <item quantity="one">Aus der Bibliothek löschen?</item>
+        <item quantity="other">%1$d Einträge aus der Bibliothek löschen?</item>
+    </plurals>
+    <string name="library_delete_text">Es verschwindet auf allen Telefonen dieses Projekts aus der Bibliothek. Beiträge, die schon daraus entstanden sind, behalten ihr Bild.</string>
+    <string name="library_empty">Die Bibliothek ist leer. Teile ein Bild oder einen Link mit FediFerry und wähle „Für später“, um es hierher zu legen.</string>
+    <string name="library_empty_filtered">Hier ist nichts.</string>
+    <string name="library_unreachable">Der Server ließ sich nicht lesen (%1$s). Was du teilst, bleibt gespeichert und wird später hochgeladen.</string>
+    <string name="library_action_failed">Das hat nicht geklappt (%1$s).</string>
+    <plurals name="library_pending">
+        <item quantity="one">%1$d geteilter Inhalt wartet auf den Upload</item>
+        <item quantity="other">%1$d geteilte Inhalte warten auf den Upload</item>
+    </plurals>
+    <string name="library_retry">Jetzt versuchen</string>
+    <string name="library_pending_error">Letzter Versuch: %1$s</string>
+    <string name="library_pending_discard">Diesen Inhalt verwerfen</string>
+    <string name="library_item_title">Titel</string>
+    <string name="library_link">Link</string>
+    <string name="library_link_may_identify">Dieser Link verrät eventuell noch, wer ihn geteilt hat; er ließ sich nicht bereinigen.</string>
+    <string name="library_tags">Tags</string>
+    <string name="library_add_tag">Tag hinzufügen</string>
+    <string name="library_add">Hinzufügen</string>
+    <string name="library_remove_tag">#%1$s entfernen</string>
+    <string name="library_offline">Gerade keine Verbindung zum Server. Was du teilst, bleibt gespeichert und wird später hochgeladen.</string>
+</resources>

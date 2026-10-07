@@ -1,0 +1,75 @@
+-- One thing in the library: a picture, a link, or later a text. Posts are
+-- made from these and can reuse them; the item itself stays as collected.
+CREATE TABLE library_item (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    asset_id TEXT,
+    title TEXT,
+    text TEXT,
+    source_url TEXT,
+    origin TEXT,
+    source_fields_json TEXT NOT NULL DEFAULT '{}',
+    link_may_identify INTEGER NOT NULL DEFAULT 0,
+    alt_suggestion TEXT,
+    folder_id TEXT,
+    device_id TEXT,
+    captured_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE INDEX library_item_timeline ON library_item(project_id, deleted_at, captured_at);
+
+insert:
+INSERT INTO library_item(project_id, id, kind, asset_id, title, text, source_url, origin, source_fields_json,
+    link_may_identify, alt_suggestion, folder_id, device_id, captured_at, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+byId:
+SELECT * FROM library_item WHERE project_id = ? AND id = ? AND deleted_at IS NULL;
+
+-- The library, newest first, filtered by whatever is given. `unsorted` keeps
+-- items in no folder; `before` pages back through the timeline.
+list:
+SELECT * FROM library_item
+WHERE project_id = :project AND deleted_at IS NULL
+  AND (:folder IS NULL OR folder_id = :folder)
+  AND (:unsorted = 0 OR folder_id IS NULL)
+  AND (:tag IS NULL OR id IN (SELECT item_id FROM library_item_tag WHERE project_id = :project AND tag_id = :tag))
+  AND (:query IS NULL OR title LIKE '%' || :query || '%' OR text LIKE '%' || :query || '%' OR source_url LIKE '%' || :query || '%')
+  AND (:before IS NULL OR captured_at < :before)
+ORDER BY captured_at DESC, id
+LIMIT :limit;
+
+update:
+UPDATE library_item SET title = ?, text = ?, folder_id = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+attachAsset:
+UPDATE library_item SET asset_id = ?, kind = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+attachLink:
+UPDATE library_item SET source_url = ?, origin = ?, source_fields_json = ?, link_may_identify = ?, title = COALESCE(title, ?), updated_at = ?
+WHERE project_id = ? AND id = ?;
+
+byAsset:
+SELECT * FROM library_item WHERE project_id = ? AND asset_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT 1;
+
+softDelete:
+UPDATE library_item SET deleted_at = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+
+-- Pairing: the latest share from this device within the window that has only
+-- the other half — a link waiting for its screenshot, or the other way round.
+waitingForPicture:
+SELECT * FROM library_item
+WHERE project_id = ? AND device_id = ? AND created_at >= ? AND deleted_at IS NULL
+  AND asset_id IS NULL AND source_url IS NOT NULL
+ORDER BY created_at DESC LIMIT 1;
+
+waitingForLink:
+SELECT * FROM library_item
+WHERE project_id = ? AND device_id = ? AND created_at >= ? AND deleted_at IS NULL
+  AND asset_id IS NOT NULL AND source_url IS NULL
+ORDER BY created_at DESC LIMIT 1;

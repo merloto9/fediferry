@@ -19,6 +19,15 @@
  */
 package app.fediferry.client
 
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import app.fediferry.api.TagDto
+import app.fediferry.api.LibraryPage
+import app.fediferry.api.LibraryItemPatch
+import app.fediferry.api.LibraryItemDto
+import app.fediferry.api.IngestResult
+import app.fediferry.api.FolderInput
+import app.fediferry.api.FolderDto
 import app.fediferry.api.Api
 import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.Changes
@@ -73,16 +82,106 @@ class ServerClient(
     suspend fun changes(since: Long, waitSeconds: Int = LONG_POLL_SECONDS): Changes =
         get("changes", auth = true, query = mapOf("since" to since.toString(), "wait" to waitSeconds.toString()))
 
+    // --- library -------------------------------------------------------------
+
+    /**
+     * Sends one share. [shareId] is made on the phone when the share arrives, so
+     * a retried upload is recognised and returns the same item.
+     */
+    suspend fun ingest(
+        shareId: String,
+        mode: String,
+        link: String?,
+        text: String?,
+        file: ByteArray?,
+        mime: String?,
+        capturedAt: Long,
+    ): IngestResult {
+        val body = MultipartBody.Builder().setType(MultipartBody.FORM).apply {
+            addFormDataPart("mode", mode)
+            addFormDataPart("capturedAt", capturedAt.toString())
+            link?.let { addFormDataPart("link", it) }
+            text?.let { addFormDataPart("text", it) }
+            if (file != null) {
+                val type = (mime ?: "application/octet-stream").toMediaTypeOrNull()
+                addFormDataPart("file", "share", file.toRequestBody(type))
+            }
+        }.build()
+        return call(request("ingest/$shareId", auth = true).put(body).build())
+    }
+
+    suspend fun library(
+        folder: String? = null,
+        unsorted: Boolean = false,
+        tag: String? = null,
+        query: String? = null,
+        before: Long? = null,
+        limit: Int = 60,
+    ): LibraryPage = get(
+        "library/items",
+        query = buildMap {
+            folder?.let { put("folder", it) }
+            if (unsorted) put("unsorted", "true")
+            tag?.let { put("tag", it) }
+            query?.takeIf { it.isNotBlank() }?.let { put("q", it) }
+            before?.let { put("before", it.toString()) }
+            put("limit", limit.toString())
+        },
+    )
+
+    suspend fun libraryItem(id: String): LibraryItemDto = get("library/items/$id")
+
+    suspend fun patchLibraryItem(id: String, patch: LibraryItemPatch): LibraryItemDto =
+        send("library/items/$id", "PATCH", json.encodeToString(patch))
+
+    suspend fun deleteLibraryItem(id: String) = sendNoContent("library/items/$id", "DELETE")
+
+    suspend fun folders(): List<FolderDto> = get("library/folders")
+
+    suspend fun createFolder(input: FolderInput): FolderDto = post("library/folders", json.encodeToString(input))
+
+    suspend fun updateFolder(id: String, input: FolderInput): FolderDto =
+        send("library/folders/$id", "PATCH", json.encodeToString(input))
+
+    suspend fun deleteFolder(id: String) = sendNoContent("library/folders/$id", "DELETE")
+
+    suspend fun tags(): List<TagDto> = get("tags")
+
+    /** The address of a stored file; fetching it needs the project token, as every call does. */
+    fun mediaUrl(assetId: String): String = url("media/$assetId").toString()
+
+    fun thumbnailUrl(assetId: String, width: Int = 400): String = url("media/$assetId/thumb", mapOf("w" to width.toString())).toString()
+
+    /** Whether [url] points at this server, so a shared HTTP client knows to send the token there. */
+    fun isServerUrl(url: HttpUrl): Boolean = url.host == base.host && url.port == base.port
+
+    private suspend inline fun <reified T> send(path: String, method: String, body: String): T =
+        call(request(path, auth = true).method(method, body.toRequestBody(JSON_TYPE)).build())
+
+    private suspend fun sendNoContent(path: String, method: String) {
+        withContext(Dispatchers.IO) {
+            val response = try {
+                http.newCall(request(path, auth = true).method(method, null).build()).execute()
+            } catch (e: IOException) {
+                throw ServerException(0, "client.unreachable", mapOf("reason" to (e.message ?: e.javaClass.simpleName)), e)
+            }
+            response.use { if (!it.isSuccessful) decode<Unit>(it) }
+        }
+    }
+
     private suspend inline fun <reified T> get(path: String, auth: Boolean = true, query: Map<String, String> = emptyMap()): T =
         call(request(path, auth, query).get().build())
 
     private suspend inline fun <reified T> post(path: String, body: String): T =
         call(request(path, auth = true).post(body.toRequestBody(JSON_TYPE)).build())
 
-    private fun request(path: String, auth: Boolean, query: Map<String, String> = emptyMap()): Request.Builder {
-        val url = base.newBuilder().addPathSegments(Api.PREFIX.trimStart('/')).addPathSegments(path)
+    private fun url(path: String, query: Map<String, String> = emptyMap()): HttpUrl =
+        base.newBuilder().addPathSegments(Api.PREFIX.trimStart('/')).addPathSegments(path)
             .apply { query.forEach { (k, v) -> addQueryParameter(k, v) } }
             .build()
+
+    private fun request(path: String, auth: Boolean, query: Map<String, String> = emptyMap()): Request.Builder {
+        val url = url(path, query)
         return Request.Builder().url(url).apply {
             if (auth) header("Authorization", "Bearer $token")
             deviceId?.let { header(Api.DEVICE_HEADER, it) }

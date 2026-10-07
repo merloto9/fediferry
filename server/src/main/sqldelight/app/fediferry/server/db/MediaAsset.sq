@@ -1,0 +1,27 @@
+-- A stored file: a picture (later video). Identified within its project by
+-- its content hash, so the same picture shared twice is stored once. Never
+-- changed: an edit (crop, clean-up) is a new asset that names its parent.
+CREATE TABLE media_asset (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    bytes INTEGER NOT NULL,
+    parent_asset_id TEXT,
+    edit_recipe_json TEXT,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id),
+    UNIQUE (project_id, sha256)
+);
+
+insert:
+INSERT INTO media_asset(project_id, id, sha256, mime, width, height, bytes, parent_asset_id, edit_recipe_json, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+byId:
+SELECT * FROM media_asset WHERE project_id = ? AND id = ?;
+
+bySha:
+SELECT * FROM media_asset WHERE project_id = ? AND sha256 = ?;

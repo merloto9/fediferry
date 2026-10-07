@@ -56,7 +56,7 @@ class ServerTest {
 
     private val dir: File = Files.createTempDirectory("fediferry-test").toFile()
     private val storage = Storage.open(File(dir, "fediferry.db"))
-    private val services = Services(storage, version = "test")
+    private val services = Services(storage, dir, version = "test", resolvers = emptyList(), fetcher = { Result.failure(IllegalStateException("offline")) })
 
     @After fun cleanUp() {
         storage.close()

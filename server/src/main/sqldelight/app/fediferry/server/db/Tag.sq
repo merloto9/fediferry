@@ -1,0 +1,42 @@
+CREATE TABLE tag (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    name TEXT NOT NULL COLLATE NOCASE,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, id),
+    UNIQUE (project_id, name)
+);
+
+CREATE TABLE library_item_tag (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    item_id TEXT NOT NULL,
+    tag_id TEXT NOT NULL,
+    PRIMARY KEY (project_id, item_id, tag_id)
+);
+
+insert:
+INSERT INTO tag(project_id, id, name, created_at) VALUES (?, ?, ?, ?);
+
+byName:
+SELECT * FROM tag WHERE project_id = ? AND name = ?;
+
+all:
+SELECT tag.*, (SELECT COUNT(*) FROM library_item_tag t JOIN library_item i ON i.project_id = t.project_id AND i.id = t.item_id
+               WHERE t.project_id = tag.project_id AND t.tag_id = tag.id AND i.deleted_at IS NULL) AS uses
+FROM tag WHERE project_id = ? ORDER BY name;
+
+forItem:
+SELECT tag.* FROM tag JOIN library_item_tag t ON t.project_id = tag.project_id AND t.tag_id = tag.id
+WHERE t.project_id = ? AND t.item_id = ? ORDER BY tag.name;
+
+link:
+INSERT OR IGNORE INTO library_item_tag(project_id, item_id, tag_id) VALUES (?, ?, ?);
+
+clearItem:
+DELETE FROM library_item_tag WHERE project_id = ? AND item_id = ?;
+
+delete:
+DELETE FROM tag WHERE project_id = ? AND id = ?;
+
+unlinkTag:
+DELETE FROM library_item_tag WHERE project_id = ? AND tag_id = ?;

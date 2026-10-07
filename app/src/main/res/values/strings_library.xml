@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="receiver_to_library">
+        <item quantity="one">Saved to the library of \"%2$s\". It goes up as soon as there is a connection.</item>
+        <item quantity="other">%1$d pictures saved to the library of \"%2$s\". They go up as soon as there is a connection.</item>
+    </plurals>
+    <string name="nav_library">Library</string>
+    <string name="library_title">Library</string>
+    <string name="library_loading_title">Opening the library</string>
+    <string name="library_loading_detail">Reading what is in the project on the FediFerry server.</string>
+    <string name="library_all">All</string>
+    <string name="library_unsorted">Unsorted</string>
+    <string name="library_search">Search</string>
+    <string name="library_search_hint">Search titles, texts and links</string>
+    <string name="library_new_folder">New folder</string>
+    <string name="library_new_folder_more">New folder…</string>
+    <string name="library_rename_folder">Rename folder</string>
+    <string name="library_delete_folder">Delete folder — its pictures stay</string>
+    <string name="library_folder_name">Name</string>
+    <string name="library_save">Save</string>
+    <string name="library_move">Move to folder</string>
+    <string name="library_move_to">Move to</string>
+    <string name="library_delete">Delete from library</string>
+    <string name="library_clear_selection">Clear selection</string>
+    <plurals name="library_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="library_delete_title">
+        <item quantity="one">Delete this from the library?</item>
+        <item quantity="other">Delete %1$d items from the library?</item>
+    </plurals>
+    <string name="library_delete_text">It disappears from the library on every phone of this project. Posts already made from it keep their picture.</string>
+    <string name="library_empty">The library is empty. Share a picture or a link with FediFerry and pick \"Save for later\" to put it here.</string>
+    <string name="library_empty_filtered">Nothing here.</string>
+    <string name="library_unreachable">The server could not be read (%1$s). What you share is kept and goes up later.</string>
+    <string name="library_action_failed">That didn\'t work (%1$s).</string>
+    <plurals name="library_pending">
+        <item quantity="one">%1$d share waiting to upload</item>
+        <item quantity="other">%1$d shares waiting to upload</item>
+    </plurals>
+    <string name="library_retry">Try now</string>
+    <string name="library_pending_error">Last try: %1$s</string>
+    <string name="library_pending_discard">Discard this share</string>
+    <string name="library_item_title">Title</string>
+    <string name="library_link">Link</string>
+    <string name="library_link_may_identify">This link may still say who shared it; it could not be cleaned.</string>
+    <string name="library_tags">Tags</string>
+    <string name="library_add_tag">Add a tag</string>
+    <string name="library_add">Add</string>
+    <string name="library_remove_tag">Remove #%1$s</string>
+    <string name="library_offline">No connection to the server right now. What you share is kept and goes up later.</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds may reach a FediFerry server over plain HTTP, for a server on
+     the development machine (10.0.2.2 from the emulator) or in the home network.
+     Release builds use the HTTPS-only config in src/main. -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration" />
+</network-security-config>

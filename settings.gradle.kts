@@ -21,5 +21,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "FediFerry"
-include(":app")
+// The server's Docker build has no Android SDK; it builds only what the server needs.
+if (System.getenv("FEDIFERRY_SERVER_ONLY") == null) include(":app")
 include(":shared")
+include(":server")

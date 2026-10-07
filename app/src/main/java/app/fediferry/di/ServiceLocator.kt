@@ -19,6 +19,7 @@
  */
 package app.fediferry.di
 
+import app.fediferry.connect.ServerConnections
 import android.annotation.SuppressLint
 import android.content.Context
 import app.fediferry.R
@@ -65,6 +66,7 @@ object ServiceLocator {
     @Volatile private var http: OkHttpClient? = null
     @Volatile private var api: MastodonClient? = null
     @Volatile private var tokenStore: TokenStore? = null
+    @Volatile private var serverConnections: ServerConnections? = null
     @Volatile private var aiModelStore: AiModels? = null
     @Volatile private var settingsStore: SettingsStore? = null
     @Volatile private var authManager: AuthManager? = null
@@ -144,6 +146,10 @@ object ServiceLocator {
 
     fun mastodon(context: Context): MastodonClient = api ?: synchronized(this) {
         api ?: MastodonClient(http(), context.applicationContext).also { api = it }
+    }
+
+    fun serverConnections(context: Context): ServerConnections = serverConnections ?: synchronized(this) {
+        serverConnections ?: ServerConnections(context.applicationContext, tokens(context), http()).also { serverConnections = it }
     }
 
     fun tokens(context: Context): TokenStore = tokenStore ?: synchronized(this) {

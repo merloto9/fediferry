@@ -19,6 +19,9 @@
  */
 package app.fediferry.ui.settings
 
+import app.fediferry.di.ServiceLocator
+import app.fediferry.connect.ServerSection
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Language
 import android.content.ClipData
 import androidx.annotation.PluralsRes
@@ -132,6 +135,7 @@ enum class SettingsPage(
     val icon: ImageVector,
 ) {
     ACCOUNT("account", R.string.settings_page_account, R.string.settings_group_account, Icons.Outlined.AccountCircle),
+    SERVER("server", R.string.settings_page_server, R.string.settings_group_account, Icons.Outlined.Dns),
     TEMPLATES("templates", R.string.settings_page_templates, R.string.settings_group_posts, Icons.Outlined.Description),
     HASHTAGS("hashtags", R.string.settings_page_hashtags, R.string.settings_group_posts, Icons.Outlined.Tag),
     PLACEHOLDERS("placeholders", R.string.settings_page_placeholders, R.string.settings_group_posts, Icons.Outlined.DataObject),
@@ -156,6 +160,9 @@ private fun SettingsPage.summary(state: SettingsState, context: Context): String
     // Strings independent facts together with " · ".
     fun join(a: String, b: String) = context.getString(R.string.settings_summary_separator, a, b)
     return when (this) {
+        SettingsPage.SERVER -> ServiceLocator.serverConnections(context).current()
+            ?.let { context.getString(R.string.server_summary_connected, it.projectName) }
+            ?: context.getString(R.string.server_summary_none)
         SettingsPage.ACCOUNT -> {
             val default = state.accounts.firstOrNull { it.isDefault } ?: state.accounts.firstOrNull()
             when {
@@ -350,6 +357,7 @@ fun SettingsPageScreen(
         ) {
             when (page) {
                 SettingsPage.ACCOUNT -> AccountsSection(state, viewModel)
+                SettingsPage.SERVER -> ServerSection()
                 SettingsPage.TEMPLATES -> TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
                 SettingsPage.HASHTAGS -> HashtagsSection(state, viewModel)
                 SettingsPage.PLACEHOLDERS -> {

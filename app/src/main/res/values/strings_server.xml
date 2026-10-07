@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_page_server">FediFerry server</string>
+    <string name="server_summary_none">Not connected — everything stays on this phone</string>
+    <string name="server_summary_connected">Project %1$s</string>
+    <string name="server_intro">A FediFerry server keeps a project\'s library, drafts and channels in one place, so several phones can work on them together. Ask whoever runs the server for its address and a project token.</string>
+    <string name="server_address">Server address</string>
+    <string name="server_address_hint">For example fediferry.example.org. Use https:// from outside your home network.</string>
+    <string name="server_token">Project token</string>
+    <string name="server_token_hint">Starts with ffp_. It opens the project, so keep it private.</string>
+    <string name="server_connect">Connect</string>
+    <string name="server_connecting">Connecting…</string>
+    <string name="server_disconnect">Disconnect</string>
+    <string name="server_connected_to">Connected to \"%1$s\"</string>
+    <string name="server_device_id">This phone: %1$s…</string>
+    <string name="server_error_address">That is not a server address.</string>
+    <string name="server_error_unreachable">The server can\'t be reached: %1$s</string>
+    <string name="server_error_token">The server does not know this project token. Check it, or ask for a new one.</string>
+    <string name="server_error_not_fediferry">There is a server at that address, but it is not a FediFerry server.</string>
+    <string name="server_error_unknown">Connecting failed: %1$s</string>
+    <string name="server_error_local_network">The server is in your local network, and FediFerry is not allowed to reach devices there. Allow local network access for FediFerry in Android\'s app settings, then connect again.</string>
+</resources>

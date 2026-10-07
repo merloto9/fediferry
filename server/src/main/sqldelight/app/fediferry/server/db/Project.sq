@@ -1,0 +1,31 @@
+-- A project: one library, its channels and everything that goes with them.
+-- Projects never see each other's data; every other table hangs off one.
+CREATE TABLE project (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    -- Counts every change in the project; the change feed numbers by it.
+    rev_counter INTEGER NOT NULL DEFAULT 0,
+    settings_json TEXT NOT NULL DEFAULT '{}',
+    created_at INTEGER NOT NULL
+);
+
+insert:
+INSERT INTO project(id, name, created_at) VALUES (?, ?, ?);
+
+byId:
+SELECT * FROM project WHERE id = ?;
+
+byIdOrName:
+SELECT * FROM project WHERE id = :key OR name = :key;
+
+all:
+SELECT * FROM project ORDER BY created_at;
+
+delete:
+DELETE FROM project WHERE id = ?;
+
+bumpRev:
+UPDATE project SET rev_counter = rev_counter + 1 WHERE id = ?;
+
+rev:
+SELECT rev_counter FROM project WHERE id = ?;

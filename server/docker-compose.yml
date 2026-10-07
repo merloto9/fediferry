@@ -1,0 +1,21 @@
+# Run the FediFerry server:      docker compose -f server/docker-compose.yml up -d --build
+# Make a project and its token:  docker compose -f server/docker-compose.yml exec fediferry /opt/fediferry/bin/fediferry project create "Memes"
+#
+# Put it behind a reverse proxy with TLS (e.g. Caddy) before phones reach it
+# from outside your home network: without HTTPS the project token travels in
+# the clear.
+services:
+  fediferry:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    ports:
+      # Host address and port: FEDIFERRY_BIND=127.0.0.1 keeps the server to this
+      # machine (behind a reverse proxy); FEDIFERRY_HOST_PORT if 8080 is taken.
+      - "${FEDIFERRY_BIND:-0.0.0.0}:${FEDIFERRY_HOST_PORT:-8080}:8080"
+    volumes:
+      - fediferry-data:/data
+
+volumes:
+  fediferry-data:

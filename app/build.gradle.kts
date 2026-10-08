@@ -176,3 +176,12 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.room.testing)
 }
+
+// The test build that goes onto phones by hand, under a name that says so:
+// app/build/outputs/apk/dev/fediferry-dev.apk.
+val devApk = tasks.register<Copy>("devApk") {
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(layout.buildDirectory.dir("outputs/apk/dev"))
+    rename { "fediferry-dev.apk" }
+}
+tasks.matching { it.name == "assembleDebug" }.configureEach { finalizedBy(devApk) }

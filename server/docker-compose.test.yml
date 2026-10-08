@@ -1,0 +1,25 @@
+# FediFerry test server, built straight from the jr/server-workflow branch.
+# Standalone: copy this one file to the host, no checkout needed.
+#
+#   Start / update:  docker compose -f docker-compose.test.yml up -d --build
+#   First project:   docker compose -f docker-compose.test.yml exec fediferry /opt/fediferry/bin/fediferry project create "Test"
+#   Logs:            docker compose -f docker-compose.test.yml logs -f
+#
+# Listens on 127.0.0.1:8088 only; put nginx (or another reverse proxy with
+# TLS) in front and set client_max_body_size so uploads get through.
+name: fediferry-test
+
+services:
+  fediferry:
+    build:
+      context: https://github.com/merloto9/fediferry.git#jr/server-workflow
+      dockerfile: server/Dockerfile
+    image: fediferry:server-workflow
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:8080"
+    volumes:
+      - data:/data
+
+volumes:
+  data:

@@ -10,9 +10,15 @@ token, entered once on every phone (Settings → FediFerry server).
 With Docker, from the repository root:
 
 ```sh
-docker compose -f server/docker-compose.yml up -d --build
+docker compose -f server/docker-compose.yml pull
+docker compose -f server/docker-compose.yml up -d
 docker compose -f server/docker-compose.yml exec fediferry /opt/fediferry/bin/fediferry project create "Memes"
 ```
+
+GitHub builds the image (`.github/workflows/server-image.yml`) for amd64 and
+arm64 and publishes it as `ghcr.io/merloto9/fediferry-server`: `:latest` and
+`:1.2.3` from release tags, `:main` from every push to main. To run what is
+in your checkout instead, `up -d --build`.
 
 The second command prints the project token once. Keep it; a lost one is
 replaced with `fediferry token add Memes`.

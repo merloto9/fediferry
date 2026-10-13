@@ -5,12 +5,21 @@
 Share a meme screenshot into Mastodon with one tap. See [SPEC.md](SPEC.md) for
 the design rationale and [CLAUDE.md](CLAUDE.md) for the constraints.
 
+This repository is the platform version: the Android app plus a
+[server](server/README.md) that keeps a project's library, drafts, channels and
+publishing queue for several phones to work on together.
+
+> **For now the app ships as NeoFerry** (application ID `app.neoferry`, purple
+> icon), so test users can keep the original FediFerry app (`app.fediferry`)
+> installed next to it. It goes back to the FediFerry name and ID once it
+> replaces the original. The code package stays `app.fediferry` throughout.
+
 ## Install
 
 Add this repository in [Obtainium](https://github.com/ImranR98/Obtainium):
 
 ```
-https://github.com/merloto9/fediferry
+https://github.com/merloto9/fediferry-platform
 ```
 
 Obtainium reads the latest GitHub release, installs the attached `.apk`, and
@@ -22,6 +31,21 @@ offers each later release as an in-place update.
 > a differently-signed APK and Obtainium could not update in place. The key is
 > not a secret and offers no integrity guarantee — see *Switching to a real
 > release key* below.
+
+### Server
+
+GitHub builds the server image for amd64 and arm64 and publishes it as
+`ghcr.io/merloto9/fediferry-server`:
+
+```sh
+docker compose -f server/docker-compose.yml pull
+docker compose -f server/docker-compose.yml up -d
+docker compose -f server/docker-compose.yml exec fediferry /opt/fediferry/bin/fediferry project create "Memes"
+```
+
+The last command prints the project token the app asks for under *Settings →
+FediFerry server*. [server/README.md](server/README.md) covers ports, the
+reverse proxy and running it without Docker.
 
 ## First run
 
@@ -374,16 +398,34 @@ export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 ### Build
 
 ```sh
-./gradlew assembleDebug            # app/build/outputs/apk/debug/
+./gradlew assembleDebug            # app/build/outputs/apk/dev/neoferry-dev.apk
 ./gradlew testDebugUnitTest
 ./gradlew lintDebug
 ./gradlew assembleRelease          # minified, signed with the pinned key
 ```
 
 The debug build uses application ID `app.neoferry.debug` and OAuth scheme
-`neoferry-debug`, so it installs alongside a release build.
+`neoferry-debug`, and shows as *NeoFerry Dev*, so it installs alongside a
+release build.
+
+The server needs no Android SDK:
+
+```sh
+FEDIFERRY_SERVER_ONLY=1 ./gradlew :server:test
+docker build -f server/Dockerfile -t fediferry-server .
+```
 
 ### Layout
+
+At the top level:
+
+```
+app/         The Android app
+server/      The server (Ktor, SQLite), its Dockerfile and compose files
+shared/      What both use: resolvers, Mastodon types, image steps
+```
+
+Inside the app:
 
 ```
 data/        Room entities, DAOs, the media vault, the token store
@@ -411,8 +453,16 @@ git push origin v0.2.0
 `.github/workflows/release.yml` runs the tests, builds a release APK with
 `versionName` taken from the tag and a `versionCode` derived from it
 (`major*10000 + minor*100 + patch`), prints the signing certificate, and
-publishes a GitHub release with the APK attached. Obtainium picks it up from
-there. `workflow_dispatch` does the same with a hand-entered version.
+publishes a GitHub release with `neoferry-<version>.apk` attached. Obtainium
+picks it up from there. `workflow_dispatch` does the same with a hand-entered
+version.
+
+The same tag makes `.github/workflows/server-image.yml` publish the server
+image as `:<version>`, `:<major>.<minor>` and `:latest`. Every push to `main`
+also publishes `:main` and `:sha-<commit>`, which the test server
+(`server/docker-compose.test.yml`) runs. GitHub makes a new image private;
+set the package to public, or `docker login ghcr.io` on the host, before
+pulling it.
 
 The version code must increase with every release, so keep tags monotonic.
 

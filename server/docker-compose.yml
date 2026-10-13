@@ -1,4 +1,7 @@
-# Run the FediFerry server:      docker compose -f server/docker-compose.yml up -d --build
+# Run the FediFerry server, from the image GitHub builds:
+#                                docker compose -f server/docker-compose.yml pull
+#                                docker compose -f server/docker-compose.yml up -d
+# or from this checkout instead:  docker compose -f server/docker-compose.yml up -d --build
 # Make a project and its token:  docker compose -f server/docker-compose.yml exec fediferry /opt/fediferry/bin/fediferry project create "Memes"
 #
 # Put it behind a reverse proxy with TLS (e.g. Caddy) before phones reach it
@@ -6,6 +9,7 @@
 # the clear.
 services:
   fediferry:
+    image: ghcr.io/merloto9/fediferry-server:latest
     build:
       context: ..
       dockerfile: server/Dockerfile

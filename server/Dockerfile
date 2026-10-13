@@ -2,7 +2,9 @@
 #   docker build -f server/Dockerfile -t fediferry .
 # or use server/docker-compose.yml.
 
-FROM eclipse-temurin:21-jdk AS build
+# The build output is plain JVM bytecode, so Gradle runs on the builder's own
+# platform even for a multi-arch image; only the runtime stage is per-arch.
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build
 WORKDIR /src
 COPY . .
 # No Android SDK in here: leave the app out of the build.

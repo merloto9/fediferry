@@ -91,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           SRC=app/build/outputs/apk/release/app-release.apk
-          DEST="fediferry-${{ steps.version.outputs.name }}.apk"
+          DEST="neoferry-${{ steps.version.outputs.name }}.apk"
           cp "$SRC" "$DEST"
           echo "path=$DEST" >> "$GITHUB_OUTPUT"
           echo "sha256=$(sha256sum "$DEST" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
@@ -154,7 +154,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
-          TITLE: FediFerry ${{ steps.version.outputs.name }}
+          TITLE: NeoFerry ${{ steps.version.outputs.name }}
           APK: ${{ steps.apk.outputs.path }}
           VERSION: ${{ steps.version.outputs.name }}
         run: |

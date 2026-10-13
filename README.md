@@ -380,8 +380,8 @@ export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 ./gradlew assembleRelease          # minified, signed with the pinned key
 ```
 
-The debug build uses application ID `app.fediferry.debug` and OAuth scheme
-`fediferry-debug`, so it installs alongside a release build.
+The debug build uses application ID `app.neoferry.debug` and OAuth scheme
+`neoferry-debug`, so it installs alongside a release build.
 
 ### Layout
 

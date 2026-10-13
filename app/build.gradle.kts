@@ -29,7 +29,10 @@ android {
     }
 
     defaultConfig {
-        applicationId = "app.fediferry"
+        // Ships as NeoFerry for now, so test users can keep the original
+        // FediFerry app (app.fediferry) installed next to it. The code package
+        // above stays app.fediferry; switch these back when NeoFerry replaces it.
+        applicationId = "app.neoferry"
         minSdk = 26
         targetSdk = 37
         versionCode = appVersionCode
@@ -40,8 +43,8 @@ android {
         // Consumed by the OAuth redirect intent filter in the manifest, and by
         // AuthManager when it builds the redirect URI. Debug gets its own scheme
         // so both builds can be installed side by side.
-        manifestPlaceholders["oauthScheme"] = "fediferry"
-        buildConfigField("String", "OAUTH_SCHEME", "\"fediferry\"")
+        manifestPlaceholders["oauthScheme"] = "neoferry"
+        buildConfigField("String", "OAUTH_SCHEME", "\"neoferry\"")
     }
 
     signingConfigs {
@@ -73,8 +76,8 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["oauthScheme"] = "fediferry-debug"
-            buildConfigField("String", "OAUTH_SCHEME", "\"fediferry-debug\"")
+            manifestPlaceholders["oauthScheme"] = "neoferry-debug"
+            buildConfigField("String", "OAUTH_SCHEME", "\"neoferry-debug\"")
         }
         release {
             isMinifyEnabled = true
@@ -178,10 +181,10 @@ dependencies {
 }
 
 // The test build that goes onto phones by hand, under a name that says so:
-// app/build/outputs/apk/dev/fediferry-dev.apk.
+// app/build/outputs/apk/dev/neoferry-dev.apk.
 val devApk = tasks.register<Copy>("devApk") {
     from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
     into(layout.buildDirectory.dir("outputs/apk/dev"))
-    rename { "fediferry-dev.apk" }
+    rename { "neoferry-dev.apk" }
 }
 tasks.matching { it.name == "assembleDebug" }.configureEach { finalizedBy(devApk) }

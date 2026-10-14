@@ -46,8 +46,11 @@
     <string name="post_now_title">Jetzt posten?</string>
     <string name="post_now_text">Der Server sendet ihn sofort. Von hier aus gibt es kein Rückgängig.</string>
     <string name="post_now_hint">Sofort, ohne Rückgängig</string>
-    <string name="post_next_slot">Nächster freier Slot</string>
+    <string name="post_next_slot">Nächster freier Slot von</string>
     <string name="post_no_slot">Für diesen Kanal gibt es noch keinen Plan. Leg einen an unter Veröffentlichen → Upload-Pläne.</string>
+    <string name="post_schedule_paused">Pausiert – unter Upload-Pläne einschalten</string>
+    <string name="post_schedule_full">Kein freier Slot in Sicht</string>
+    <string name="post_schedule_current">Hier eingeplant</string>
     <string name="review_plan_into_slots">In die nächsten freien Slots planen</string>
     <plurals name="review_planned">
         <item quantity="one">%1$d Beitrag geplant.</item>

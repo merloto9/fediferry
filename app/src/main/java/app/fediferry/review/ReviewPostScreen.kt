@@ -162,7 +162,7 @@ fun ReviewPostScreen(
         if (planning) {
             PlanSheet(
                 post = post,
-                nextSlot = state.nextSlot,
+                schedules = state.channelSchedules,
                 onPlan = { planning = false; viewModel.plan(it) },
                 onDismiss = { planning = false },
             )

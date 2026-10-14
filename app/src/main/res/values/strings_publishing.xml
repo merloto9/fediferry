@@ -46,8 +46,11 @@
     <string name="post_now_title">Post this now?</string>
     <string name="post_now_text">The server sends it right away. There is no undo from here.</string>
     <string name="post_now_hint">Right away, no undo</string>
-    <string name="post_next_slot">Next free slot</string>
+    <string name="post_next_slot">Next free slot of</string>
     <string name="post_no_slot">No schedule for this channel yet. Set one up under Publishing → Schedules.</string>
+    <string name="post_schedule_paused">Paused — switch it on under Schedules</string>
+    <string name="post_schedule_full">No free slot ahead</string>
+    <string name="post_schedule_current">Planned in this schedule</string>
     <string name="review_plan_into_slots">Plan into the next free slots</string>
     <plurals name="review_planned">
         <item quantity="one">%1$d post planned.</item>

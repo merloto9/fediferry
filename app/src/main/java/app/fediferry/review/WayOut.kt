@@ -26,6 +26,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.EditCalendar
 import androidx.compose.material.icons.outlined.EventAvailable
@@ -108,10 +111,13 @@ internal fun WayOut(post: PostDto, state: ReviewPostState, onPlan: () -> Unit, o
     }
 }
 
-/** Into the queue: the next free slot, a time of one's own, or right away. */
+/**
+ * Into the queue: the next free slot of a schedule the person picks from
+ * [schedules] (the post's channel's), a time of one's own, or right away.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PlanSheet(post: PostDto, nextSlot: Pair<Long, ScheduleDto>?, onPlan: (PlanRequest) -> Unit, onDismiss: () -> Unit) {
+internal fun PlanSheet(post: PostDto, schedules: List<ScheduleDto>, onPlan: (PlanRequest) -> Unit, onDismiss: () -> Unit) {
     val resources = LocalResources.current
     var picking by remember { mutableStateOf(false) }
     var confirmingNow by remember { mutableStateOf(false) }
@@ -140,17 +146,46 @@ internal fun PlanSheet(post: PostDto, nextSlot: Pair<Long, ScheduleDto>?, onPlan
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(bottom = 24.dp)) {
             Text(stringResource(R.string.post_plan), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.post_next_slot)) },
-                supportingContent = {
-                    Text(
-                        nextSlot?.let { (at, schedule) -> "${ScheduleWords.fullText(resources, at)} · ${schedule.name}" }
-                            ?: stringResource(R.string.post_no_slot),
-                    )
-                },
-                leadingContent = { Icon(Icons.Outlined.EventAvailable, contentDescription = null) },
-                modifier = if (nextSlot != null) Modifier.clickable { onPlan(PlanRequest(PlanModes.NEXT_SLOT, scheduleId = nextSlot.second.id)) } else Modifier,
+            Text(
+                stringResource(R.string.post_next_slot),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
             )
+            if (schedules.isEmpty()) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.post_no_slot)) },
+                    leadingContent = { Icon(Icons.Outlined.EventAvailable, contentDescription = null) },
+                )
+            }
+            // Soonest first; a paused or full schedule last, shown but not offered.
+            schedules.sortedWith(compareBy({ it.nextSlot() == null }, { it.nextSlot() ?: Long.MAX_VALUE }, { it.name.lowercase() })).forEach { schedule ->
+                val next = schedule.nextSlot()
+                ListItem(
+                    headlineContent = { Text(schedule.name) },
+                    supportingContent = {
+                        Text(
+                            when {
+                                !schedule.active -> stringResource(R.string.post_schedule_paused)
+                                next == null -> stringResource(R.string.post_schedule_full)
+                                else -> ScheduleWords.fullText(resources, next)
+                            },
+                        )
+                    },
+                    leadingContent = { Icon(Icons.Outlined.EventAvailable, contentDescription = null) },
+                    trailingContent = if (schedule.id == post.publication?.scheduleId) {
+                        { Icon(Icons.Default.Check, contentDescription = stringResource(R.string.post_schedule_current)) }
+                    } else {
+                        null
+                    },
+                    modifier = if (next != null) {
+                        Modifier.clickable { onPlan(PlanRequest(PlanModes.NEXT_SLOT, scheduleId = schedule.id)) }
+                    } else {
+                        Modifier.alpha(0.5f)
+                    },
+                )
+            }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
             ListItem(
                 headlineContent = { Text(stringResource(R.string.post_pick_time)) },
                 leadingContent = { Icon(Icons.Outlined.EditCalendar, contentDescription = null) },
@@ -165,3 +200,6 @@ internal fun PlanSheet(post: PostDto, nextSlot: Pair<Long, ScheduleDto>?, onPlan
         }
     }
 }
+
+/** The next slot this schedule would give, or null when it is paused or has none free. */
+private fun ScheduleDto.nextSlot(): Long? = nextFree.firstOrNull()?.takeIf { active }

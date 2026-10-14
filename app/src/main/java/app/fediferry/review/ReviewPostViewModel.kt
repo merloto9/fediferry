@@ -49,11 +49,9 @@ data class ReviewPostState(
 ) {
     val channel: ChannelDto? get() = channels.firstOrNull { it.id == post?.channelId }
 
-    /** The soonest free slot among the post's channel's active schedules, and which schedule offers it. */
-    val nextSlot: Pair<Long, ScheduleDto>?
-        get() = schedules.filter { it.active && it.channelId == post?.channelId }
-            .mapNotNull { s -> s.nextFree.firstOrNull()?.let { it to s } }
-            .minByOrNull { it.first }
+    /** The schedules the post can be planned into: its channel's, paused ones included. */
+    val channelSchedules: List<ScheduleDto>
+        get() = schedules.filter { it.channelId == post?.channelId }
 }
 
 /** One ready post: read-only, but it can be sorted, sent back to draft or deleted. */

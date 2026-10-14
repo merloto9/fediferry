@@ -28,4 +28,6 @@
     <string name="action_retry">Jetzt versuchen</string>
     <string name="uploads_pending_error">Letzter Versuch: %1$s</string>
     <string name="uploads_pending_discard">Diesen Inhalt verwerfen</string>
+    <string name="offline_since">Server nicht erreichbar. Du siehst den Stand von %1$s – es wird weiter versucht.</string>
+    <string name="offline_never">Server nicht erreichbar – es wird weiter versucht.</string>
 </resources>

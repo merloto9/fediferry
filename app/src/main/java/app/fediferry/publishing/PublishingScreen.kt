@@ -69,6 +69,7 @@ import app.fediferry.api.PostStages
 import app.fediferry.api.PublishedStatusDto
 import app.fediferry.drafts.ServerMessages
 import app.fediferry.ui.LoadingScreen
+import app.fediferry.ui.OfflineBanner
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
 import app.fediferry.work.ScheduleWords
@@ -96,6 +97,7 @@ fun PublishingScreen(
     Scaffold(
         bottomBar = { SpaceBar(Space.PUBLISHING, onSwitchSpace) },
         topBar = {
+            Column {
             TopAppBar(
                 title = { Text(stringResource(R.string.publishing_title)) },
                 actions = {
@@ -107,6 +109,8 @@ fun PublishingScreen(
                     }
                 },
             )
+            OfflineBanner()
+            }
         },
     ) { padding ->
         if (!state.loadedOnce) {
@@ -123,7 +127,7 @@ fun PublishingScreen(
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            state.error?.let { code -> item { Notice(ServerMessages.describe(resources, code)) } }
+            state.error?.takeIf { it != "client.unreachable" }?.let { code -> item { Notice(ServerMessages.describe(resources, code)) } }
 
             if (state.failed.isNotEmpty()) {
                 item { Heading(stringResource(R.string.publishing_failed)) }

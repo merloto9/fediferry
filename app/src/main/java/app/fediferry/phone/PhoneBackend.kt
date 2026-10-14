@@ -54,6 +54,10 @@ import app.fediferry.api.ScheduleDto
 import app.fediferry.api.ScheduleInput
 import app.fediferry.api.SlotDto
 import app.fediferry.backend.PostBackend
+import app.fediferry.backend.Reachability
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import app.fediferry.channel.PostValidator
 import app.fediferry.client.ServerException
 import app.fediferry.data.model.Account
@@ -114,6 +118,10 @@ class PhoneBackend(private val context: Context) : PostBackend {
     private val paths = ConcurrentHashMap<String, String>()
 
     override val deviceId: String = "this-phone"
+    override val key: String = "phone"
+
+    /** The phone's own database is always there; what Mastodon is asked for says itself when it fails. */
+    override val reachable: StateFlow<Reachability> = MutableStateFlow(Reachability()).asStateFlow()
 
     override fun changes(): Flow<Set<String>> =
         db.invalidationTracker.createFlow(*TABLES.keys.toTypedArray(), emitInitialState = false)

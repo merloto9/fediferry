@@ -90,6 +90,7 @@ import app.fediferry.api.ReviewFolderDto
 import app.fediferry.drafts.ServerMessages
 import app.fediferry.ui.DeletePostsDialog
 import app.fediferry.ui.LoadingScreen
+import app.fediferry.ui.OfflineBanner
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
 import coil3.compose.AsyncImage
@@ -164,6 +165,7 @@ fun ReviewScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { SpaceBar(Space.REVIEW, onSwitchSpace) },
         topBar = {
+            Column {
             TopAppBar(
                 title = {
                     Text(
@@ -207,6 +209,8 @@ fun ReviewScreen(
                     }
                 },
             )
+            OfflineBanner()
+            }
         },
     ) { padding ->
         if (!state.loadedOnce) {
@@ -223,7 +227,7 @@ fun ReviewScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item { Filters(state, viewModel::setFilter, onRename = { naming = Naming.Rename(it) }, onDeleteFolder = viewModel::deleteFolder) }
-            state.error?.let { code -> item { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) } }
+            state.error?.takeIf { it != "client.unreachable" }?.let { code -> item { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) } }
             if (state.shown.isEmpty() && state.error == null) {
                 item {
                     Notice(

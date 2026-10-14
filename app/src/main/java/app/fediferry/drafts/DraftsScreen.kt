@@ -77,6 +77,7 @@ import app.fediferry.api.PostDto
 import app.fediferry.template.TemplateEngine
 import app.fediferry.ui.DeletePostsDialog
 import app.fediferry.ui.LoadingScreen
+import app.fediferry.ui.OfflineBanner
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
 import coil3.compose.AsyncImage
@@ -115,6 +116,7 @@ fun DraftsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { SpaceBar(Space.DRAFTS, onSwitchSpace) },
         topBar = {
+            Column {
             TopAppBar(
                 title = {
                     Text(
@@ -141,6 +143,8 @@ fun DraftsScreen(
                     }
                 },
             )
+            OfflineBanner()
+            }
         },
     ) { padding ->
         if (!state.loadedOnce) {
@@ -156,7 +160,7 @@ fun DraftsScreen(
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            state.error?.let { code ->
+            state.error?.takeIf { it != "client.unreachable" }?.let { code ->
                 item { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) }
             }
             if (pending.isNotEmpty()) {

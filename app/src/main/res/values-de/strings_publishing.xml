@@ -5,7 +5,7 @@
     <string name="publishing_loading">Warteschlange wird gelesen…</string>
     <string name="publishing_failed">Fehlgeschlagen</string>
     <string name="publishing_queue">Warteschlange</string>
-    <string name="publishing_queue_empty">Nichts geplant. Plane einen fertigen Beitrag im Review. Der Server postet ihn pünktlich; dafür muss kein Handy an sein.</string>
+    <string name="publishing_queue_empty">Nichts geplant. Plane einen fertigen Beitrag im Review.</string>
     <string name="publishing_sending">Wird gerade gesendet</string>
     <string name="publishing_retry_at">Neuer Versuch um %1$s</string>
     <string name="publishing_published">Veröffentlicht</string>

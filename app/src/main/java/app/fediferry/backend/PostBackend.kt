@@ -38,6 +38,7 @@ import app.fediferry.api.ReviewPatch
 import app.fediferry.api.ScheduleDto
 import app.fediferry.api.ScheduleInput
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Where posts live and how they get out: everything the screens — Drafts,
@@ -53,6 +54,16 @@ interface PostBackend {
 
     /** This phone, as edit locks name it. */
     val deviceId: String
+
+    /** Which project this is, for keeping what each one showed apart ([ScreenCache]). */
+    val key: String
+
+    /**
+     * Whether the backend answered the last time it was asked. The phone's own
+     * project always does; a server may not, and the screens say so while
+     * still showing what they loaded last.
+     */
+    val reachable: StateFlow<Reachability>
 
     /**
      * Something changed: emits the kinds of thing that did ("post",

@@ -5,7 +5,7 @@
     <string name="publishing_loading">Reading the queue…</string>
     <string name="publishing_failed">Failed</string>
     <string name="publishing_queue">Queue</string>
-    <string name="publishing_queue_empty">Nothing planned. Plan a ready post from Review. The server posts it on time; no phone needs to be on.</string>
+    <string name="publishing_queue_empty">Nothing planned. Plan a ready post from Review.</string>
     <string name="publishing_sending">Being sent now</string>
     <string name="publishing_retry_at">Trying again at %1$s</string>
     <string name="publishing_published">Published</string>

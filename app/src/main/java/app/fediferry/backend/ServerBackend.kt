@@ -30,16 +30,33 @@ import app.fediferry.api.ScheduleInput
 import app.fediferry.client.ServerClient
 import app.fediferry.mastodon.AuthManager
 import kotlinx.coroutines.delay
+import app.fediferry.client.ServerException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.flow
 
 /** A project on a FediFerry server: every call goes to the server, and [changes] follows its change feed. */
-class ServerBackend(private val client: ServerClient, override val deviceId: String) : PostBackend {
+class ServerBackend(
+    private val client: ServerClient,
+    override val deviceId: String,
+    override val key: String,
+) : PostBackend {
 
+    private val _reachable = MutableStateFlow(Reachability())
+    override val reachable: StateFlow<Reachability> = _reachable.asStateFlow()
+
+    /**
+     * Follows the change feed, and with it whether the server can be reached:
+     * a poll that gets through says it can, one that cannot reach it says it
+     * cannot, and polling goes on every few seconds until it is back.
+     */
     override fun changes(): Flow<Set<String>> = flow {
-        var rev = runCatching { client.project().rev }.getOrDefault(0L)
+        var rev = runCatching { read { client.project() }.rev }.getOrDefault(0L)
         while (true) {
-            val changes = runCatching { client.changes(rev) }.getOrNull()
+            val changes = runCatching { read { client.changes(rev) } }.getOrNull()
             if (changes == null) {
                 delay(RETRY_MS)
                 continue
@@ -49,8 +66,16 @@ class ServerBackend(private val client: ServerClient, override val deviceId: Str
         }
     }
 
-    override suspend fun posts(vararg stages: String) = client.posts(*stages)
-    override suspend fun post(id: String) = client.post(id)
+    /** Runs a call and notes whether the server answered it. */
+    private suspend fun <T> read(block: suspend () -> T): T = try {
+        block().also { _reachable.value = Reachability(ok = true, lastReachedAt = System.currentTimeMillis()) }
+    } catch (e: ServerException) {
+        if (e.unreachable) _reachable.update { it.copy(ok = false) }
+        throw e
+    }
+
+    override suspend fun posts(vararg stages: String) = read { client.posts(*stages) }
+    override suspend fun post(id: String) = read { client.post(id) }
     override suspend fun deletePost(id: String) = client.deletePost(id)
 
     override suspend fun lockPost(id: String, force: Boolean) = client.lockPost(id, force)
@@ -62,21 +87,21 @@ class ServerBackend(private val client: ServerClient, override val deviceId: Str
     override suspend fun markReady(id: String, version: Long) = client.markReady(id, version)
     override suspend fun backToDraft(id: String) = client.backToDraft(id)
     override suspend fun sortForReview(id: String, patch: ReviewPatch) = client.sortForReview(id, patch)
-    override suspend fun reviewFolders() = client.reviewFolders()
+    override suspend fun reviewFolders() = read { client.reviewFolders() }
     override suspend fun createReviewFolder(input: ReviewFolderInput) = client.createReviewFolder(input)
     override suspend fun updateReviewFolder(id: String, input: ReviewFolderInput) = client.updateReviewFolder(id, input)
     override suspend fun deleteReviewFolder(id: String) = client.deleteReviewFolder(id)
-    override suspend fun labels() = client.labels()
+    override suspend fun labels() = read { client.labels() }
 
     override suspend fun plan(id: String, request: PlanRequest) = client.plan(id, request)
     override suspend fun unplan(id: String) = client.unplan(id)
-    override suspend fun schedules() = client.schedules()
+    override suspend fun schedules() = read { client.schedules() }
     override suspend fun createSchedule(input: ScheduleInput) = client.createSchedule(input)
     override suspend fun updateSchedule(id: String, input: ScheduleInput) = client.updateSchedule(id, input)
     override suspend fun deleteSchedule(id: String) = client.deleteSchedule(id)
-    override suspend fun published(limit: Int) = client.published(limit)
+    override suspend fun published(limit: Int) = read { client.published(limit) }
 
-    override suspend fun channels() = client.channels()
+    override suspend fun channels() = read { client.channels() }
     override suspend fun createChannel(input: ChannelInput) = client.createChannel(input)
     override suspend fun patchChannel(id: String, patch: ChannelPatch) = client.patchChannel(id, patch)
     override suspend fun deleteChannel(id: String) = client.deleteChannel(id)

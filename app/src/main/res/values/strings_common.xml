@@ -28,4 +28,6 @@
     <string name="action_retry">Try now</string>
     <string name="uploads_pending_error">Last try: %1$s</string>
     <string name="uploads_pending_discard">Discard this share</string>
+    <string name="offline_since">Can’t reach the server. Showing what was loaded at %1$s — trying again.</string>
+    <string name="offline_never">Can’t reach the server — trying again.</string>
 </resources>

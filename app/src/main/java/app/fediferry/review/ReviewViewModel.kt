@@ -32,6 +32,7 @@ import app.fediferry.api.ReviewPatch
 import app.fediferry.api.PlanModes
 import app.fediferry.api.PlanRequest
 import app.fediferry.backend.PostBackend
+import app.fediferry.backend.ScreenCache
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.Job
@@ -76,7 +77,8 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
 
     private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
 
-    private val _state = MutableStateFlow(ReviewState())
+    // What this tab showed last, at once; it is read again in the background.
+    private val _state = MutableStateFlow(ScreenCache.get<ReviewState>(ServiceLocator.backend(app), SCREEN)?.copy(error = null) ?: ReviewState())
     val state: StateFlow<ReviewState> = _state
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
@@ -84,11 +86,22 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
 
     private var follow: Job? = null
 
+    init {
+        viewModelScope.launch {
+            _state.collect { if (it.loadedOnce) ScreenCache.put(ServiceLocator.backend(getApplication()), SCREEN, it) }
+        }
+    }
+
     fun start() {
         refresh()
         if (follow?.isActive == true) return
         val source = backend ?: return
         follow = viewModelScope.launch {
+            // Back in reach after a gap: read again rather than wait for the next change.
+            launch {
+                var wasOk = source.reachable.value.ok
+                source.reachable.collect { r -> if (r.ok && !wasOk) refresh(); wasOk = r.ok }
+            }
             source.changes().collect { types -> if (types.any { it in WATCHED }) refresh() }
         }
     }
@@ -178,6 +191,7 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() = stop()
 
     private companion object {
+        const val SCREEN = "review"
         val WATCHED = setOf("post", "review_folder", "channel")
     }
 }

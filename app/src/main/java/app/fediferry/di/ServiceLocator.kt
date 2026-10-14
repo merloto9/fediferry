@@ -199,7 +199,7 @@ object ServiceLocator {
         val connection = connections.current() ?: return phone(context)
         serverBackend?.takeIf { it.first == connection }?.let { return it.second }
         return synchronized(this) {
-            ServerBackend(connections.client(connection), connections.deviceId).also { serverBackend = connection to it }
+            ServerBackend(connections.client(connection), connections.deviceId, key = "server:${connection.address}/${connection.projectId}").also { serverBackend = connection to it }
         }
     }
 

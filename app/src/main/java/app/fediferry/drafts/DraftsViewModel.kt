@@ -26,6 +26,7 @@ import app.fediferry.api.ChannelDto
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostStages
 import app.fediferry.backend.PostBackend
+import app.fediferry.backend.ScreenCache
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import app.fediferry.upload.PendingShare
@@ -62,7 +63,8 @@ class DraftsViewModel(app: Application) : AndroidViewModel(app) {
     /** Shares not on the server yet; each becomes a draft once it is up. */
     val pending: StateFlow<List<PendingShare>> = ServiceLocator.pendingShares(app).all
 
-    private val _state = MutableStateFlow(DraftsState())
+    // What this tab showed last, at once; it is read again in the background.
+    private val _state = MutableStateFlow(ScreenCache.get<DraftsState>(ServiceLocator.backend(app), SCREEN)?.copy(error = null) ?: DraftsState())
     val state: StateFlow<DraftsState> = _state
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
@@ -70,11 +72,22 @@ class DraftsViewModel(app: Application) : AndroidViewModel(app) {
 
     private var follow: Job? = null
 
+    init {
+        viewModelScope.launch {
+            _state.collect { if (it.loadedOnce) ScreenCache.put(ServiceLocator.backend(getApplication()), SCREEN, it) }
+        }
+    }
+
     fun start() {
         refresh()
         if (follow?.isActive == true) return
         val source = backend ?: return
         follow = viewModelScope.launch {
+            // Back in reach after a gap: read again rather than wait for the next change.
+            launch {
+                var wasOk = source.reachable.value.ok
+                source.reachable.collect { r -> if (r.ok && !wasOk) refresh(); wasOk = r.ok }
+            }
             source.changes().collect { types -> if ("post" in types || "channel" in types) refresh() }
         }
     }
@@ -109,4 +122,8 @@ class DraftsViewModel(app: Application) : AndroidViewModel(app) {
     fun thumbnailUrl(assetId: String): String? = backend?.thumbnailUrl(assetId)
 
     override fun onCleared() = stop()
+
+    private companion object {
+        const val SCREEN = "drafts"
+    }
 }

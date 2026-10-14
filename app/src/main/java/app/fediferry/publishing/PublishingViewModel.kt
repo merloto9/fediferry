@@ -28,6 +28,7 @@ import app.fediferry.api.PostStages
 import app.fediferry.api.PublishedStatusDto
 import app.fediferry.api.ScheduleDto
 import app.fediferry.backend.PostBackend
+import app.fediferry.backend.ScreenCache
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.Job
@@ -63,16 +64,28 @@ class PublishingViewModel(app: Application) : AndroidViewModel(app) {
 
     private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
 
-    private val _state = MutableStateFlow(PublishingState())
+    // What this tab showed last, at once; it is read again in the background.
+    private val _state = MutableStateFlow(ScreenCache.get<PublishingState>(ServiceLocator.backend(app), SCREEN)?.copy(error = null) ?: PublishingState())
     val state: StateFlow<PublishingState> = _state
 
     private var follow: Job? = null
+
+    init {
+        viewModelScope.launch {
+            _state.collect { if (it.loadedOnce) ScreenCache.put(ServiceLocator.backend(getApplication()), SCREEN, it) }
+        }
+    }
 
     fun start() {
         refresh()
         if (follow?.isActive == true) return
         val source = backend ?: return
         follow = viewModelScope.launch {
+            // Back in reach after a gap: read again rather than wait for the next change.
+            launch {
+                var wasOk = source.reachable.value.ok
+                source.reachable.collect { r -> if (r.ok && !wasOk) refresh(); wasOk = r.ok }
+            }
             source.changes().collect { types -> if (types.any { it in WATCHED }) refresh() }
         }
     }
@@ -118,6 +131,7 @@ class PublishingViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() = stop()
 
     private companion object {
+        const val SCREEN = "publishing"
         /** How many of the latest posts are read back from the channels. */
         const val HISTORY = 20
         val WATCHED = setOf("post", "schedule", "channel")

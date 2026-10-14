@@ -19,7 +19,9 @@
  */
 package app.fediferry.server
 
+import app.fediferry.api.MediaAssetDto
 import app.fediferry.server.db.Media_asset
+import org.slf4j.LoggerFactory
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -32,6 +34,9 @@ import javax.imageio.ImageIO
  * Media files on disk, under `<data>/media/<project>/<ab>/<sha256>`. A file is
  * named by its content, so the same picture is stored once per project and
  * never changes once written. Thumbnails are made on demand and cached.
+ *
+ * Nothing here is kept for its own sake: a file stays while a post uses it,
+ * and [sweep] removes it, with its thumbnails, once none does.
  */
 class MediaStore(
     private val storage: Storage,
@@ -39,6 +44,10 @@ class MediaStore(
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val db get() = storage.db
+    private val log = LoggerFactory.getLogger("media")
+
+    /** Storing and sweeping take turns, so a file is never swept while it is being reused. */
+    private val lock = Any()
 
     fun sha256(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
@@ -49,11 +58,14 @@ class MediaStore(
      * Stores [bytes] for [projectId], or returns the asset that already holds
      * the same content. Pictures get their size read; nothing is re-encoded.
      */
-    fun store(projectId: String, bytes: ByteArray, mime: String, parentId: String? = null, recipe: String? = null): Media_asset {
+    fun store(projectId: String, bytes: ByteArray, mime: String, parentId: String? = null, recipe: String? = null): Media_asset = synchronized(lock) {
         require(bytes.isNotEmpty()) { "empty upload" }
         require(bytes.size <= MAX_BYTES) { "too large" }
         val sha = sha256(bytes)
-        db.mediaAssetQueries.bySha(projectId, sha).executeAsOneOrNull()?.let { return it }
+        db.mediaAssetQueries.bySha(projectId, sha).executeAsOneOrNull()?.let {
+            db.mediaAssetQueries.touch(clock(), projectId, it.id)
+            return db.mediaAssetQueries.byId(projectId, it.id).executeAsOne()
+        }
 
         val target = file(projectId, sha)
         if (!target.exists()) {
@@ -69,6 +81,45 @@ class MediaStore(
             projectId, id, sha, mime, size?.first?.toLong(), size?.second?.toLong(), bytes.size.toLong(), parentId, recipe, clock(),
         )
         return db.mediaAssetQueries.byId(projectId, id).executeAsOne()
+    }
+
+    /**
+     * Deletes the files of [projectId] no post uses any more, and their
+     * thumbnails. What was stored within [graceMs] is spared: it is on its way
+     * onto a draft, or an edit not saved yet. Returns how many went.
+     */
+    fun sweep(projectId: String, graceMs: Long = SWEEP_GRACE_MS): Int = synchronized(lock) {
+        remove(projectId, db.mediaAssetQueries.unused(projectId, clock() - graceMs).executeAsList())
+    }
+
+    /**
+     * Deletes [assetIds] — a deleted post's files — and the originals they were
+     * edited from, as far as no other post uses them. A file stored again
+     * after [since] is on its way onto another draft and stays.
+     */
+    fun release(projectId: String, assetIds: Collection<String>, since: Long): Int = synchronized(lock) {
+        val candidates = HashSet<String>()
+        for (id in assetIds) {
+            var current: String? = id
+            while (current != null && candidates.add(current)) current = byId(projectId, current)?.parent_asset_id
+        }
+        remove(projectId, db.mediaAssetQueries.unused(projectId, since + 1).executeAsList().filter { it.id in candidates })
+    }
+
+    private fun remove(projectId: String, assets: List<Media_asset>): Int {
+        for (asset in assets) {
+            db.mediaAssetQueries.delete(projectId, asset.id)
+            file(projectId, asset.sha256).delete()
+            File(dataDir, "thumbs/$projectId").listFiles { f -> f.name.startsWith(asset.sha256 + "_") }?.forEach { it.delete() }
+        }
+        if (assets.isNotEmpty()) log.info("Removed {} unused file(s)", assets.size)
+        return assets.size
+    }
+
+    /** Everything a deleted project had on disk. */
+    fun deleteProject(projectId: String) {
+        File(dataDir, "media/$projectId").deleteRecursively()
+        File(dataDir, "thumbs/$projectId").deleteRecursively()
     }
 
     fun byId(projectId: String, id: String): Media_asset? = db.mediaAssetQueries.byId(projectId, id).executeAsOneOrNull()
@@ -120,5 +171,12 @@ class MediaStore(
     companion object {
         /** Larger than any instance accepts; anything bigger is refused at once. */
         const val MAX_BYTES = 100 * 1024 * 1024
+
+        /** How long a file no post uses yet is left alone. */
+        const val SWEEP_GRACE_MS = 60 * 60 * 1000L
+
+        fun assetDto(row: Media_asset) = MediaAssetDto(
+            row.id, row.sha256, row.mime, row.width?.toInt(), row.height?.toInt(), row.bytes, row.parent_asset_id,
+        )
     }
 }

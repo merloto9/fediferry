@@ -117,11 +117,6 @@
     <string name="settings_check">Prüfen</string>
     <string name="settings_undo_window">Zeit zum Rückgängigmachen: %1$d s</string>
     <string name="settings_undo_window_detail">So lange wartet „Jetzt posten“ vor dem Senden. Bei null wird sofort gesendet.</string>
-    <string name="settings_purge_never">Gepostete Beiträge: werden behalten</string>
-    <plurals name="settings_purge_after">
-        <item quantity="one">Gepostete Beiträge: nach %d Tag gelöscht</item>
-        <item quantity="other">Gepostete Beiträge: nach %d Tagen gelöscht</item>
-    </plurals>
 
     <!-- Image clean-up -->
     <string name="settings_cleanup_profiles">Bereinigungsprofile</string>

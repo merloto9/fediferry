@@ -37,4 +37,10 @@ class MastodonTextTest {
 
     @Test
     fun `an emoji counts once`() = assertEquals(1, MastodonText.length("🐸"))
+
+    @Test
+    fun `a status's HTML reads as its text`() = assertEquals(
+        "Look at this & that\nnew line\n\n#meme <3 \u00e9",
+        MastodonText.plain("<p>Look at <a href=\"x\">this</a> &amp; that<br>new line</p><p><a class=\"hashtag\">#<span>meme</span></a> &lt;3 &#233;</p>"),
+    )
 }

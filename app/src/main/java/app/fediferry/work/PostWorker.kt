@@ -71,18 +71,10 @@ class PostWorker(
 
         return try {
             val posted = send(item, scheduledAt)
-            // A scheduled post has left the inbox: Mastodon holds it, and the
-            // Queue shows it from there. Only the hand-over is recorded here.
-            repo.update(
-                item.copy(
-                    status = Status.POSTED,
-                    postedAt = System.currentTimeMillis(),
-                    statusUrl = posted.url,
-                    altText = posted.altText ?: item.altText,
-                    altTextFailed = posted.altTextFailed,
-                    failureReason = null,
-                ),
-            )
+            // Out — or, scheduled, held by Mastodon and shown in the Queue from
+            // there. Either way Mastodon has it now, so the post and its
+            // pictures are not kept here.
+            repo.delete(itemId)
             DebugLog.d(
                 LOG,
                 "${if (scheduledAt != null) "Scheduled" else "Posted"} item $itemId" +

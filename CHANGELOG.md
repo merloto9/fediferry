@@ -12,6 +12,19 @@ Obtainium installs.
 
 ### Changed
 
+- **No more library: a post goes Drafts → Review → Publishing.** With a
+  FediFerry server, a share becomes a draft straight away — Save for later
+  keeps it there, Compose opens it, Post now sends it — and the Library space,
+  its folders and its tags are gone. Shares still waiting to upload show at the
+  top of Drafts. When the server is updated, pictures in the library that no
+  post used become drafts of their own, so nothing collected is lost.
+- **Posts are not kept once they are out.** The server deletes a published
+  post and every picture no other post uses; deleting a draft does the same.
+  Publishing shows the latest posts as Mastodon has them, read live from each
+  channel, and opens one on Mastodon when tapped. Without a server, a post and
+  its pictures leave the phone once Mastodon has it, and the *keep posted
+  items* setting is gone. Posts kept by an earlier version are cleared once.
+
 - **Deleting asks first.** The trash button in the inbox (for the selected
   posts) and in the editor now asks whether to delete the post — or the
   selection — permanently, with its pictures: *Yes, delete* or *Back*.

@@ -23,7 +23,6 @@ import app.fediferry.alt.VisionAltTextProvider
 import app.fediferry.api.AiModelData
 import app.fediferry.api.AltSuggestion
 import app.fediferry.api.ChannelDefaults
-import app.fediferry.api.CreatePost
 import app.fediferry.api.LockDto
 import app.fediferry.api.PlaceholderKeyData
 import app.fediferry.api.PostDto
@@ -39,6 +38,7 @@ import app.fediferry.api.SettingsKinds
 import app.fediferry.api.TemplateData
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtags
+import app.fediferry.server.db.Media_asset
 import app.fediferry.server.db.Post
 import app.fediferry.template.TemplateEngine
 import io.ktor.http.HttpStatusCode
@@ -52,6 +52,9 @@ import java.util.UUID
  * Posts and their drafts. A draft is edited by one device at a time — it
  * holds the post's lock — and every change names the version it was made on,
  * so an edit based on an old copy is refused rather than overwriting another.
+ *
+ * A post is kept only until it is out. Published or deleted, it goes for
+ * good, and with it every file no other post uses ([purge]).
  */
 class Posts(
     private val storage: Storage,
@@ -94,7 +97,7 @@ class Posts(
             sourceFields = runCatching { json.decodeFromString<Map<String, String>>(post.source_fields_json) }.getOrDefault(emptyMap()),
             linkMayIdentify = post.link_may_identify != 0L,
             media = db.postMediaQueries.forPost(projectId, post.id).executeAsList().mapNotNull { m ->
-                media.byId(projectId, m.asset_id)?.let { PostMediaDto(m.position.toInt(), Library.assetDto(it), m.library_item_id, m.alt_text, m.alt_failed != 0L) }
+                media.byId(projectId, m.asset_id)?.let { PostMediaDto(m.position.toInt(), MediaStore.assetDto(it), m.alt_text, m.alt_failed != 0L) }
             },
             finalText = post.final_text,
             lock = lock?.let { LockDto(it.device_id, it.device_name, it.expires_at) },
@@ -109,44 +112,99 @@ class Posts(
 
     // --- making -------------------------------------------------------------------
 
+    /** What a share said about where it came from. */
+    class Source(
+        val url: String?,
+        val origin: String?,
+        val fields: Map<String, String> = emptyMap(),
+        val linkMayIdentify: Boolean = false,
+    )
+
     /**
-     * A draft from library items: the first item with a source feeds the
-     * template; every item with a picture adds it, in the order given.
+     * A draft from one share, on the default channel with its template: the
+     * link and what its service said feed the template, the picture becomes
+     * the post's first. A share of text alone becomes the draft's text.
+     * [shareId] is recorded with it, so the same share sent again finds it.
      */
-    fun create(projectId: String, deviceId: String?, request: CreatePost): PostDto {
-        val items = request.libraryItemIds.distinct().map { id ->
-            db.libraryItemQueries.byId(projectId, id).executeAsOneOrNull() ?: throw ApiException.notFound("library_item")
-        }
-        if (items.isEmpty()) throw ApiException.badRequest("library_items")
-        val channel = (request.channelId ?: defaultChannelId(projectId))?.let { db.channelQueries.byId(projectId, it).executeAsOneOrNull() }
-        val channelDefaults = channel?.let { runCatching { json.decodeFromString<ChannelDefaults>(it.defaults_json) }.getOrNull() }
-        val template = template(projectId, request.templateId ?: channelDefaults?.templateId)
-        val source = items.firstOrNull { it.origin != null || it.source_url != null }
-        val fields = source?.source_fields_json?.let { runCatching { json.decodeFromString<Map<String, String>>(it) }.getOrNull() }.orEmpty()
-        val inputs = TemplateEngine.Inputs(link = source?.source_url, source = ContentSource.fromName(source?.origin), fields = fields)
+    fun createDraft(
+        projectId: String,
+        deviceId: String?,
+        shareId: String?,
+        source: Source,
+        asset: Media_asset?,
+        altSuggestion: String?,
+        text: String?,
+        createdAt: Long,
+    ): PostDto {
+        val channelId = defaultChannelId(projectId)
+        val channelDefaults = channelId?.let { db.channelQueries.byId(projectId, it).executeAsOneOrNull() }
+            ?.let { runCatching { json.decodeFromString<ChannelDefaults>(it.defaults_json) }.getOrNull() }
+        val template = template(projectId, channelDefaults?.templateId)
         val keys = keys(projectId)
+        val inputs = TemplateEngine.Inputs(link = source.url, source = ContentSource.fromName(source.origin), fields = source.fields)
+        val body = if (source.url == null && asset == null && !text.isNullOrBlank()) text.trim() else TemplateEngine.render(template, keys, inputs)
 
         val id = UUID.randomUUID().toString()
         val now = clock()
         feed.change(projectId, "post", id) {
             db.postQueries.insert(
-                projectId, id, PostStages.DRAFT, channel?.id, template.id,
-                TemplateEngine.render(template, keys, inputs),
+                projectId, id, PostStages.DRAFT, channelId, template.id,
+                body,
                 Hashtags.format(TemplateEngine.hashtagsFor(template, keys, inputs)),
                 if (template.addSourceHashtags) 1 else 0,
                 template.contentWarning,
                 channelDefaults?.visibility ?: template.visibility,
-                source?.source_url, source?.origin, json.encodeToString(fields),
-                source?.link_may_identify ?: 0, deviceId, now, now,
+                source.url, source.origin, json.encodeToString(source.fields),
+                if (source.linkMayIdentify) 1 else 0, deviceId, createdAt.coerceAtMost(now), now,
             )
-            var position = 0
-            items.filter { it.asset_id != null }.forEach { item ->
-                val alt = item.alt_suggestion ?: template.staticAltText?.takeIf { template.altTextMode == "STATIC" }
-                db.postMediaQueries.insert(projectId, id, (position++).toLong(), item.asset_id!!, item.id, alt, 0)
-            }
+            if (asset != null) db.postMediaQueries.insert(projectId, id, 0, asset.id, altSuggestion ?: staticAlt(template), 0)
+            shareId?.let { db.ingestRecordQueries.insert(projectId, it, id, now) }
         }
         return get(projectId, id)
     }
+
+    /** The picture a draft waited for: it becomes the draft's first. */
+    fun attachPicture(projectId: String, postId: String, shareId: String?, asset: Media_asset): PostDto {
+        val post = row(projectId, postId)
+        val now = clock()
+        feed.change(projectId, "post", postId) {
+            db.postMediaQueries.insert(projectId, postId, 0, asset.id, staticAlt(template(projectId, post.template_id)), 0)
+            db.postQueries.touch(now, projectId, postId)
+            shareId?.let { db.ingestRecordQueries.insert(projectId, it, postId, now) }
+        }
+        return get(projectId, postId)
+    }
+
+    /**
+     * The link a draft waited for. Its text is written again so `{link}`
+     * resolves — but only while it is still the template's own link-less text,
+     * so nothing typed by hand is overwritten.
+     */
+    fun attachLink(projectId: String, postId: String, shareId: String?, source: Source): PostDto {
+        val post = row(projectId, postId)
+        val template = template(projectId, post.template_id)
+        val keys = keys(projectId)
+        val untouched = post.body == TemplateEngine.render(template, keys, TemplateEngine.Inputs(link = null, source = null, fields = emptyMap()))
+        val inputs = TemplateEngine.Inputs(link = source.url, source = ContentSource.fromName(source.origin), fields = source.fields)
+        val body = if (untouched) TemplateEngine.render(template, keys, inputs) else post.body
+        val hashtags = if (untouched) Hashtags.format(TemplateEngine.hashtagsFor(template, keys, inputs, post.add_source_hashtags != 0L)) else post.hashtags
+        val now = clock()
+        feed.change(projectId, "post", postId) {
+            db.postQueries.attachLink(
+                source.url, source.origin, json.encodeToString(source.fields), if (source.linkMayIdentify) 1 else 0,
+                body, hashtags, now, projectId, postId,
+            )
+            shareId?.let { db.ingestRecordQueries.insert(projectId, it, postId, now) }
+        }
+        return get(projectId, postId)
+    }
+
+    /** Records that [shareId] ended up in [postId], for a share that brought nothing new. */
+    fun recordShare(projectId: String, postId: String, shareId: String) {
+        db.ingestRecordQueries.insert(projectId, shareId, postId, clock())
+    }
+
+    private fun staticAlt(template: TemplateData): String? = template.staticAltText?.takeIf { template.altTextMode == "STATIC" }
 
     // --- editing --------------------------------------------------------------------
 
@@ -306,18 +364,31 @@ class Posts(
     fun labels(projectId: String): List<LabelDto> =
         db.postLabelQueries.counts(projectId).executeAsList().map { LabelDto(it.name, it.uses.toInt()) }
 
+    /** Deletes a post that is not on its way out; planned or being sent, it has to be taken out of the queue first. */
     fun delete(projectId: String, postId: String, deviceId: String?) {
         val post = row(projectId, postId)
-        // Planned or being sent: take it out of the queue first. Out already: it leaves the history only.
         if (post.stage !in DELETABLE) throw ApiException(HttpStatusCode.Conflict, "post.not_deletable", mapOf("stage" to post.stage))
         val held = db.postLockQueries.byPost(projectId, postId).executeAsOneOrNull()
         if (held != null && held.device_id != deviceId && held.expires_at > clock()) throw locked(held.device_name, held.expires_at)
+        purge(projectId, postId)
+    }
+
+    /**
+     * Removes a post for good — everything about it, and the files no other
+     * post uses. Done when it is deleted and once it has been published.
+     */
+    fun purge(projectId: String, postId: String) {
         val now = clock()
+        val assets = db.postMediaQueries.forPost(projectId, postId).executeAsList().map { it.asset_id }
         feed.change(projectId, "post", postId, deleted = true) {
-            db.postQueries.softDelete(now, now, projectId, postId)
+            db.postMediaQueries.clear(projectId, postId)
+            db.postLabelQueries.clear(projectId, postId)
             db.postLockQueries.clear(projectId, postId)
-            if (post.stage == PostStages.FAILED) db.publicationQueries.delete(projectId, postId)
+            db.publicationQueries.delete(projectId, postId)
+            db.ingestRecordQueries.forgetPost(projectId, postId)
+            db.postQueries.delete(projectId, postId)
         }
+        media.release(projectId, assets, since = now)
     }
 
     private fun requireEditable(projectId: String, post: Post, deviceId: String?, version: Long?) {
@@ -370,7 +441,7 @@ class Posts(
     companion object {
         const val LOCK_TTL_MS = 5 * 60 * 1000L
         const val MAX_LABEL = 40
-        val DELETABLE = setOf(PostStages.DRAFT, PostStages.READY, PostStages.FAILED, PostStages.PUBLISHED)
+        val DELETABLE = setOf(PostStages.DRAFT, PostStages.READY, PostStages.FAILED)
         const val VISION_PROMPT = "Describe this image for a blind reader in one or two plain sentences. " +
             "Transcribe any text in the image verbatim. No preamble."
     }

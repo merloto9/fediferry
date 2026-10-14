@@ -25,7 +25,7 @@ import androidx.lifecycle.viewModelScope
 import app.fediferry.api.ChannelDto
 import app.fediferry.api.ScheduleDto
 import app.fediferry.api.ScheduleInput
-import app.fediferry.client.ServerClient
+import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,14 +43,13 @@ data class SchedulesState(
 /** The project's upload schedules: when each channel's posts go out. */
 class SchedulesViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val connections = ServiceLocator.serverConnections(app)
-    private val client: ServerClient? get() = connections.current()?.let(connections::client)
+    private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
 
     private val _state = MutableStateFlow(SchedulesState())
     val state: StateFlow<SchedulesState> = _state
 
     fun refresh() = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         runCatching { api.schedules() to api.channels() }
             .onSuccess { (schedules, channels) -> _state.update { it.copy(schedules = schedules, channels = channels, loaded = true) } }
             .onFailure { e -> _state.update { it.copy(loaded = true, message = code(e)) } }
@@ -65,8 +64,8 @@ class SchedulesViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 
-    private fun act(block: suspend (ServerClient) -> Unit) = viewModelScope.launch {
-        val api = client ?: return@launch
+    private fun act(block: suspend (PostBackend) -> Unit) = viewModelScope.launch {
+        val api = backend ?: return@launch
         runCatching { block(api) }.onFailure { e -> _state.update { it.copy(message = code(e)) } }
         refresh()
     }

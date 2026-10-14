@@ -87,6 +87,6 @@ object ServerMessages {
         "post.publishing" -> resources.getString(R.string.plan_error_publishing)
         "post.not_plannable", "post.not_deletable" -> resources.getString(R.string.plan_error_stage)
         "post.no_channel" -> resources.getString(R.string.ready_no_channel)
-        else -> resources.getString(R.string.library_action_failed, code)
+        else -> resources.getString(R.string.server_action_failed, code)
     }
 }

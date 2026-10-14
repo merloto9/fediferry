@@ -31,7 +31,7 @@ import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
 import app.fediferry.api.Violation
 import app.fediferry.channel.PostValidator
-import app.fediferry.client.ServerClient
+import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ContentSource
@@ -111,8 +111,7 @@ data class DraftEditorState(
  */
 class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val connections = ServiceLocator.serverConnections(app)
-    private val client: ServerClient? get() = connections.current()?.let(connections::client)
+    private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
     private val db = ServiceLocator.database(app)
 
     private val _state = MutableStateFlow(DraftEditorState())
@@ -139,7 +138,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
                     profiles = db.cleanup().profiles(),
                 )
             }
-            val api = client ?: return@launch
+            val api = backend ?: return@launch
             runCatching { api.channels() }.onSuccess { channels -> _state.update { it.copy(channels = channels) } }
             reload()
             acquire(force = false)
@@ -149,7 +148,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Reads the draft again; edits not yet saved are dropped. */
     private suspend fun reload() {
-        val api = client ?: return
+        val api = backend ?: return
         val id = postId ?: return
         runCatching { api.post(id) }
             .onSuccess { post -> base = post; _state.update { it.copy(post = post, loaded = true, unsaved = false) } }
@@ -169,7 +168,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun acquire(force: Boolean) {
-        val api = client ?: return
+        val api = backend ?: return
         val id = postId ?: return
         val post = _state.value.post ?: return
         if (post.stage != PostStages.DRAFT) {
@@ -193,7 +192,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
                     delay(RENEW_MS)
                     if (_state.value.lock != EditLock.Held) continue
                     flush()
-                    val api = client ?: continue
+                    val api = backend ?: continue
                     runCatching { api.lockPost(postId ?: return) }.onFailure { handle(it) }
                 }
                 is EditLock.Elsewhere, EditLock.Offline -> {
@@ -313,7 +312,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun derive(position: Int, request: DeriveRequest) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val asset = _state.value.post?.media?.firstOrNull { it.position == position }?.asset ?: return@launch
         _state.update { it.copy(mediaBusy = true) }
         runCatching { api.derive(asset.id, request) }
@@ -324,7 +323,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Asks the project's model to describe a picture; the text lands in the field to check. */
     fun suggestAlt(position: Int) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         _state.update { it.copy(altBusy = it.altBusy + position) }
         runCatching { api.suggestAlt(id, position) }
@@ -342,7 +341,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun send(patch: PostPatch) {
         flush()
         saving.withLock {
-            val api = client ?: return
+            val api = backend ?: return
             val from = base ?: return
             runCatching { api.patchPost(from.id, from.version, patch) }
                 .onSuccess { saved -> base = saved; _state.update { it.copy(post = saved) } }
@@ -358,7 +357,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun save() {
         saving.withLock {
-            val api = client ?: return
+            val api = backend ?: return
             val from = base ?: return
             val edited = _state.value.post ?: return
             val patch = diff(from, edited) ?: run {
@@ -384,7 +383,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
      * checks again: it has the last word on what the channel takes.
      */
     fun markReady(onReady: (String) -> Unit) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         _state.update { it.copy(readying = true, refusals = emptyList()) }
         flush()
@@ -413,7 +412,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun delete(onDone: () -> Unit) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         saveJob?.cancel()
         runCatching { api.deletePost(id) }
@@ -426,7 +425,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun release() {
         if (_state.value.lock != EditLock.Held) return
-        val api = client ?: return
+        val api = backend ?: return
         val id = postId ?: return
         _state.update { it.copy(lock = EditLock.Asking) }
         withContext(NonCancellable) { runCatching { api.unlockPost(id) } }

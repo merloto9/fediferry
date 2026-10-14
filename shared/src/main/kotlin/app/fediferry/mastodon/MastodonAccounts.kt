@@ -83,6 +83,16 @@ class MastodonAccounts(private val http: OkHttpClient) {
     suspend fun verifyCredentials(instance: String, token: String): CredentialAccount =
         get(instance, "api/v1/accounts/verify_credentials", token)
 
+    /** The account's own latest posts, newest first: no replies, no boosts. */
+    suspend fun statuses(instance: String, token: String, accountId: String, limit: Int): List<AccountStatus> = withContext(Dispatchers.IO) {
+        val url = base(instance).addPathSegments("api/v1/accounts").addPathSegment(accountId).addPathSegment("statuses")
+            .addQueryParameter("limit", limit.coerceIn(1, 40).toString())
+            .addQueryParameter("exclude_replies", "true")
+            .addQueryParameter("exclude_reblogs", "true")
+            .build()
+        call(Request.Builder().url(url).header("Authorization", "Bearer $token").get().build())
+    }
+
     /** What the instance accepts, from `/api/v2/instance`; Mastodon's defaults where it does not say. */
     suspend fun capabilities(instance: String, now: Long = System.currentTimeMillis()): ChannelCapabilities =
         parseCapabilities(get<JsonObject>(instance, "api/v2/instance", null), now)

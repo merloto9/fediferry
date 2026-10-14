@@ -276,6 +276,11 @@ Declare intent filters for `image/*` and `text/plain` on both `ACTION_SEND` and
 
 - Scheduled posting: decided — Mastodon's `scheduled_at`. The app keeps no
   schedule; the Queue screen reads `GET /api/v1/scheduled_statuses` live.
-- Whether to keep posted items in the store as history or purge after N days.
+- Posted items as history: decided — not kept. A post and its pictures are
+  deleted once Mastodon has it, on the phone and on the server alike, and
+  Publishing reads the latest posts back from the channels live
+  (`GET /api/v1/published`). With a server a post moves through three stages
+  only — Drafts > Review > Publishing; there is no library of collected
+  pictures, and a share becomes a draft directly.
 - Video support — Mastodon accepts it, screenshots don't produce it, but a shared
   screen recording would work.

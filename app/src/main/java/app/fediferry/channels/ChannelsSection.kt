@@ -126,7 +126,7 @@ private fun ChannelCard(channel: ChannelDto, viewModel: ChannelsViewModel) {
             onDismissRequest = { renaming = false },
             title = { Text(stringResource(R.string.channels_rename)) },
             text = { OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true) },
-            confirmButton = { TextButton(onClick = { viewModel.rename(channel, name); renaming = false }, enabled = name.isNotBlank()) { Text(stringResource(R.string.library_save)) } },
+            confirmButton = { TextButton(onClick = { viewModel.rename(channel, name); renaming = false }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
             dismissButton = { TextButton(onClick = { renaming = false }) { Text(stringResource(R.string.delete_back)) } },
         )
     }

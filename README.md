@@ -6,8 +6,9 @@ Share a meme screenshot into Mastodon with one tap. See [SPEC.md](SPEC.md) for
 the design rationale and [CLAUDE.md](CLAUDE.md) for the constraints.
 
 This repository is the platform version: the Android app plus a
-[server](server/README.md) that keeps a project's library, drafts, channels and
-publishing queue for several phones to work on together.
+[server](server/README.md) that takes a project's posts through drafts, review
+and publishing for several phones to work on together. A post is kept only
+until it is out.
 
 > **For now the app ships as NeoFerry** (application ID `app.neoferry`, purple
 > icon), so test users can keep the original FediFerry app (`app.fediferry`)

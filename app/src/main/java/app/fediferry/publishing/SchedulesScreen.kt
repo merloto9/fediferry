@@ -220,7 +220,7 @@ private fun ScheduleEditor(
                 TextButton(onClick = {
                     slots = slots.mapIndexed { i, s -> if (i == index) s.copy(time = "%02d:%02d".format(timeState.hour, timeState.minute)) else s }
                     pickingTime = null
-                }) { Text(stringResource(R.string.library_save)) }
+                }) { Text(stringResource(R.string.action_save)) }
             },
             dismissButton = { TextButton(onClick = { pickingTime = null }) { Text(stringResource(R.string.delete_back)) } },
         )
@@ -299,7 +299,7 @@ private fun ScheduleEditor(
                     )
                 },
                 enabled = channelId != null,
-            ) { Text(stringResource(R.string.library_save)) }
+            ) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.delete_back)) } },
     )

@@ -23,6 +23,11 @@ import app.fediferry.channel.ChannelPublisher
 import app.fediferry.channel.MastodonPublisher
 import app.fediferry.mastodon.MastodonAccounts
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.io.File
 import okhttp3.OkHttpClient
 import app.fediferry.module.reddit.RedditResolver
@@ -73,13 +78,25 @@ class Services(
     val projects = Projects(storage, clock)
     val feed = ChangeFeed(storage, clock)
     val media = MediaStore(storage, dataDir, clock)
-    val library = Library(storage, media, feed, resolvers, fetcher, clock)
     val crypto = Crypto.load(dataDir)
     val secrets = Secrets(storage.db, crypto, clock)
     val settings = SettingsStore(storage, feed, clock)
     val channels = Channels(storage, secrets, crypto, feed, mastodon, clock)
     val posts = Posts(storage, feed, settings, secrets, media, outboundHttp, clock)
+    val intake = Intake(storage, media, posts, resolvers, fetcher, clock)
     val publishing = Publishing(storage, feed, posts, channels, media, settings, publisher, clock)
+
+    /** Sweeps every project's unused files now and then every [intervalMs]. */
+    fun startSweeping(scope: CoroutineScope, intervalMs: Long = SWEEP_INTERVAL_MS): Job = scope.launch {
+        while (isActive) {
+            projects.all().forEach { p -> runCatching { media.sweep(p.id) } }
+            delay(intervalMs)
+        }
+    }
+
+    private companion object {
+        const val SWEEP_INTERVAL_MS = 60 * 60 * 1000L
+    }
 }
 
 /** One HTTP client for everything the server fetches from services. */
@@ -142,7 +159,7 @@ fun Application.fediferry(services: Services) {
                 }
 
                 deviceRoutes(services)
-                libraryRoutes(services)
+                intakeRoutes(services)
                 settingsRoutes(services)
                 channelRoutes(services)
                 postRoutes(services)

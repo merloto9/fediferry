@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="receiver_to_drafts">
+        <item quantity="one">Saved as a draft in \"%2$s\". It goes up as soon as there is a connection.</item>
+        <item quantity="other">%1$d pictures saved as drafts in \"%2$s\". They go up as soon as there is a connection.</item>
+    </plurals>
+    <string name="server_loading_detail">Reading what is in the project on the FediFerry server.</string>
+    <string name="folder_all">All</string>
+    <string name="folder_none">Unsorted</string>
+    <string name="folder_new">New folder</string>
+    <string name="folder_new_more">New folder…</string>
+    <string name="folder_rename">Rename folder</string>
+    <string name="folder_delete">Delete folder — its posts stay</string>
+    <string name="folder_name">Name</string>
+    <string name="action_save">Save</string>
+    <string name="folder_move">Move to folder</string>
+    <string name="folder_move_to">Move to</string>
+    <string name="selection_clear">Clear selection</string>
+    <plurals name="selection_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="server_action_failed">That didn\'t work (%1$s).</string>
+    <plurals name="uploads_pending">
+        <item quantity="one">%1$d share waiting to upload</item>
+        <item quantity="other">%1$d shares waiting to upload</item>
+    </plurals>
+    <string name="action_retry">Try now</string>
+    <string name="uploads_pending_error">Last try: %1$s</string>
+    <string name="uploads_pending_discard">Discard this share</string>
+</resources>

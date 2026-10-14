@@ -20,7 +20,6 @@
 package app.fediferry.server
 
 import app.fediferry.api.ApiErrorBody
-import app.fediferry.api.CreatePost
 import app.fediferry.api.CropRect
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.DeviceRegistration
@@ -108,19 +107,18 @@ class PostsTest {
         block(client, token)
     }
 
-    private suspend fun HttpClient.libraryItem(token: String, link: String? = null): String = submitFormWithBinaryData(
+    private var shares = 0
+
+    /** A draft from a shared screenshot, with [link] alongside; each one a different picture. */
+    private suspend fun HttpClient.draft(token: String, link: String? = null): PostDto = submitFormWithBinaryData(
         url = "/api/v1/ingest/${java.util.UUID.randomUUID()}",
         formData = formData {
             link?.let { append("link", it) }
-            append("file", png(100, 50), Headers.build {
+            append("file", png(100 + shares++, 50), Headers.build {
                 append(HttpHeaders.ContentType, "image/png"); append(HttpHeaders.ContentDisposition, "filename=\"x.png\"")
             })
         },
-    ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().item.id
-
-    private suspend fun HttpClient.draft(token: String, vararg items: String): PostDto = post("/api/v1/posts") {
-        bearerAuth(token); header("X-Device-Id", "pixel"); contentType(ContentType.Application.Json); setBody(CreatePost(items.toList()))
-    }.body()
+    ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().post!!
 
     private suspend fun HttpClient.lock(token: String, post: String, device: String, force: Boolean = false): HttpResponse =
         post("/api/v1/posts/$post/lock${if (force) "?force=true" else ""}") { bearerAuth(token); header("X-Device-Id", device) }
@@ -133,8 +131,7 @@ class PostsTest {
 
     @Test
     fun `a draft is written with the project's template`() = test { client, token ->
-        val item = client.libraryItem(token, link = "https://www.pinterest.com/pin/1/")
-        val post = client.draft(token, item)
+        val post = client.draft(token, link = "https://www.pinterest.com/pin/1/")
         assertEquals("DRAFT", post.stage)
         assertEquals("t1", post.templateId)
         assertEquals("{tags}\n\nvia https://www.pinterest.com/pin/1/", post.body)
@@ -145,7 +142,7 @@ class PostsTest {
 
     @Test
     fun `one device edits at a time`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token))
+        val post = client.draft(token)
         assertEquals(HttpStatusCode.OK, client.lock(token, post.id, "pixel").status)
 
         val blocked = client.lock(token, post.id, "fairphone")
@@ -165,7 +162,7 @@ class PostsTest {
 
     @Test
     fun `a lock runs out when its device goes quiet`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token))
+        val post = client.draft(token)
         client.lock(token, post.id, "pixel")
         now += Posts.LOCK_TTL_MS + 1
         assertEquals(HttpStatusCode.OK, client.lock(token, post.id, "fairphone").status)
@@ -173,7 +170,7 @@ class PostsTest {
 
     @Test
     fun `an edit made on an old copy is refused`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token))
+        val post = client.draft(token)
         client.lock(token, post.id, "pixel")
         val first = client.edit(token, post.id, "pixel", post.version, PostPatch(body = "one")).body<PostDto>()
         val stale = client.edit(token, post.id, "pixel", post.version, PostPatch(body = "two"))
@@ -183,7 +180,7 @@ class PostsTest {
 
     @Test
     fun `switching template writes the text again`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token, link = "https://example.org/x"))
+        val post = client.draft(token, link = "https://example.org/x")
         client.lock(token, post.id, "pixel")
         val switched = client.edit(token, post.id, "pixel", post.version, PostPatch(templateId = "t2", rerender = true)).body<PostDto>()
         assertEquals("Found at https://example.org/x", switched.body)
@@ -192,7 +189,7 @@ class PostsTest {
 
     @Test
     fun `a cropped picture is a new asset that replaces the old one in the post`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token))
+        val post = client.draft(token)
         val original = post.media.single().asset
         val cropped = client.post("/api/v1/media/${original.id}/derive") {
             bearerAuth(token); contentType(ContentType.Application.Json); setBody(DeriveRequest(crop = CropRect(0f, 0f, 0.5f, 1f)))
@@ -209,7 +206,7 @@ class PostsTest {
 
     @Test
     fun `a draft is deleted unless another device is editing it`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token))
+        val post = client.draft(token)
         client.lock(token, post.id, "fairphone")
         assertEquals(HttpStatusCode.Locked, client.delete("/api/v1/posts/${post.id}") { bearerAuth(token); header("X-Device-Id", "pixel") }.status)
         assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/posts/${post.id}") { bearerAuth(token); header("X-Device-Id", "fairphone") }.status)
@@ -218,7 +215,7 @@ class PostsTest {
 
     @Test
     fun `alt text needs a model`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token))
+        val post = client.draft(token)
         val response = client.post("/api/v1/posts/${post.id}/media/0/alt-suggestion") { bearerAuth(token) }
         assertEquals(HttpStatusCode.Conflict, response.status)
         assertEquals("alt.no_model", response.body<ApiErrorBody>().code)
@@ -226,7 +223,7 @@ class PostsTest {
 
     @Test
     fun `another project cannot see a post`() = test { client, token ->
-        val post = client.draft(token, client.libraryItem(token))
+        val post = client.draft(token)
         val other = services.projects.create("Other").token
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/posts/${post.id}") { bearerAuth(other) }.status)
     }

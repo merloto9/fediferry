@@ -1,0 +1,60 @@
+-- The library is gone. A share becomes a draft directly, a post owns its
+-- pictures, and a post lives only until it is out: Drafts > Review >
+-- Publishing, and Mastodon keeps what was published.
+
+-- Library items no post used become drafts of their own, so nothing that was
+-- collected is lost. Each keeps its id as the draft's.
+INSERT INTO post(project_id, id, stage, version, channel_id, template_id, body, hashtags, add_source_hashtags, content_warning,
+    visibility, source_url, origin, source_fields_json, link_may_identify, created_by, created_at, updated_at)
+SELECT i.project_id, i.id, 'DRAFT', 1,
+    (SELECT c.id FROM channel c WHERE c.project_id = i.project_id ORDER BY c.is_default DESC, c.sort_order LIMIT 1),
+    NULL,
+    TRIM(COALESCE(i.text, '') || char(10) || char(10) || COALESCE(i.source_url, '')),
+    '', 1, NULL, 'PUBLIC', i.source_url, i.origin, i.source_fields_json, i.link_may_identify, i.device_id, i.captured_at, i.updated_at
+FROM library_item i
+WHERE i.deleted_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM post_media m JOIN post p ON p.project_id = m.project_id AND p.id = m.post_id
+    WHERE m.project_id = i.project_id AND m.library_item_id = i.id AND p.deleted_at IS NULL
+  );
+
+INSERT INTO post_media(project_id, post_id, position, asset_id, library_item_id, alt_text, alt_failed)
+SELECT i.project_id, i.id, 0, i.asset_id, i.id, i.alt_suggestion, 0
+FROM library_item i
+WHERE i.asset_id IS NOT NULL AND EXISTS (SELECT 1 FROM post p WHERE p.project_id = i.project_id AND p.id = i.id);
+
+-- Published and deleted posts go for good. Their files are removed from disk
+-- by the server's sweep when it starts.
+DELETE FROM post_media WHERE EXISTS (
+    SELECT 1 FROM post p WHERE p.project_id = post_media.project_id AND p.id = post_media.post_id
+      AND (p.deleted_at IS NOT NULL OR p.stage = 'PUBLISHED')
+);
+DELETE FROM post_label WHERE EXISTS (
+    SELECT 1 FROM post p WHERE p.project_id = post_label.project_id AND p.id = post_label.post_id
+      AND (p.deleted_at IS NOT NULL OR p.stage = 'PUBLISHED')
+);
+DELETE FROM post_lock WHERE EXISTS (
+    SELECT 1 FROM post p WHERE p.project_id = post_lock.project_id AND p.id = post_lock.post_id
+      AND (p.deleted_at IS NOT NULL OR p.stage = 'PUBLISHED')
+);
+DELETE FROM publication WHERE state = 'PUBLISHED' OR EXISTS (
+    SELECT 1 FROM post p WHERE p.project_id = publication.project_id AND p.id = publication.post_id
+      AND (p.deleted_at IS NOT NULL OR p.stage = 'PUBLISHED')
+);
+DELETE FROM post WHERE deleted_at IS NOT NULL OR stage = 'PUBLISHED';
+
+DROP INDEX post_stage;
+ALTER TABLE post DROP COLUMN deleted_at;
+CREATE INDEX post_stage ON post(project_id, stage, updated_at);
+
+ALTER TABLE post_media DROP COLUMN library_item_id;
+
+-- Share ids named library items; a retried share is minutes old at most.
+DELETE FROM ingest_record;
+ALTER TABLE ingest_record RENAME COLUMN item_id TO post_id;
+
+DROP TABLE library_item_tag;
+DROP TABLE tag;
+DROP TABLE library_folder;
+DROP INDEX library_item_timeline;
+DROP TABLE library_item;

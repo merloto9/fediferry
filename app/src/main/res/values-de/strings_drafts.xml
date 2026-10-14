@@ -3,12 +3,11 @@
     <string name="nav_drafts">Entwürfe</string>
     <string name="drafts_title">Entwürfe</string>
     <string name="drafts_loading">Entwürfe werden gelesen…</string>
-    <string name="drafts_empty">Noch keine Entwürfe. Wähle Bilder in der Bibliothek aus und tippe auf „Neuer Beitrag“, oder teile mit „Bearbeiten“.</string>
+    <string name="drafts_empty">Noch keine Entwürfe. Teile ein Bild oder einen Link mit FediFerry – „Für später“ oder „Bearbeiten“ – und es landet hier.</string>
     <string name="drafts_no_text">Noch kein Text</string>
     <string name="drafts_no_channel">Kein Kanal gewählt</string>
     <string name="drafts_being_edited">Wird auf %1$s bearbeitet</string>
     <string name="drafts_delete">Entwurf löschen</string>
-    <string name="library_new_post">Neuer Beitrag</string>
 
     <string name="draft_title">Entwurf</string>
     <string name="draft_saving">Wird gespeichert…</string>

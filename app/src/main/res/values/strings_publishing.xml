@@ -9,6 +9,7 @@
     <string name="publishing_sending">Being sent now</string>
     <string name="publishing_retry_at">Trying again at %1$s</string>
     <string name="publishing_published">Published</string>
+    <string name="publishing_published_unreachable">%1$s could not be read just now; its latest posts are missing here.</string>
 
     <string name="schedules_title">Schedules</string>
     <string name="schedules_new">New schedule</string>
@@ -26,11 +27,9 @@
 
     <string name="post_title_planned">Planned post</string>
     <string name="post_title_sending">Being sent</string>
-    <string name="post_title_published">Published post</string>
     <string name="post_title_failed">Post failed</string>
     <string name="post_plan">Plan</string>
     <string name="post_goes_out">Goes out %1$s</string>
-    <string name="post_went_out">Went out %1$s</string>
     <string name="post_failed_because">Not posted: %1$s</string>
     <string name="post_in_slot">In a slot of “%1$s”</string>
     <plurals name="post_tried">

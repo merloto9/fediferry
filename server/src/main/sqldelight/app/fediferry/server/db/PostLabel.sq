@@ -19,5 +19,5 @@ DELETE FROM post_label WHERE project_id = ? AND post_id = ?;
 counts:
 SELECT l.name, COUNT(*) AS uses FROM post_label l
 JOIN post p ON p.project_id = l.project_id AND p.id = l.post_id
-WHERE l.project_id = ? AND p.deleted_at IS NULL
+WHERE l.project_id = ?
 GROUP BY l.name ORDER BY l.name;

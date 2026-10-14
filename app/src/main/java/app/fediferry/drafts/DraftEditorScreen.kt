@@ -350,7 +350,7 @@ private fun LockBanner(lock: EditLock, onTakeOver: () -> Unit, onRetry: () -> Un
             }
             if (lock is EditLock.Elsewhere || lock == EditLock.Offline) {
                 Row {
-                    TextButton(onClick = onRetry) { Text(stringResource(R.string.library_retry)) }
+                    TextButton(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
                     if (lock is EditLock.Elsewhere) TextButton(onClick = { confirming = true }) { Text(stringResource(R.string.draft_take_over)) }
                 }
             }
@@ -372,8 +372,8 @@ private fun Picture(
     onRemove: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val connections = remember { ServiceLocator.serverConnections(context) }
-    val url = remember(media.asset.id) { connections.current()?.let { connections.client(it).mediaUrl(media.asset.id) } }
+    val backend = remember { ServiceLocator.backend(context) }
+    val url = remember(media.asset.id) { backend?.mediaUrl(media.asset.id) }
     var fullScreen by remember { mutableStateOf(false) }
     var cropping by remember { mutableStateOf(false) }
     var profiles by remember { mutableStateOf(false) }

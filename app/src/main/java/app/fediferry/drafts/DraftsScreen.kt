@@ -91,6 +91,7 @@ fun DraftsScreen(
     viewModel: DraftsViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val pending by viewModel.pending.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
     var selection by remember { mutableStateOf(emptySet<String>()) }
@@ -118,13 +119,13 @@ fun DraftsScreen(
                 title = {
                     Text(
                         if (selection.isEmpty()) stringResource(R.string.drafts_title)
-                        else pluralStringResource(R.plurals.library_selected, selection.size, selection.size),
+                        else pluralStringResource(R.plurals.selection_count, selection.size, selection.size),
                     )
                 },
                 navigationIcon = {
                     if (selection.isNotEmpty()) {
                         IconButton(onClick = { selection = emptySet() }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.library_clear_selection))
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.selection_clear))
                         }
                     }
                 },
@@ -145,7 +146,7 @@ fun DraftsScreen(
         if (!state.loadedOnce) {
             LoadingScreen(
                 title = stringResource(R.string.drafts_loading),
-                detail = stringResource(R.string.library_loading_detail),
+                detail = stringResource(R.string.server_loading_detail),
                 modifier = Modifier.padding(padding),
             )
             return@Scaffold
@@ -158,7 +159,10 @@ fun DraftsScreen(
             state.error?.let { code ->
                 item { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) }
             }
-            if (state.drafts.isEmpty() && state.error == null) {
+            if (pending.isNotEmpty()) {
+                item(key = "pending") { PendingSharesRow(pending, onRetry = viewModel::retryUploads, onDiscard = viewModel::discardPending) }
+            }
+            if (state.drafts.isEmpty() && pending.isEmpty() && state.error == null) {
                 item { Notice(Icons.Outlined.EditNote, stringResource(R.string.drafts_empty)) }
             }
             items(state.drafts, key = { it.id }) { draft ->

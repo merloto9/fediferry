@@ -21,7 +21,6 @@ package app.fediferry.ui
 
 import app.fediferry.di.ServiceLocator
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.automirrored.outlined.Send
@@ -41,9 +40,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import app.fediferry.R
 
-/** The app's spaces. Library, drafts and review are there only while the phone works with a FediFerry server. */
+/**
+ * The app's spaces. Drafts, review and publishing — the stages a post goes
+ * through — are there only while the phone works with a FediFerry server.
+ */
 enum class Space(val route: String, @StringRes val labelRes: Int) {
-    LIBRARY(Routes.LIBRARY, R.string.nav_library),
     DRAFTS(Routes.DRAFTS, R.string.nav_drafts),
     REVIEW(Routes.REVIEW, R.string.nav_review),
     PUBLISHING(Routes.PUBLISHING, R.string.nav_publishing),
@@ -61,7 +62,7 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
     val inbox by remember { ServiceLocator.items(context).observeInbox() }.collectAsState(initial = null)
     val shown = Space.entries.filter { space ->
         when (space) {
-            Space.LIBRARY, Space.DRAFTS, Space.REVIEW, Space.PUBLISHING -> connected
+            Space.DRAFTS, Space.REVIEW, Space.PUBLISHING -> connected
             // Mastodon's own scheduled posts; with a server, the server's queue takes its place.
             Space.QUEUE -> !connected || space == current
             Space.INBOX -> !connected || space == current || !inbox.isNullOrEmpty()
@@ -77,7 +78,6 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
                 icon = {
                     Icon(
                         when (space) {
-                            Space.LIBRARY -> Icons.Outlined.PhotoLibrary
                             Space.DRAFTS -> Icons.Outlined.EditNote
                             Space.REVIEW -> Icons.Outlined.TaskAlt
                             Space.PUBLISHING -> Icons.AutoMirrored.Outlined.Send

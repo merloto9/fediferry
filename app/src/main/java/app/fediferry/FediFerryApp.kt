@@ -92,8 +92,9 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
             // Anything left POSTING is a survivor of a killed process, not a
             // running send; put it back in the queue.
             repo.recoverStalePosting()
-            val days = ServiceLocator.settings(this@FediFerryApp).current().purgePostedAfterDays
-            repo.purgePosted(days)
+            // Posts are not kept once they are out; this clears what an
+            // older version kept, pictures included.
+            repo.purgePosted()
         }
     }
 }

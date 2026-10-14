@@ -26,6 +26,7 @@ import app.fediferry.api.ChannelDto
 import app.fediferry.api.ChannelPatch
 import app.fediferry.api.CompleteRequest
 import app.fediferry.api.ImportAccountRequest
+import app.fediferry.api.PublishedPage
 import app.fediferry.mastodon.MastodonAccounts
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -64,6 +65,7 @@ class ChannelsTest {
     private val dir: File = Files.createTempDirectory("fediferry-channels").toFile()
     private val storage = Storage.open(File(dir, "fediferry.db"))
     private var appRegistrations = 0
+    private var statusesDown = false
 
     /** A Mastodon instance in miniature: registration, token exchange, the account, the instance. */
     private val fakeMastodon = Interceptor { chain ->
@@ -74,6 +76,11 @@ class ChannelsTest {
             "/api/v1/accounts/verify_credentials" ->
                 if (request.header("Authorization") == "Bearer good-token") 200 to """{"id":"77","acct":"memes","display_name":"Meme Account"}"""
                 else 401 to """{"error":"The access token is invalid"}"""
+            "/api/v1/accounts/77/statuses" ->
+                if (statusesDown) 503 to "{}"
+                else 200 to """[{"id":"s2","created_at":"2026-10-08T12:00:00.000Z","url":"https://mastodon.social/@memes/s2","content":"<p>Second &amp; last</p>","spoiler_text":"",
+                    "media_attachments":[{"id":"m1","preview_url":"https://files.example/m1.png","description":"A cat"}]},
+                   {"id":"s1","created_at":"2026-10-07T12:00:00.000Z","content":"<p>First</p>","spoiler_text":"cw"}]"""
             "/api/v2/instance" -> 200 to """{"configuration":{"statuses":{"max_characters":1000,"max_media_attachments":4}}}"""
             else -> 404 to "{}"
         }
@@ -179,5 +186,30 @@ class ChannelsTest {
 
         assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/channels/${enc(second.id)}") { bearerAuth(token) }.status)
         assertNull(services.channels.token(services.projects.all().single().id, second.id))
+    }
+
+    @Test
+    fun `what went out is read live from the channel`() = test { client, token ->
+        val channel = client.signIn(token)
+        val page = client.get("/api/v1/published?limit=5") { bearerAuth(token) }.body<PublishedPage>()
+        assertEquals(listOf("s2", "s1"), page.statuses.map { it.id })
+        val latest = page.statuses.first()
+        assertEquals(channel.id, latest.channelId)
+        assertEquals("Second & last", latest.text)
+        assertEquals("https://mastodon.social/@memes/s2", latest.url)
+        assertEquals("A cat", latest.media.single().description)
+        assertEquals("cw", page.statuses[1].contentWarning)
+        assertTrue(page.unreachable.isEmpty())
+    }
+
+    @Test
+    fun `an instance that cannot be read leaves an empty list, not an error`() = test { client, token ->
+        val channel = client.signIn(token)
+        statusesDown = true
+        val response = client.get("/api/v1/published") { bearerAuth(token) }
+        assertEquals(HttpStatusCode.OK, response.status)
+        val page = response.body<PublishedPage>()
+        assertTrue(page.statuses.isEmpty())
+        assertEquals(listOf(channel.id), page.unreachable)
     }
 }

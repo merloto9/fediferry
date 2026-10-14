@@ -31,17 +31,15 @@ import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.PlanModes
 import app.fediferry.api.PlanRequest
-import app.fediferry.client.ServerClient
+import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** Which ready posts are shown. */
@@ -72,12 +70,11 @@ data class ReviewState(
 
 /**
  * The project's ready posts: frozen, waiting to be scheduled, and sorted into
- * review folders and labels. Follows the change feed like the library.
+ * review folders and labels. Follows the change feed like the drafts do.
  */
 class ReviewViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val connections = ServiceLocator.serverConnections(app)
-    private val client: ServerClient? get() = connections.current()?.let(connections::client)
+    private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
 
     private val _state = MutableStateFlow(ReviewState())
     val state: StateFlow<ReviewState> = _state
@@ -90,17 +87,9 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
     fun start() {
         refresh()
         if (follow?.isActive == true) return
+        val source = backend ?: return
         follow = viewModelScope.launch {
-            var rev = runCatching { client?.project()?.rev }.getOrNull() ?: 0L
-            while (isActive) {
-                val api = client ?: break
-                val changes = runCatching { api.changes(rev) }.getOrElse {
-                    delay(RETRY_MS)
-                    null
-                } ?: continue
-                if (changes.changed.any { it.type in WATCHED }) refresh()
-                rev = changes.rev
-            }
+            source.changes().collect { types -> if (types.any { it in WATCHED }) refresh() }
         }
     }
 
@@ -112,7 +101,7 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
     fun setFilter(filter: ReviewFilter) = _state.update { it.copy(filter = filter) }
 
     fun refresh() = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         runCatching { Loaded(api.posts(PostStages.READY), api.reviewFolders(), api.labels(), api.channels()) }
             .onSuccess { l ->
                 _state.update { s ->
@@ -162,7 +151,7 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
      * refusal (no schedule, no free slot) and says why.
      */
     fun planIntoSlots(ids: Collection<String>, onPlanned: (Int) -> Unit) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         var planned = 0
         for (post in _state.value.shown.filter { it.id in ids }) {
             val failed = runCatching { api.plan(post.id, PlanRequest(PlanModes.NEXT_SLOT)) }.exceptionOrNull()
@@ -178,10 +167,10 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
 
     fun delete(ids: Collection<String>) = act { api -> ids.forEach { api.deletePost(it) } }
 
-    fun thumbnailUrl(assetId: String): String? = client?.thumbnailUrl(assetId)
+    fun thumbnailUrl(assetId: String): String? = backend?.thumbnailUrl(assetId)
 
-    private fun act(block: suspend (ServerClient) -> Unit) = viewModelScope.launch {
-        val api = client ?: return@launch
+    private fun act(block: suspend (PostBackend) -> Unit) = viewModelScope.launch {
+        val api = backend ?: return@launch
         runCatching { block(api) }.onFailure { e -> _messages.tryEmit((e as? ServerException)?.code ?: "client.unknown") }
         refresh()
     }
@@ -189,7 +178,6 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() = stop()
 
     private companion object {
-        const val RETRY_MS = 5_000L
         val WATCHED = setOf("post", "review_folder", "channel")
     }
 }

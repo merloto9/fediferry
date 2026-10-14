@@ -23,13 +23,13 @@ import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.AltSuggestion
 import app.fediferry.api.LabelDto
 import app.fediferry.api.PlanRequest
+import app.fediferry.api.PublishedPage
 import app.fediferry.api.ScheduleDto
 import app.fediferry.api.ScheduleInput
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.Violation
-import app.fediferry.api.CreatePost
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.LockDto
 import app.fediferry.api.MediaAssetDto
@@ -45,13 +45,7 @@ import app.fediferry.api.SettingsEntryDto
 import app.fediferry.api.SecretInput
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import app.fediferry.api.TagDto
-import app.fediferry.api.LibraryPage
-import app.fediferry.api.LibraryItemPatch
-import app.fediferry.api.LibraryItemDto
 import app.fediferry.api.IngestResult
-import app.fediferry.api.FolderInput
-import app.fediferry.api.FolderDto
 import app.fediferry.api.Api
 import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.Changes
@@ -112,11 +106,12 @@ class ServerClient(
     suspend fun changes(since: Long, waitSeconds: Int = LONG_POLL_SECONDS): Changes =
         get("changes", auth = true, query = mapOf("since" to since.toString(), "wait" to waitSeconds.toString()))
 
-    // --- library -------------------------------------------------------------
+    // --- intake ----------------------------------------------------------------
 
     /**
-     * Sends one share. [shareId] is made on the phone when the share arrives, so
-     * a retried upload is recognised and returns the same item.
+     * Sends one share; the server makes it a draft, or adds it to the draft it
+     * completes. [shareId] is made on the phone when the share arrives, so a
+     * retried upload is recognised and returns the same draft.
      */
     suspend fun ingest(
         shareId: String,
@@ -140,50 +135,11 @@ class ServerClient(
         return call(request("ingest/$shareId", auth = true).put(body).build())
     }
 
-    suspend fun library(
-        folder: String? = null,
-        unsorted: Boolean = false,
-        tag: String? = null,
-        query: String? = null,
-        before: Long? = null,
-        limit: Int = 60,
-    ): LibraryPage = get(
-        "library/items",
-        query = buildMap {
-            folder?.let { put("folder", it) }
-            if (unsorted) put("unsorted", "true")
-            tag?.let { put("tag", it) }
-            query?.takeIf { it.isNotBlank() }?.let { put("q", it) }
-            before?.let { put("before", it.toString()) }
-            put("limit", limit.toString())
-        },
-    )
-
-    suspend fun libraryItem(id: String): LibraryItemDto = get("library/items/$id")
-
-    suspend fun patchLibraryItem(id: String, patch: LibraryItemPatch): LibraryItemDto =
-        send("library/items/$id", "PATCH", json.encodeToString(patch))
-
-    suspend fun deleteLibraryItem(id: String) = sendNoContent("library/items/$id", "DELETE")
-
-    suspend fun folders(): List<FolderDto> = get("library/folders")
-
-    suspend fun createFolder(input: FolderInput): FolderDto = post("library/folders", json.encodeToString(input))
-
-    suspend fun updateFolder(id: String, input: FolderInput): FolderDto =
-        send("library/folders/$id", "PATCH", json.encodeToString(input))
-
-    suspend fun deleteFolder(id: String) = sendNoContent("library/folders/$id", "DELETE")
-
-    suspend fun tags(): List<TagDto> = get("tags")
-
     // --- posts -----------------------------------------------------------------
 
     suspend fun posts(vararg stages: String): List<PostDto> = get("posts", query = mapOf("stage" to stages.joinToString(",")))
 
     suspend fun post(id: String): PostDto = get("posts/$id")
-
-    suspend fun createPost(request: CreatePost): PostDto = post("posts", json.encodeToString(request))
 
     /** Changes a draft this device holds the lock on; [version] is the one the change was made on. */
     suspend fun patchPost(id: String, version: Long, patch: PostPatch): PostDto =
@@ -234,6 +190,9 @@ class ServerClient(
     suspend fun updateSchedule(id: String, input: ScheduleInput): ScheduleDto = send("schedules/$id", "PATCH", json.encodeToString(input))
 
     suspend fun deleteSchedule(id: String) = sendNoContent("schedules/$id", "DELETE")
+
+    /** The latest posts that went out, read live from the channels' instances. */
+    suspend fun published(limit: Int = 20): PublishedPage = get("published", query = mapOf("limit" to limit.toString()))
 
     suspend fun suggestAlt(postId: String, position: Int): AltSuggestion = post("posts/$postId/media/$position/alt-suggestion", "{}")
 

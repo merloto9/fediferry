@@ -22,7 +22,6 @@ package app.fediferry.ui
 import app.fediferry.di.ServiceLocator
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import app.fediferry.library.LibraryScreen
 import app.fediferry.drafts.DraftEditorScreen
 import app.fediferry.drafts.DraftsScreen
 import app.fediferry.review.ReviewPostScreen
@@ -52,7 +51,6 @@ import androidx.navigation.NavController
 
 object Routes {
     const val INBOX = "inbox"
-    const val LIBRARY = "library"
     const val DRAFTS = "drafts"
     const val DRAFT = "draft/{postId}"
     const val REVIEW = "review"
@@ -107,17 +105,10 @@ fun FediFerryNavHost(
     // Asks once whether to clean the links of posts shared before links were cleaned.
     OldLinkCleanupPrompt()
 
-    // Working with a server, the library is home; on its own, the inbox is.
+    // Working with a server, the drafts are home; on its own, the inbox is.
     val context = LocalContext.current
-    val start = remember { if (ServiceLocator.serverConnections(context).current() != null) Routes.LIBRARY else Routes.INBOX }
+    val start = remember { if (ServiceLocator.serverConnections(context).current() != null) Routes.DRAFTS else Routes.INBOX }
     NavHost(navController = navController, startDestination = start) {
-        composable(Routes.LIBRARY) {
-            LibraryScreen(
-                onOpenDraft = { navController.navigate(Routes.draft(it)) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                onSwitchSpace = { navController.switchSpace(it) },
-            )
-        }
         composable(Routes.DRAFTS) {
             DraftsScreen(
                 onOpenDraft = { navController.navigate(Routes.draft(it)) },

@@ -29,7 +29,7 @@ import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.PlanRequest
 import app.fediferry.api.ScheduleDto
-import app.fediferry.client.ServerClient
+import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,8 +59,7 @@ data class ReviewPostState(
 /** One ready post: read-only, but it can be sorted, sent back to draft or deleted. */
 class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val connections = ServiceLocator.serverConnections(app)
-    private val client: ServerClient? get() = connections.current()?.let(connections::client)
+    private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
     private var postId: String? = null
 
     private val _state = MutableStateFlow(ReviewPostState())
@@ -72,7 +71,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refresh() = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         runCatching { api.post(id) }
             .onSuccess { post -> _state.update { it.copy(post = post, loaded = true) } }
@@ -94,7 +93,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun sort(patch: ReviewPatch) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         runCatching { api.sortForReview(id, patch) }
             .onSuccess { post -> _state.update { it.copy(post = post) } }
@@ -104,7 +103,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Into the queue: now, at [at], or into the next free slot. Also moves a planned post and retries a failed one. */
     fun plan(request: PlanRequest) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         runCatching { api.plan(id, request) }
             .onSuccess { post -> _state.update { it.copy(post = post) } }
@@ -114,7 +113,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Out of the queue, back to review. */
     fun unplan() = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         runCatching { api.unplan(id) }
             .onSuccess { post -> _state.update { it.copy(post = post) } }
@@ -123,7 +122,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Opens the post for editing again; [onDraft] then shows it in the editor. */
     fun backToDraft(onDraft: (String) -> Unit) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         runCatching { api.backToDraft(id) }
             .onSuccess { onDraft(it.id) }
@@ -131,14 +130,14 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun delete(onDone: () -> Unit) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         val id = postId ?: return@launch
         runCatching { api.deletePost(id) }
             .onSuccess { onDone() }
             .onFailure { e -> _state.update { it.copy(message = code(e)) } }
     }
 
-    fun mediaUrl(assetId: String): String? = client?.mediaUrl(assetId)
+    fun mediaUrl(assetId: String): String? = backend?.mediaUrl(assetId)
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 

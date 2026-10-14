@@ -19,15 +19,9 @@
  */
 package app.fediferry.server
 
-import app.fediferry.api.DeviceRegistration
-import app.fediferry.api.FolderDto
-import app.fediferry.api.FolderInput
 import app.fediferry.api.IngestResult
-import app.fediferry.api.LibraryItemDto
-import app.fediferry.api.LibraryItemPatch
-import app.fediferry.api.LibraryKinds
-import app.fediferry.api.LibraryPage
-import app.fediferry.api.TagDto
+import app.fediferry.api.PostDto
+import app.fediferry.api.PostStages
 import app.fediferry.data.model.ContentSource
 import app.fediferry.link.CleanedLink
 import app.fediferry.link.LinkResolver
@@ -41,9 +35,6 @@ import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.request.patch
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
@@ -51,7 +42,6 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
@@ -59,6 +49,7 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,9 +59,9 @@ import java.io.File
 import java.nio.file.Files
 import javax.imageio.ImageIO
 
-class LibraryTest {
+class IntakeTest {
 
-    private val dir: File = Files.createTempDirectory("fediferry-lib").toFile()
+    private val dir: File = Files.createTempDirectory("fediferry-intake").toFile()
     private val storage = Storage.open(File(dir, "fediferry.db"))
     private var now = 1_800_000_000_000L
 
@@ -140,155 +131,176 @@ class LibraryTest {
     }
 
     @Test
-    fun `a shared screenshot becomes a picture in the library`() = test { client, token ->
+    fun `a shared screenshot becomes a draft with its picture`() = test { client, token ->
         val picture = png(120, 80, 0x336699)
         val response = client.share(token, "s1", picture = picture)
         assertEquals(HttpStatusCode.Created, response.status)
-        val item = response.body<IngestResult>().item
+        val post = response.body<IngestResult>().post!!
 
-        assertEquals(LibraryKinds.IMAGE, item.kind)
-        assertEquals(120, item.asset!!.width)
-        assertEquals(80, item.asset!!.height)
-        assertEquals("phone", item.deviceId)
+        assertEquals(PostStages.DRAFT, post.stage)
+        val asset = post.media.single().asset
+        assertEquals(120, asset.width)
+        assertEquals(80, asset.height)
 
-        val bytes = client.get("/api/v1/media/${item.asset!!.id}") { bearerAuth(token) }.readRawBytes()
+        val bytes = client.get("/api/v1/media/${asset.id}") { bearerAuth(token) }.readRawBytes()
         assertArrayEquals(picture, bytes)
-        val thumb = client.get("/api/v1/media/${item.asset!!.id}/thumb?w=64") { bearerAuth(token) }
+        val thumb = client.get("/api/v1/media/${asset.id}/thumb?w=64") { bearerAuth(token) }
         assertEquals(ContentType.Image.JPEG, thumb.headers[HttpHeaders.ContentType]?.let(ContentType::parse))
         assertEquals(64, ImageIO.read(thumb.readRawBytes().inputStream()).width)
+        assertEquals(listOf(post.id), drafts(client, token).map { it.id })
     }
 
     @Test
-    fun `sending the same share twice keeps one item`() = test { client, token ->
+    fun `sending the same share twice keeps one draft`() = test { client, token ->
         val first = client.share(token, "s1", picture = png(10, 10, 1)).body<IngestResult>()
         val again = client.share(token, "s1", picture = png(10, 10, 1))
         assertEquals(HttpStatusCode.OK, again.status)
         assertTrue(again.body<IngestResult>().replayed)
-        assertEquals(first.item.id, again.body<IngestResult>().item.id)
-        assertEquals(1, items(client, token).size)
+        assertEquals(first.post!!.id, again.body<IngestResult>().post!!.id)
+        assertEquals(1, drafts(client, token).size)
     }
 
     @Test
-    fun `the same picture shared again is the item already there`() = test { client, token ->
+    fun `a share repeated after its draft is gone says so`() = test { client, token ->
+        val first = client.share(token, "s1", picture = png(10, 10, 1)).body<IngestResult>().post!!
+        client.delete("/api/v1/posts/${first.id}") { bearerAuth(token); header("X-Device-Id", "phone") }
+        // The record went with the draft, so the share is taken in afresh.
+        val again = client.share(token, "s1", picture = png(10, 10, 1)).body<IngestResult>()
+        assertFalse(again.replayed)
+        assertEquals(1, drafts(client, token).size)
+    }
+
+    @Test
+    fun `the same picture shared again is the draft already there`() = test { client, token ->
         val first = client.share(token, "s1", picture = png(10, 10, 7)).body<IngestResult>()
         val second = client.share(token, "s2", picture = png(10, 10, 7)).body<IngestResult>()
         assertTrue(second.duplicate)
-        assertEquals(first.item.id, second.item.id)
-        assertEquals(1, items(client, token).size)
+        assertEquals(first.post!!.id, second.post!!.id)
+        assertEquals(1, drafts(client, token).size)
     }
 
     @Test
-    fun `the same picture with a link is still the item already there, now with the link`() = test { client, token ->
+    fun `the same picture with a link is still the draft already there, now with the link`() = test { client, token ->
         val first = client.share(token, "s1", picture = png(10, 10, 8)).body<IngestResult>()
         val second = client.share(token, "s2", device = "tablet", link = "https://pin.it/abc", picture = png(10, 10, 8)).body<IngestResult>()
         assertTrue(second.duplicate)
-        assertEquals(first.item.id, second.item.id)
-        assertEquals("https://pin.it/abc", second.item.sourceUrl)
-        assertEquals(1, items(client, token).size)
+        assertEquals(first.post!!.id, second.post!!.id)
+        assertEquals("https://pin.it/abc", second.post!!.sourceUrl)
+        assertEquals(1, drafts(client, token).size)
     }
 
     @Test
-    fun `a link and its screenshot from one phone become one item`() = test { client, token ->
-        val link = client.share(token, "l1", link = "https://pin.it/abc").body<IngestResult>()
-        assertEquals(LibraryKinds.LINK, link.item.kind)
+    fun `a link and its screenshot from one phone become one draft`() = test { client, token ->
+        val link = client.share(token, "l1", link = "https://pin.it/abc").body<IngestResult>().post!!
+        assertTrue(link.media.isEmpty())
 
         now += 3 * 60_000
         val shot = client.share(token, "p1", picture = png(20, 20, 9)).body<IngestResult>()
         assertTrue(shot.paired)
-        assertEquals(link.item.id, shot.item.id)
-        assertEquals(LibraryKinds.IMAGE, shot.item.kind)
-        assertEquals("https://pin.it/abc", shot.item.sourceUrl)
-        assertEquals(1, items(client, token).size)
+        assertEquals(link.id, shot.post!!.id)
+        assertEquals(1, shot.post!!.media.size)
+        assertEquals("https://pin.it/abc", shot.post!!.sourceUrl)
+        assertEquals(1, drafts(client, token).size)
+    }
+
+    @Test
+    fun `a screenshot and then its link make one draft whose text gains the link`() = test { client, token ->
+        val shot = client.share(token, "p1", picture = png(20, 20, 3)).body<IngestResult>().post!!
+        now += 60_000
+        val link = client.share(token, "l1", link = "https://pin.it/abc").body<IngestResult>()
+        assertTrue(link.paired)
+        assertEquals(shot.id, link.post!!.id)
+        assertEquals("https://pin.it/abc", link.post!!.sourceUrl)
+        assertTrue("https://pin.it/abc" in link.post!!.body)
     }
 
     @Test
     fun `pairing needs the same phone and the time window`() = test { client, token ->
         client.share(token, "l1", device = "phone", link = "https://pin.it/abc")
-        // Another phone's screenshot is its own item.
+        // Another phone's screenshot is its own draft.
         assertFalse(client.share(token, "p1", device = "tablet", picture = png(20, 20, 1)).body<IngestResult>().paired)
         // So is one that comes too late.
-        now += Library.PAIRING_WINDOW_MS + 1
+        now += Intake.PAIRING_WINDOW_MS + 1
         assertFalse(client.share(token, "p2", device = "phone", picture = png(20, 20, 2)).body<IngestResult>().paired)
-        assertEquals(3, items(client, token).size)
+        assertEquals(3, drafts(client, token).size)
     }
 
     @Test
     fun `a link is cleaned and its picture fetched on the server`() = test { client, token ->
         val result = client.share(token, "l1", text = "Look https://pinterest.com/pin/1/resolvable?sender=42 nice").body<IngestResult>()
         assertTrue(result.resolved)
-        assertEquals(LibraryKinds.IMAGE, result.item.kind)
-        assertEquals("https://pinterest.com/pin/1/resolvable", result.item.sourceUrl)
-        assertEquals("PINTEREST", result.item.origin)
-        assertEquals("A cat", result.item.title)
-        assertEquals(40, result.item.asset!!.width)
-        assertFalse(result.item.linkMayIdentify)
-        assertEquals("Look https://pinterest.com/pin/1/resolvable?sender=42 nice", result.item.text)
+        val post = result.post!!
+        assertEquals("https://pinterest.com/pin/1/resolvable", post.sourceUrl)
+        assertEquals("PINTEREST", post.origin)
+        assertEquals("A cat", post.sourceFields["title"])
+        assertEquals(40, post.media.single().asset.width)
+        assertFalse(post.linkMayIdentify)
     }
 
     @Test
     fun `a link that cannot be cleaned is kept and flagged`() = test { client, token ->
-        val item = client.share(token, "l1", link = "https://pin.it/unsure").body<IngestResult>().item
-        assertEquals("https://pin.it/unsure", item.sourceUrl)
-        assertTrue(item.linkMayIdentify)
+        val post = client.share(token, "l1", link = "https://pin.it/unsure").body<IngestResult>().post!!
+        assertEquals("https://pin.it/unsure", post.sourceUrl)
+        assertTrue(post.linkMayIdentify)
     }
 
     @Test
-    fun `folders and tags organise the library`() = test { client, token ->
-        val a = client.share(token, "a", picture = png(5, 5, 1)).body<IngestResult>().item
-        val b = client.share(token, "b", picture = png(5, 5, 2)).body<IngestResult>().item
-        val folder = client.post("/api/v1/library/folders") {
-            bearerAuth(token); contentType(ContentType.Application.Json); setBody(FolderInput("Weekend"))
-        }.body<FolderDto>()
-
-        client.patch("/api/v1/library/items/${a.id}") {
-            bearerAuth(token); contentType(ContentType.Application.Json)
-            setBody(LibraryItemPatch(folderId = folder.id, tags = listOf("#cats", "Funny", "cats")))
-        }
-        val moved = client.get("/api/v1/library/items/${a.id}") { bearerAuth(token) }.body<LibraryItemDto>()
-        assertEquals(folder.id, moved.folderId)
-        assertEquals(listOf("cats", "Funny"), moved.tags)
-
-        assertEquals(listOf(a.id), items(client, token, "folder=${folder.id}").map { it.id })
-        assertEquals(listOf(b.id), items(client, token, "unsorted=true").map { it.id })
-        assertEquals(listOf(a.id), items(client, token, "tag=CATS").map { it.id })
-        assertEquals(listOf("cats" to 1, "Funny" to 1), client.get("/api/v1/tags") { bearerAuth(token) }.body<List<TagDto>>().map { it.name to it.uses })
-
-        // Deleting the folder keeps what was in it.
-        client.delete("/api/v1/library/folders/${folder.id}") { bearerAuth(token) }
-        assertEquals(2, items(client, token, "unsorted=true").size)
+    fun `a text on its own becomes the draft's text`() = test { client, token ->
+        val post = client.share(token, "t1", text = "Just words").body<IngestResult>().post!!
+        assertEquals("Just words", post.body)
+        assertTrue(post.media.isEmpty())
     }
 
     @Test
-    fun `a deleted item leaves the library`() = test { client, token ->
-        val a = client.share(token, "a", picture = png(5, 5, 1)).body<IngestResult>().item
-        assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/library/items/${a.id}") { bearerAuth(token) }.status)
-        assertTrue(items(client, token).isEmpty())
-        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/library/items/${a.id}") { bearerAuth(token) }.status)
+    fun `a deleted draft takes its picture with it`() = test { client, token ->
+        val post = client.share(token, "a", picture = png(5, 5, 1)).body<IngestResult>().post!!
+        val asset = post.media.single().asset
+        val file = services.media.file(projectId(), asset.sha256)
+        client.get("/api/v1/media/${asset.id}/thumb?w=64") { bearerAuth(token) }
+        assertTrue(file.exists())
+
+        assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/posts/${post.id}") { bearerAuth(token); header("X-Device-Id", "phone") }.status)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/posts/${post.id}") { bearerAuth(token) }.status)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/media/${asset.id}") { bearerAuth(token) }.status)
+        assertFalse(file.exists())
+        assertTrue(File(dir, "thumbs").walk().none { it.isFile })
+    }
+
+    @Test
+    fun `a picture another draft still uses stays`() = test { client, token ->
+        val a = client.share(token, "a", picture = png(5, 5, 1)).body<IngestResult>().post!!
+        val asset = a.media.single().asset
+        // A second draft on the same file, as an older server's library could leave behind.
+        storage.db.postQueries.insert(projectId(), "b", "DRAFT", null, null, "", "", 1, null, "PUBLIC", null, null, "{}", 0, null, now, now)
+        storage.db.postMediaQueries.insert(projectId(), "b", 0, asset.id, null, 0)
+
+        client.delete("/api/v1/posts/${a.id}") { bearerAuth(token); header("X-Device-Id", "phone") }
+        assertNotNull(services.media.byId(projectId(), asset.id))
+        client.delete("/api/v1/posts/b") { bearerAuth(token); header("X-Device-Id", "phone") }
+        assertNull(services.media.byId(projectId(), asset.id))
+    }
+
+    @Test
+    fun `a file on no post is swept once its grace is over`() = test { _, _ ->
+        val loose = services.media.store(projectId(), png(7, 7, 4), "image/png")
+        assertEquals(0, services.media.sweep(projectId()))
+        now += MediaStore.SWEEP_GRACE_MS + 1
+        assertEquals(1, services.media.sweep(projectId()))
+        assertNull(services.media.byId(projectId(), loose.id))
+        assertFalse(services.media.file(projectId(), loose.sha256).exists())
     }
 
     @Test
     fun `another project cannot see the media`() = test { client, token ->
-        val item = client.share(token, "a", picture = png(5, 5, 1)).body<IngestResult>().item
+        val post = client.share(token, "a", picture = png(5, 5, 1)).body<IngestResult>().post!!
         val other = services.projects.create("Other").token
-        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/media/${item.asset!!.id}") { bearerAuth(other) }.status)
-        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/library/items/${item.id}") { bearerAuth(other) }.status)
-        assertTrue(items(client, other).isEmpty())
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/media/${post.media.single().asset.id}") { bearerAuth(other) }.status)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/posts/${post.id}") { bearerAuth(other) }.status)
+        assertTrue(drafts(client, other).isEmpty())
     }
 
-    @Test
-    fun `the timeline pages backwards`() = test { client, token ->
-        repeat(5) { i ->
-            now += 1000
-            client.share(token, "s$i", picture = png(5, 5, i + 10))
-        }
-        val first = client.get("/api/v1/library/items?limit=2") { bearerAuth(token) }.body<LibraryPage>()
-        assertEquals(2, first.items.size)
-        val second = client.get("/api/v1/library/items?limit=2&before=${first.nextBefore}") { bearerAuth(token) }.body<LibraryPage>()
-        assertEquals(2, second.items.size)
-        assertTrue(second.items.first().capturedAt < first.items.last().capturedAt)
-        assertNull(client.get("/api/v1/library/items?limit=10") { bearerAuth(token) }.body<LibraryPage>().nextBefore)
-    }
+    private fun projectId(): String = storage.db.projectQueries.all().executeAsList().first { it.name == "Memes" }.id
 
-    private suspend fun items(client: HttpClient, token: String, query: String = ""): List<LibraryItemDto> =
-        client.get("/api/v1/library/items?$query") { bearerAuth(token) }.body<LibraryPage>().items
+    private suspend fun drafts(client: HttpClient, token: String): List<PostDto> =
+        client.get("/api/v1/posts?stage=DRAFT") { bearerAuth(token) }.body()
 }

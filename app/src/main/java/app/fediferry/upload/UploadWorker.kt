@@ -17,11 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package app.fediferry.library
+package app.fediferry.upload
 
-import app.fediferry.api.LibraryItemPatch
-import app.fediferry.api.FolderInput
-import app.fediferry.api.CreatePost
 import app.fediferry.api.IngestModes
 import app.fediferry.api.PlanModes
 import app.fediferry.api.PlanRequest
@@ -108,9 +105,10 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private val sending = Mutex()
 
         /**
-         * Sends one waiting share and lets go of it once the server has it. A
-         * Compose or Post-now share also starts a draft from what arrived; its id comes back.
-         * Null when the share had already gone.
+         * Sends one waiting share and lets go of it once the server has it. The
+         * server makes it a draft, or adds it to the draft it completes; that
+         * draft's id comes back. Null when the share had already gone, or its
+         * draft has (published or deleted since).
          */
         suspend fun send(context: Context, client: ServerClient, share: PendingShare): String? = sending.withLock {
             val pending = ServiceLocator.pendingShares(context)
@@ -118,21 +116,9 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             try {
                 val file = pending.file(share).takeIf { share.hasFile && it.exists() }?.readBytes()
                 val result = client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt)
-                share.folder?.let { name ->
-                    val folder = client.folders().firstOrNull { it.name.equals(name, ignoreCase = true) }
-                        ?: client.createFolder(FolderInput(name))
-                    client.patchLibraryItem(result.item.id, LibraryItemPatch(folderId = folder.id))
-                }
-                // The share stays waiting until its draft exists too, so a
-                // failure here starts the draft on the next try.
-                val draft = if (share.mode == IngestModes.COMPOSE || share.mode == IngestModes.POST_NOW) {
-                    client.createPost(CreatePost(listOf(result.item.id))).id
-                } else {
-                    null
-                }
                 pending.remove(share)
                 DebugLog.d(LOG, "Uploaded a share")
-                draft
+                result.post?.id
             } catch (e: ServerException) {
                 pending.update(share.copy(attempts = share.attempts + 1, lastError = e.code))
                 DebugLog.w(LOG, "Upload failed: ${e.code}")

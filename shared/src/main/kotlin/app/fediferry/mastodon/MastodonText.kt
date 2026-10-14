@@ -35,4 +35,30 @@ object MastodonText {
             .replace(remoteMention) { "@" + it.groupValues[1] }
         return counted.codePointCount(0, counted.length)
     }
+
+    private val lineBreak = Regex("""<br\s*/?>""", RegexOption.IGNORE_CASE)
+    private val paragraph = Regex("""</p>\s*<p[^>]*>""", RegexOption.IGNORE_CASE)
+    private val tag = Regex("""<[^>]+>""")
+    private val entity = Regex("""&(#x[0-9a-fA-F]+|#[0-9]+|amp|lt|gt|quot|apos|nbsp);""")
+
+    /** A status's HTML `content` as the text it reads as: paragraphs and line breaks kept, markup gone. */
+    fun plain(html: String): String = html
+        .replace(paragraph, "\n\n")
+        .replace(lineBreak, "\n")
+        .replace(tag, "")
+        .replace(entity) { m ->
+            when (val e = m.groupValues[1]) {
+                "amp" -> "&"
+                "lt" -> "<"
+                "gt" -> ">"
+                "quot" -> "\""
+                "apos" -> "'"
+                "nbsp" -> " "
+                else -> runCatching {
+                    val code = if (e.startsWith("#x")) e.drop(2).toInt(16) else e.drop(1).toInt()
+                    String(Character.toChars(code))
+                }.getOrDefault(m.value)
+            }
+        }
+        .trim()
 }

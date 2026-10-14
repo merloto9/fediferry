@@ -21,7 +21,6 @@ package app.fediferry.server
 
 import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.ChannelDto
-import app.fediferry.api.CreatePost
 import app.fediferry.api.DeviceRegistration
 import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.IngestResult
@@ -99,7 +98,7 @@ class ReviewTest {
         dir.deleteRecursively()
     }
 
-    private fun png(): ByteArray = ByteArrayOutputStream().also { ImageIO.write(BufferedImage(40, 40, BufferedImage.TYPE_INT_RGB), "png", it) }.toByteArray()
+    private fun png(width: Int): ByteArray = ByteArrayOutputStream().also { ImageIO.write(BufferedImage(width, 40, BufferedImage.TYPE_INT_RGB), "png", it) }.toByteArray()
 
     private fun test(block: suspend ApplicationTestBuilder.(HttpClient, String) -> Unit) = testApplication {
         application { fediferry(services) }
@@ -115,19 +114,23 @@ class ReviewTest {
         bearerAuth(token); contentType(ContentType.Application.Json); setBody(ImportAccountRequest("social.example", "good-token", null))
     }.body()
 
+    private var shares = 0
+
+    /** A draft from a shared screenshot and link, on [channelId] or on none. */
     private suspend fun HttpClient.draft(token: String, channelId: String?): PostDto {
-        val item = submitFormWithBinaryData(
+        val shared = submitFormWithBinaryData(
             url = "/api/v1/ingest/${java.util.UUID.randomUUID()}",
             formData = formData {
                 append("link", "https://example.org/meme")
-                append("file", png(), Headers.build {
+                append("file", png(40 + shares++), Headers.build {
                     append(HttpHeaders.ContentType, "image/png"); append(HttpHeaders.ContentDisposition, "filename=\"x.png\"")
                 })
             },
-        ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().item.id
-        return post("/api/v1/posts") {
-            bearerAuth(token); contentType(ContentType.Application.Json); setBody(CreatePost(listOf(item), channelId))
-        }.body()
+        ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().post!!
+        if (shared.channelId == channelId) return shared
+        val moved = edit(token, shared, PostPatch(channelId = channelId ?: ""))
+        delete("/api/v1/posts/${moved.id}/lock") { bearerAuth(token); header("X-Device-Id", "pixel") }
+        return moved
     }
 
     private suspend fun HttpClient.ready(token: String, post: PostDto, device: String = "pixel"): HttpResponse =

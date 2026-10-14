@@ -54,11 +54,10 @@ data class ScheduleInput(
 object PublicationStates {
     const val QUEUED = "QUEUED"
     const val PUBLISHING = "PUBLISHING"
-    const val PUBLISHED = "PUBLISHED"
     const val FAILED = "FAILED"
 }
 
-/** A post's way out: when it goes, how the tries went, and where it ended up. */
+/** A post's way out: when it goes and how the tries went. */
 @Serializable
 data class PublicationDto(
     val state: String,
@@ -69,10 +68,8 @@ data class PublicationDto(
     /** When it goes (or goes again, after a failed try). */
     val publishAfter: Long,
     val attempts: Int = 0,
-    val remoteUrl: String? = null,
     /** Why the last try failed, as a code. */
     val failureCode: String? = null,
-    val publishedAt: Long? = null,
 )
 
 object PlanModes {
@@ -90,4 +87,31 @@ data class PlanRequest(
     val at: Long? = null,
     val scheduleId: String? = null,
     val delaySeconds: Int = 0,
+)
+
+/**
+ * A post that went out, read live from its channel. The server keeps nothing
+ * once a post is published; this is Mastodon's own copy.
+ */
+@Serializable
+data class PublishedStatusDto(
+    val channelId: String,
+    val id: String,
+    val url: String? = null,
+    val createdAt: Long,
+    /** The text as it reads, markup gone. */
+    val text: String,
+    val contentWarning: String? = null,
+    val media: List<PublishedMediaDto> = emptyList(),
+)
+
+@Serializable
+data class PublishedMediaDto(val previewUrl: String? = null, val url: String? = null, val description: String? = null)
+
+@Serializable
+data class PublishedPage(
+    /** Newest first, across every channel. */
+    val statuses: List<PublishedStatusDto>,
+    /** Channels whose instance could not be read just now; their posts are missing. */
+    val unreachable: List<String> = emptyList(),
 )

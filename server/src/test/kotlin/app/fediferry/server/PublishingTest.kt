@@ -21,7 +21,6 @@ package app.fediferry.server
 
 import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.ChannelDto
-import app.fediferry.api.CreatePost
 import app.fediferry.api.DeviceRegistration
 import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.IngestResult
@@ -30,7 +29,6 @@ import app.fediferry.api.PlanRequest
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
-import app.fediferry.api.PublicationStates
 import app.fediferry.api.ScheduleDto
 import app.fediferry.api.ScheduleInput
 import app.fediferry.api.SettingsEntryDto
@@ -117,7 +115,10 @@ class PublishingTest {
         dir.deleteRecursively()
     }
 
-    private fun png(): ByteArray = ByteArrayOutputStream().also { ImageIO.write(BufferedImage(20, 20, BufferedImage.TYPE_INT_RGB), "png", it) }.toByteArray()
+    private var shares = 0
+
+    /** A different picture every time, so no share is taken for the one before. */
+    private fun png(): ByteArray = ByteArrayOutputStream().also { ImageIO.write(BufferedImage(20 + shares++, 20, BufferedImage.TYPE_INT_RGB), "png", it) }.toByteArray()
 
     private class Ctx(val client: HttpClient, val token: String, val channel: ChannelDto)
 
@@ -134,15 +135,14 @@ class PublishingTest {
 
     /** A ready post with one picture, its alt text and the hashtag #meme. */
     private suspend fun Ctx.readyPost(): PostDto {
-        val item = client.submitFormWithBinaryData(
+        val draft = client.submitFormWithBinaryData(
             url = "/api/v1/ingest/${java.util.UUID.randomUUID()}",
             formData = formData {
                 append("file", png(), Headers.build {
                     append(HttpHeaders.ContentType, "image/png"); append(HttpHeaders.ContentDisposition, "filename=\"x.png\"")
                 })
             },
-        ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().item.id
-        val draft = client.post("/api/v1/posts") { bearerAuth(token); contentType(ContentType.Application.Json); setBody(CreatePost(listOf(item))) }.body<PostDto>()
+        ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().post!!
         client.post("/api/v1/posts/${draft.id}/lock") { bearerAuth(token); header("X-Device-Id", "pixel") }
         val edited = client.patch("/api/v1/posts/${draft.id}") {
             bearerAuth(token); header("X-Device-Id", "pixel"); header(HttpHeaders.IfMatch, draft.version.toString())
@@ -156,6 +156,12 @@ class PublishingTest {
         client.post("/api/v1/posts/${post.id}/plan") { bearerAuth(token); contentType(ContentType.Application.Json); setBody(request) }
 
     private suspend fun Ctx.get(post: PostDto): PostDto = client.get("/api/v1/posts/${post.id}") { bearerAuth(token) }.body()
+
+    /** Out, and so no longer kept: the post and its pictures are gone from the server. */
+    private suspend fun Ctx.assertGone(post: PostDto) {
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/posts/${post.id}") { bearerAuth(token) }.status)
+        post.media.forEach { m -> assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/media/${m.asset.id}") { bearerAuth(token) }.status) }
+    }
 
     private suspend fun Ctx.schedule(slots: List<SlotDto>): ScheduleDto = client.post("/api/v1/schedules") {
         bearerAuth(token); contentType(ContentType.Application.Json)
@@ -201,10 +207,7 @@ class PublishingTest {
         assertEquals("public", job.visibility)
         assertEquals("A black square", job.media.single().altText)
 
-        val out = ctx.get(post)
-        assertEquals(PostStages.PUBLISHED, out.stage)
-        assertEquals(PublicationStates.PUBLISHED, out.publication?.state)
-        assertEquals("https://social.example/@memes/s1", out.publication?.remoteUrl)
+        ctx.assertGone(post)
         // Sent hashtags count as used, for every phone.
         val usage = ctx.client.get("/api/v1/settings/hashtag_usage") { bearerAuth(ctx.token) }.body<List<SettingsEntryDto>>().single()
         assertEquals("meme", usage.id)
@@ -239,7 +242,7 @@ class PublishingTest {
         failWith = null
         now += Publishing.BACKOFF_MS[0]
         services.publishing.tick()
-        assertEquals(PostStages.PUBLISHED, ctx.get(post).stage)
+        ctx.assertGone(post)
         assertEquals(sent[0].idempotencyKey, sent[1].idempotencyKey)
     }
 
@@ -255,7 +258,7 @@ class PublishingTest {
         failWith = null
         ctx.plan(failed, PlanRequest(PlanModes.NOW))
         services.publishing.tick()
-        assertEquals(PostStages.PUBLISHED, ctx.get(post).stage)
+        ctx.assertGone(post)
     }
 
     @Test
@@ -266,7 +269,7 @@ class PublishingTest {
         storage.db.publicationQueries.claim(now, row.project_id, row.post_id)
         services.publishing.recover()
         services.publishing.tick()
-        assertEquals(PostStages.PUBLISHED, ctx.get(post).stage)
+        ctx.assertGone(post)
     }
 
     @Test

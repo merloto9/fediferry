@@ -19,7 +19,6 @@
  */
 package app.fediferry.review
 
-import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.EditCalendar
 import androidx.compose.material.icons.outlined.EventAvailable
@@ -37,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,12 +44,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import app.fediferry.R
 import app.fediferry.api.PlanModes
 import app.fediferry.api.PlanRequest
@@ -64,14 +59,14 @@ import app.fediferry.ui.SchedulePicker
 import app.fediferry.work.ScheduleWords
 
 /**
- * Where a planned, failed or published post stands on its way out, with what
- * can be done about it from here.
+ * Where a planned or failed post stands on its way out, with what can be done
+ * about it from here. Once out, the post is gone from the server; Publishing
+ * shows it as Mastodon has it.
  */
 @Composable
 internal fun WayOut(post: PostDto, state: ReviewPostState, onPlan: () -> Unit, onUnplan: () -> Unit, onRetry: () -> Unit) {
     val publication = post.publication ?: return
     val resources = LocalResources.current
-    val context = LocalContext.current
     val failed = post.stage == PostStages.FAILED
     Surface(
         color = if (failed) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
@@ -85,7 +80,6 @@ internal fun WayOut(post: PostDto, state: ReviewPostState, onPlan: () -> Unit, o
                 when (post.stage) {
                     PostStages.SCHEDULED -> stringResource(R.string.post_goes_out, ScheduleWords.fullText(resources, publication.publishAfter))
                     PostStages.PUBLISHING -> stringResource(R.string.publishing_sending)
-                    PostStages.PUBLISHED -> stringResource(R.string.post_went_out, ScheduleWords.fullText(resources, publication.publishedAt ?: publication.publishAfter))
                     else -> stringResource(R.string.post_failed_because, ServerMessages.publishFailure(resources, publication.failureCode))
                 },
                 style = MaterialTheme.typography.titleSmall,
@@ -107,12 +101,6 @@ internal fun WayOut(post: PostDto, state: ReviewPostState, onPlan: () -> Unit, o
                         TextButton(onClick = onRetry) { Text(stringResource(R.string.post_retry_now)) }
                         TextButton(onClick = onPlan) { Text(stringResource(R.string.post_plan_again)) }
                         TextButton(onClick = onUnplan) { Text(stringResource(R.string.post_unplan)) }
-                    }
-                    PostStages.PUBLISHED -> publication.remoteUrl?.let { url ->
-                        OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) } }) {
-                            Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
-                            Text(stringResource(R.string.post_open_remote), modifier = Modifier.padding(start = 8.dp))
-                        }
                     }
                 }
             }

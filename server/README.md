@@ -1,7 +1,9 @@
 # FediFerry server
 
-Keeps a project's library, drafts, review and channels in one place, so
-several phones can work on them together. One server hosts any number of
+Takes a project's posts from draft through review to publishing, so several
+phones can work on them together. A share from a phone becomes a draft
+directly; once a post is published it is deleted, with every file no other
+post uses, and the app reads the latest posts back from Mastodon. One server hosts any number of
 projects; they never see each other. Each project is opened with a project
 token, entered once on every phone (Settings → FediFerry server).
 
@@ -63,9 +65,10 @@ devices when the app connects to a private address.
 
 ## Backup
 
-Everything lives in the data directory: `fediferry.db` (SQLite) and, from the
-library milestone on, `media/`. Stop the server or use `sqlite3 .backup`, then
-copy the directory.
+Everything lives in the data directory: `fediferry.db` (SQLite), `media/` and
+`thumbs/`. Only posts not yet out are there — drafts, review and the queue —
+with their pictures. Stop the server or use `sqlite3 .backup`, then copy the
+directory.
 
 ## Development
 

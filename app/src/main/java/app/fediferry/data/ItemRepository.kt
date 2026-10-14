@@ -115,7 +115,6 @@ class ItemRepository(
     }
 
     fun observeInbox(): Flow<List<Item>> = items.observeInbox()
-    fun observeHistory(): Flow<List<Item>> = items.observeHistory()
     fun observe(id: String): Flow<Item?> = items.observe(id)
 
     suspend fun byId(id: String): Item? = items.byId(id)
@@ -620,13 +619,14 @@ class ItemRepository(
 
     suspend fun markDraft(id: String) = items.setStatus(id, Status.DRAFT)
 
+    /** Deletes a post and its pictures — the uncropped original too — unless another post still has them. */
     suspend fun delete(id: String) {
         val item = items.byId(id) ?: return
         items.delete(id)
         val hash = item.mediaHash
-        // Any surviving reference counts here, sent ones included.
         val stillUsed = hash != null && items.anyByMediaHash(hash) != null
         media.deleteIfUnreferenced(item.mediaPath, stillUsed)
+        item.originalMediaPath?.takeIf { it != item.mediaPath }?.let { media.deleteIfUnreferenced(it, stillUsed) }
     }
 
     suspend fun mediaBytes(item: Item): ByteArray? = item.mediaPath?.let { media.bytes(it) }
@@ -634,10 +634,11 @@ class ItemRepository(
     /** Re-arms anything the process died mid-post. Called once on app start. */
     suspend fun recoverStalePosting() = items.requeueStalePosting()
 
-    suspend fun purgePosted(olderThanDays: Int): Int {
-        if (olderThanDays <= 0) return 0
-        val cutoff = System.currentTimeMillis() - olderThanDays * 86_400_000L
-        return items.purgePostedBefore(cutoff)
+    /** Deletes every post that went out, with its pictures. Returns how many. */
+    suspend fun purgePosted(): Int {
+        val posted = items.posted()
+        posted.forEach { delete(it.id) }
+        return posted.size
     }
 
     suspend fun templates(): List<Template> = templates.all()

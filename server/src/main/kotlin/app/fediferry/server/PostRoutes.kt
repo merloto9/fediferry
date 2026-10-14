@@ -19,7 +19,6 @@
  */
 package app.fediferry.server
 
-import app.fediferry.api.CreatePost
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PlanRequest
@@ -56,7 +55,6 @@ fun Route.postRoutes(services: Services) {
         val stages = (call.request.queryParameters["stage"] ?: app.fediferry.api.PostStages.DRAFT).split(',').map { it.trim() }.filter { it.isNotEmpty() }
         call.respond(posts.list(call.projectId(), stages))
     }
-    post("/posts") { call.respond(HttpStatusCode.Created, posts.create(call.projectId(), call.deviceId(), call.receive<CreatePost>())) }
     get("/posts/{id}") { call.respond(posts.get(call.projectId(), call.parameters["id"].orEmpty())) }
     patch("/posts/{id}") {
         val version = call.request.headers[HttpHeaders.IfMatch]?.trim('"', ' ')?.toLongOrNull()
@@ -123,7 +121,7 @@ fun Route.postRoutes(services: Services) {
         val derived = derive(services.media.file(projectId, source.sha256).readBytes(), source.mime, request, rules)
             ?: throw ApiException(HttpStatusCode.UnprocessableEntity, "media.not_editable")
         val asset = services.media.store(projectId, derived.first, derived.second, parentId = source.id, recipe = Json.encodeToString(request))
-        call.respond(Library.assetDto(asset))
+        call.respond(MediaStore.assetDto(asset))
     }
 }
 

@@ -295,7 +295,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setColorSource(v: ColorSource) = persist { settingsStore.setColorSource(v) }
     fun setContrastLevel(v: ContrastLevel) = persist { settingsStore.setContrastLevel(v) }
     fun setRememberSentHashtags(enabled: Boolean) = persist { settingsStore.setRememberSentHashtags(enabled) }
-    fun setPurgeAfterDays(days: Int) = persist { settingsStore.setPurgeAfterDays(days) }
 
     fun setImageInstruction(v: String) =
         persist { settingsStore.setImageInstruction(v) }

@@ -3,12 +3,11 @@
     <string name="nav_drafts">Drafts</string>
     <string name="drafts_title">Drafts</string>
     <string name="drafts_loading">Reading the drafts…</string>
-    <string name="drafts_empty">No drafts yet. Select pictures in the library and tap “New post”, or share with “Compose”.</string>
+    <string name="drafts_empty">No drafts yet. Share a picture or a link with FediFerry — “Save for later” or “Compose” — and it lands here.</string>
     <string name="drafts_no_text">No text yet</string>
     <string name="drafts_no_channel">No channel picked</string>
     <string name="drafts_being_edited">Being edited on %1$s</string>
     <string name="drafts_delete">Delete draft</string>
-    <string name="library_new_post">New post</string>
 
     <string name="draft_title">Draft</string>
     <string name="draft_saving">Saving…</string>

@@ -36,7 +36,7 @@ data class ConnectState(
     val busy: Boolean = false,
     /** What went wrong on the last try, already in words. */
     val error: String? = null,
-    /** Posts kept on this phone that are not in the project's library yet. */
+    /** Posts kept on this phone that are not in the project yet. */
     val waitingToImport: Int = 0,
     /** How many were just queued for copying, to confirm it. */
     val justImported: Int? = null,
@@ -67,7 +67,7 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(waitingToImport = importer.waiting(connection.projectId))
     }
 
-    /** Copies this phone's posts into the project's library. */
+    /** Copies this phone's posts into the project as drafts. */
     fun importPosts() = viewModelScope.launch {
         val connection = connections.current() ?: return@launch
         val queued = importer.importAll(connection.projectId)

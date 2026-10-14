@@ -46,8 +46,9 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE status != 'POSTED' ORDER BY createdAt DESC")
     fun observeInbox(): Flow<List<Item>>
 
-    @Query("SELECT * FROM items WHERE status = 'POSTED' ORDER BY postedAt DESC")
-    fun observeHistory(): Flow<List<Item>>
+    /** Posts that went out; left only by a version that kept them. */
+    @Query("SELECT * FROM items WHERE status = 'POSTED'")
+    suspend fun posted(): List<Item>
 
     /**
      * An unsent draft holding these exact bytes, for folding a repeated share
@@ -96,9 +97,6 @@ interface ItemDao {
     @Query("DELETE FROM items WHERE id = :id")
     suspend fun delete(id: String)
 
-    @Query("DELETE FROM items WHERE status = 'POSTED' AND postedAt < :before")
-    suspend fun purgePostedBefore(before: Long): Int
-
     /**
      * Re-arms items the process died on. POSTING is only ever a transient state
      * held by a running worker, so any survivor of a crash is stale.
@@ -106,7 +104,7 @@ interface ItemDao {
     @Query("UPDATE items SET status = 'QUEUED' WHERE status = 'POSTING'")
     suspend fun requeueStalePosting()
 
-    /** Everything not posted yet, for copying into a server library. */
+    /** Everything not posted yet, for copying to a server as drafts. */
     @Query("SELECT * FROM items WHERE status != 'POSTED' ORDER BY createdAt")
     suspend fun unposted(): List<Item>
 }

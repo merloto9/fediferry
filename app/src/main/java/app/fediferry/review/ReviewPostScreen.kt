@@ -76,7 +76,6 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import app.fediferry.data.model.Visibility
 import app.fediferry.drafts.ServerMessages
-import app.fediferry.library.FolderPicker
 import app.fediferry.ui.DeletePostsDialog
 import app.fediferry.ui.FullscreenImage
 import app.fediferry.ui.label
@@ -126,7 +125,6 @@ fun ReviewPostScreen(
                             when (state.post?.stage) {
                                 PostStages.SCHEDULED -> R.string.post_title_planned
                                 PostStages.PUBLISHING -> R.string.post_title_sending
-                                PostStages.PUBLISHED -> R.string.post_title_published
                                 PostStages.FAILED -> R.string.post_title_failed
                                 else -> R.string.review_post_title
                             },
@@ -215,7 +213,7 @@ fun ReviewPostScreen(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(
                     onClick = { folders = true },
-                    label = { Text(state.folders.firstOrNull { it.id == post.reviewFolderId }?.name ?: stringResource(R.string.library_unsorted)) },
+                    label = { Text(state.folders.firstOrNull { it.id == post.reviewFolderId }?.name ?: stringResource(R.string.folder_none)) },
                     leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 )
                 AssistChip(
@@ -248,4 +246,4 @@ private fun Detail(label: String, value: String) {
     }
 }
 
-private val DELETABLE = setOf(PostStages.READY, PostStages.FAILED, PostStages.PUBLISHED)
+private val DELETABLE = setOf(PostStages.READY, PostStages.FAILED)

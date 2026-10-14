@@ -1,6 +1,7 @@
 -- A stored file: a picture (later video). Identified within its project by
 -- its content hash, so the same picture shared twice is stored once. Never
 -- changed: an edit (crop, clean-up) is a new asset that names its parent.
+-- Kept only while a post uses it, or an edit a post uses was made from it.
 CREATE TABLE media_asset (
     project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     id TEXT NOT NULL,
@@ -25,3 +26,23 @@ SELECT * FROM media_asset WHERE project_id = ? AND id = ?;
 
 bySha:
 SELECT * FROM media_asset WHERE project_id = ? AND sha256 = ?;
+
+-- Files no post needs any more: not on a post, and not the original of an
+-- edit that is. [before] spares what was stored a moment ago and is about to
+-- be put on a post.
+unused:
+WITH RECURSIVE kept(id) AS (
+    SELECT asset_id FROM post_media WHERE project_id = :project
+    UNION
+    SELECT a.parent_asset_id FROM media_asset a JOIN kept ON a.id = kept.id
+    WHERE a.project_id = :project AND a.parent_asset_id IS NOT NULL
+)
+SELECT * FROM media_asset WHERE project_id = :project AND created_at < :before AND id NOT IN (SELECT id FROM kept);
+
+delete:
+DELETE FROM media_asset WHERE project_id = ? AND id = ?;
+
+-- Stored again: counts as new for the sweep's grace, so a picture shared once
+-- more right after its post went out is not swept from under its new draft.
+touch:
+UPDATE media_asset SET created_at = ? WHERE project_id = ? AND id = ?;

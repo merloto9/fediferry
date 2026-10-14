@@ -30,7 +30,6 @@ object PostStages {
     const val READY = "READY"
     const val SCHEDULED = "SCHEDULED"
     const val PUBLISHING = "PUBLISHING"
-    const val PUBLISHED = "PUBLISHED"
     const val FAILED = "FAILED"
 }
 
@@ -38,7 +37,6 @@ object PostStages {
 data class PostMediaDto(
     val position: Int,
     val asset: MediaAssetDto,
-    val libraryItemId: String? = null,
     val altText: String? = null,
     /** Generating alt text was tried and failed; the post would go out without one. */
     val altFailed: Boolean = false,
@@ -78,10 +76,6 @@ data class PostDto(
     /** Its way out, once it is planned. */
     val publication: PublicationDto? = null,
 )
-
-/** `POST /posts`: a draft from library items, rendered with the template. */
-@Serializable
-data class CreatePost(val libraryItemIds: List<String>, val channelId: String? = null, val templateId: String? = null)
 
 /**
  * `PATCH /posts/{id}`, with `If-Match: <version>`, by the device holding the

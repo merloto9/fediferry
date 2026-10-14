@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="receiver_to_drafts">
+        <item quantity="one">Als Entwurf in „%2$s“ gespeichert. Er wird hochgeladen, sobald eine Verbindung besteht.</item>
+        <item quantity="other">%1$d Bilder als Entwürfe in „%2$s“ gespeichert. Sie werden hochgeladen, sobald eine Verbindung besteht.</item>
+    </plurals>
+    <string name="server_loading_detail">Der Inhalt des Projekts wird vom FediFerry-Server gelesen.</string>
+    <string name="folder_all">Alle</string>
+    <string name="folder_none">Unsortiert</string>
+    <string name="folder_new">Neuer Ordner</string>
+    <string name="folder_new_more">Neuer Ordner…</string>
+    <string name="folder_rename">Ordner umbenennen</string>
+    <string name="folder_delete">Ordner löschen – die Beiträge bleiben</string>
+    <string name="folder_name">Name</string>
+    <string name="action_save">Speichern</string>
+    <string name="folder_move">In Ordner verschieben</string>
+    <string name="folder_move_to">Verschieben nach</string>
+    <string name="selection_clear">Auswahl aufheben</string>
+    <plurals name="selection_count">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <string name="server_action_failed">Das hat nicht geklappt (%1$s).</string>
+    <plurals name="uploads_pending">
+        <item quantity="one">%1$d geteilter Inhalt wartet auf den Upload</item>
+        <item quantity="other">%1$d geteilte Inhalte warten auf den Upload</item>
+    </plurals>
+    <string name="action_retry">Jetzt versuchen</string>
+    <string name="uploads_pending_error">Letzter Versuch: %1$s</string>
+    <string name="uploads_pending_discard">Diesen Inhalt verwerfen</string>
+</resources>

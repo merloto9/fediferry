@@ -25,17 +25,17 @@ import androidx.lifecycle.viewModelScope
 import app.fediferry.api.ChannelDto
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostStages
-import app.fediferry.client.ServerClient
+import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
+import app.fediferry.upload.PendingShare
+import app.fediferry.upload.UploadWorker
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class DraftsState(
@@ -47,17 +47,20 @@ data class DraftsState(
 )
 
 /**
- * The project's drafts on the server, newest change first. Like the library,
- * it follows the change feed, so a draft another phone starts or edits shows
- * up here within moments — with who is editing it.
+ * The project's drafts on the server, newest change first, and the shares
+ * still on this phone on their way to becoming drafts. It follows the change
+ * feed, so a draft another phone starts or edits shows up here within
+ * moments — with who is editing it.
  */
 class DraftsViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val connections = ServiceLocator.serverConnections(app)
-    private val client: ServerClient? get() = connections.current()?.let(connections::client)
+    private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
 
     /** This phone's id on the server, to tell its own locks from others'. */
-    val deviceId: String = connections.deviceId
+    val deviceId: String get() = backend?.deviceId.orEmpty()
+
+    /** Shares not on the server yet; each becomes a draft once it is up. */
+    val pending: StateFlow<List<PendingShare>> = ServiceLocator.pendingShares(app).all
 
     private val _state = MutableStateFlow(DraftsState())
     val state: StateFlow<DraftsState> = _state
@@ -70,17 +73,9 @@ class DraftsViewModel(app: Application) : AndroidViewModel(app) {
     fun start() {
         refresh()
         if (follow?.isActive == true) return
+        val source = backend ?: return
         follow = viewModelScope.launch {
-            var rev = runCatching { client?.project()?.rev }.getOrNull() ?: 0L
-            while (isActive) {
-                val api = client ?: break
-                val changes = runCatching { api.changes(rev) }.getOrElse {
-                    delay(RETRY_MS)
-                    null
-                } ?: continue
-                if (changes.changed.any { it.type == "post" || it.type == "channel" }) refresh()
-                rev = changes.rev
-            }
+            source.changes().collect { types -> if ("post" in types || "channel" in types) refresh() }
         }
     }
 
@@ -90,7 +85,7 @@ class DraftsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refresh() = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         runCatching { api.posts(PostStages.DRAFT) to api.channels() }
             .onSuccess { (drafts, channels) ->
                 _state.update { it.copy(drafts = drafts.sortedByDescending { d -> d.updatedAt }, channels = channels, loadedOnce = true, error = null) }
@@ -99,18 +94,19 @@ class DraftsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun delete(ids: Collection<String>) = viewModelScope.launch {
-        val api = client ?: return@launch
+        val api = backend ?: return@launch
         ids.forEach { id ->
             runCatching { api.deletePost(id) }.onFailure { e -> _messages.tryEmit((e as? ServerException)?.code ?: "client.unknown") }
         }
         refresh()
     }
 
-    fun thumbnailUrl(assetId: String): String? = client?.thumbnailUrl(assetId)
+    /** Tries waiting shares again now, e.g. after the network came back. */
+    fun retryUploads() = UploadWorker.enqueue(getApplication())
+
+    fun discardPending(share: PendingShare) = ServiceLocator.pendingShares(getApplication()).remove(share)
+
+    fun thumbnailUrl(assetId: String): String? = backend?.thumbnailUrl(assetId)
 
     override fun onCleared() = stop()
-
-    private companion object {
-        const val RETRY_MS = 5_000L
-    }
 }

@@ -28,6 +28,14 @@ import app.fediferry.api.ChannelPatch
 import app.fediferry.api.ChannelTypes
 import app.fediferry.api.CompleteRequest
 import app.fediferry.api.ImportAccountRequest
+import app.fediferry.api.PublishedMediaDto
+import app.fediferry.api.PublishedPage
+import app.fediferry.api.PublishedStatusDto
+import app.fediferry.mastodon.MastodonText
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import java.time.Instant
 import app.fediferry.mastodon.MastodonAccounts
 import app.fediferry.mastodon.MastodonException
 import app.fediferry.server.db.Channel
@@ -160,6 +168,40 @@ class Channels(
         }
     }
 
+    // --- what went out ----------------------------------------------------------
+
+    /**
+     * The latest posts on every channel, newest first, read from the instances
+     * now: nothing published is kept here. A channel whose instance cannot be
+     * read is left out and named, never failing the rest.
+     */
+    suspend fun published(projectId: String, limit: Int): PublishedPage = coroutineScope {
+        val size = limit.coerceIn(1, 40)
+        val reads = db.channelQueries.all(projectId).executeAsList().map { channel ->
+            async {
+                val token = token(projectId, channel.id) ?: return@async channel.id to null
+                channel.id to runCatching { mastodon.statuses(channel.instance, token, channel.remote_account_id, size) }
+                    .onFailure { log.info("Reading the posts of a channel failed: {}", it.message) }
+                    .getOrNull()
+            }
+        }.awaitAll()
+        val statuses = reads.flatMap { (channelId, list) ->
+            list.orEmpty().mapNotNull { st ->
+                val at = runCatching { Instant.parse(st.createdAt).toEpochMilli() }.getOrNull() ?: return@mapNotNull null
+                PublishedStatusDto(
+                    channelId = channelId,
+                    id = st.id,
+                    url = st.url,
+                    createdAt = at,
+                    text = MastodonText.plain(st.content),
+                    contentWarning = st.spoilerText.ifBlank { null },
+                    media = st.media.map { PublishedMediaDto(it.previewUrl, it.url, it.description) },
+                )
+            }
+        }
+        PublishedPage(statuses.sortedByDescending { it.createdAt }.take(size), reads.filter { it.second == null }.map { it.first })
+    }
+
     // --- plumbing ---------------------------------------------------------------
 
     /** The server's client id and secret at [instance] for [redirectUri], registering on first use. */
@@ -224,5 +266,8 @@ fun Route.channelRoutes(services: Services) {
     }
     post("/channels/mastodon/authorize") { call.respond(channels.authorize(call.projectId(), call.receive<AuthorizeRequest>())) }
     post("/channels/mastodon/complete") { call.respond(channels.complete(call.projectId(), call.receive<CompleteRequest>())) }
+    get("/published") {
+        call.respond(channels.published(call.projectId(), call.request.queryParameters["limit"]?.toIntOrNull() ?: 20))
+    }
     post("/channels/mastodon/import") { call.respond(channels.import(call.projectId(), call.receive<ImportAccountRequest>())) }
 }

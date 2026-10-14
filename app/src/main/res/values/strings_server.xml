@@ -3,7 +3,7 @@
     <string name="settings_page_server">FediFerry server</string>
     <string name="server_summary_none">Not connected — everything stays on this phone</string>
     <string name="server_summary_connected">Project %1$s</string>
-    <string name="server_intro">A FediFerry server keeps a project\'s library, drafts and channels in one place, so several phones can work on them together. Ask whoever runs the server for its address and a project token.</string>
+    <string name="server_intro">A FediFerry server takes a project\'s posts from draft through review to publishing, so several phones can work on them together. A post is kept only until it is out. Ask whoever runs the server for its address and a project token.</string>
     <string name="server_address">Server address</string>
     <string name="server_address_hint">For example fediferry.example.org. Use https:// from outside your home network.</string>
     <string name="server_token">Project token</string>
@@ -24,9 +24,9 @@
         <item quantity="one">%1$d post on this phone is not in the project yet.</item>
         <item quantity="other">%1$d posts on this phone are not in the project yet.</item>
     </plurals>
-    <string name="server_import">Copy them to the library</string>
+    <string name="server_import">Copy them as drafts</string>
     <plurals name="server_imported">
-        <item quantity="one">%1$d post is being copied to the library.</item>
-        <item quantity="other">%1$d posts are being copied to the library.</item>
+        <item quantity="one">%1$d post is being copied as a draft.</item>
+        <item quantity="other">%1$d posts are being copied as drafts.</item>
     </plurals>
 </resources>

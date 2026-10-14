@@ -1,5 +1,6 @@
--- A post: made from library items, edited as a draft, frozen once ready,
--- then scheduled and published to one channel.
+-- A post: made from a share, edited as a draft, frozen once ready, then
+-- scheduled and published to one channel. It lives only until it is out:
+-- once published it is deleted, and Mastodon is where it is kept.
 CREATE TABLE post (
     project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     id TEXT NOT NULL,
@@ -22,11 +23,10 @@ CREATE TABLE post (
     created_by TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    deleted_at INTEGER,
     PRIMARY KEY (project_id, id)
 );
 
-CREATE INDEX post_stage ON post(project_id, deleted_at, stage, updated_at);
+CREATE INDEX post_stage ON post(project_id, stage, updated_at);
 
 insert:
 INSERT INTO post(project_id, id, stage, version, channel_id, template_id, body, hashtags, add_source_hashtags, content_warning,
@@ -34,10 +34,10 @@ INSERT INTO post(project_id, id, stage, version, channel_id, template_id, body, 
 VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 byId:
-SELECT * FROM post WHERE project_id = ? AND id = ? AND deleted_at IS NULL;
+SELECT * FROM post WHERE project_id = ? AND id = ?;
 
 byStage:
-SELECT * FROM post WHERE project_id = ? AND stage = ? AND deleted_at IS NULL ORDER BY updated_at DESC;
+SELECT * FROM post WHERE project_id = ? AND stage = ? ORDER BY updated_at DESC;
 
 update:
 UPDATE post SET channel_id = ?, template_id = ?, body = ?, hashtags = ?, add_source_hashtags = ?, content_warning = ?, visibility = ?,
@@ -47,8 +47,8 @@ WHERE project_id = ? AND id = ?;
 touch:
 UPDATE post SET version = version + 1, updated_at = ? WHERE project_id = ? AND id = ?;
 
-softDelete:
-UPDATE post SET deleted_at = ?, updated_at = ?, version = version + 1 WHERE project_id = ? AND id = ?;
+delete:
+DELETE FROM post WHERE project_id = ? AND id = ?;
 
 -- Frozen: the text as it will be posted is fixed, and only sorting changes from here.
 markReady:
@@ -69,4 +69,30 @@ setStage:
 UPDATE post SET stage = ?, version = version + 1, updated_at = ? WHERE project_id = ? AND id = ?;
 
 byStages:
-SELECT * FROM post WHERE project_id = ? AND stage IN ? AND deleted_at IS NULL ORDER BY updated_at DESC;
+SELECT * FROM post WHERE project_id = ? AND stage IN ? ORDER BY updated_at DESC;
+
+-- Pairing: the latest draft from this device within the window that has only
+-- one half — a link waiting for its screenshot, or the other way round.
+waitingForPicture:
+SELECT * FROM post
+WHERE project_id = ? AND created_by = ? AND created_at >= ? AND stage = 'DRAFT' AND source_url IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM post_media m WHERE m.project_id = post.project_id AND m.post_id = post.id)
+ORDER BY created_at DESC LIMIT 1;
+
+waitingForLink:
+SELECT * FROM post
+WHERE project_id = ? AND created_by = ? AND created_at >= ? AND stage = 'DRAFT' AND source_url IS NULL
+  AND EXISTS (SELECT 1 FROM post_media m WHERE m.project_id = post.project_id AND m.post_id = post.id)
+ORDER BY created_at DESC LIMIT 1;
+
+-- The post that already carries this picture, if any: the same picture shared again.
+byAsset:
+SELECT post.* FROM post JOIN post_media m ON m.project_id = post.project_id AND m.post_id = post.id
+WHERE post.project_id = ? AND m.asset_id = ?
+ORDER BY post.created_at LIMIT 1;
+
+-- A link joining a draft that had only its picture.
+attachLink:
+UPDATE post SET source_url = ?, origin = ?, source_fields_json = ?, link_may_identify = ?, body = ?, hashtags = ?,
+    version = version + 1, updated_at = ?
+WHERE project_id = ? AND id = ?;

@@ -88,8 +88,6 @@ import app.fediferry.api.ChannelDto
 import app.fediferry.api.PostDto
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.drafts.ServerMessages
-import app.fediferry.library.FolderPicker
-import app.fediferry.library.NameDialog
 import app.fediferry.ui.DeletePostsDialog
 import app.fediferry.ui.LoadingScreen
 import app.fediferry.ui.Space
@@ -149,7 +147,7 @@ fun ReviewScreen(
     }
     naming?.let { task ->
         NameDialog(
-            title = stringResource(if (task is Naming.Rename) R.string.library_rename_folder else R.string.library_new_folder),
+            title = stringResource(if (task is Naming.Rename) R.string.folder_rename else R.string.folder_new),
             initial = (task as? Naming.Rename)?.folder?.name.orEmpty(),
             onConfirm = { name ->
                 when (task) {
@@ -170,13 +168,13 @@ fun ReviewScreen(
                 title = {
                     Text(
                         if (selection.isEmpty()) stringResource(R.string.review_title)
-                        else pluralStringResource(R.plurals.library_selected, selection.size, selection.size),
+                        else pluralStringResource(R.plurals.selection_count, selection.size, selection.size),
                     )
                 },
                 navigationIcon = {
                     if (selection.isNotEmpty()) {
                         IconButton(onClick = { selection = emptySet() }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.library_clear_selection))
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.selection_clear))
                         }
                     }
                 },
@@ -191,7 +189,7 @@ fun ReviewScreen(
                             Icon(Icons.Outlined.EventAvailable, contentDescription = stringResource(R.string.review_plan_into_slots))
                         }
                         IconButton(onClick = { moving = true }) {
-                            Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = stringResource(R.string.library_move))
+                            Icon(Icons.AutoMirrored.Outlined.DriveFileMove, contentDescription = stringResource(R.string.folder_move))
                         }
                         IconButton(onClick = { labelling = true }) {
                             Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = stringResource(R.string.review_labels))
@@ -201,7 +199,7 @@ fun ReviewScreen(
                         }
                     } else {
                         IconButton(onClick = { naming = Naming.Create() }) {
-                            Icon(Icons.Outlined.CreateNewFolder, contentDescription = stringResource(R.string.library_new_folder))
+                            Icon(Icons.Outlined.CreateNewFolder, contentDescription = stringResource(R.string.folder_new))
                         }
                         IconButton(onClick = onOpenSettings) {
                             Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.queue_settings))
@@ -214,7 +212,7 @@ fun ReviewScreen(
         if (!state.loadedOnce) {
             LoadingScreen(
                 title = stringResource(R.string.review_loading),
-                detail = stringResource(R.string.library_loading_detail),
+                detail = stringResource(R.string.server_loading_detail),
                 modifier = Modifier.padding(padding),
             )
             return@Scaffold
@@ -260,8 +258,8 @@ private sealed interface Naming {
 private fun Filters(state: ReviewState, onFilter: (ReviewFilter) -> Unit, onRename: (ReviewFolderDto) -> Unit, onDeleteFolder: (ReviewFolderDto) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(state.filter == ReviewFilter.All, { onFilter(ReviewFilter.All) }, { Text(stringResource(R.string.library_all)) })
-            FilterChip(state.filter == ReviewFilter.Unsorted, { onFilter(ReviewFilter.Unsorted) }, { Text(stringResource(R.string.library_unsorted)) })
+            FilterChip(state.filter == ReviewFilter.All, { onFilter(ReviewFilter.All) }, { Text(stringResource(R.string.folder_all)) })
+            FilterChip(state.filter == ReviewFilter.Unsorted, { onFilter(ReviewFilter.Unsorted) }, { Text(stringResource(R.string.folder_none)) })
             state.folders.forEach { folder ->
                 var menu by remember { mutableStateOf(false) }
                 val on = state.filter == ReviewFilter.Folder(folder.id)
@@ -274,8 +272,8 @@ private fun Filters(state: ReviewState, onFilter: (ReviewFilter) -> Unit, onRena
                         trailingIcon = if (on) { { Text("⋯", modifier = Modifier.clickable { menu = true }) } } else null,
                     )
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.library_rename_folder)) }, onClick = { menu = false; onRename(folder) })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.library_delete_folder)) }, onClick = { menu = false; onDeleteFolder(folder) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.folder_rename)) }, onClick = { menu = false; onRename(folder) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.folder_delete)) }, onClick = { menu = false; onDeleteFolder(folder) })
                     }
                 }
             }

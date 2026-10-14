@@ -117,11 +117,6 @@
     <string name="settings_check">Check</string>
     <string name="settings_undo_window">Undo window: %1$ds</string>
     <string name="settings_undo_window_detail">How long Post now waits before sending. Zero sends immediately.</string>
-    <string name="settings_purge_never">Posted items: kept forever</string>
-    <plurals name="settings_purge_after">
-        <item quantity="one">Posted items: purged after %d day</item>
-        <item quantity="other">Posted items: purged after %d days</item>
-    </plurals>
 
     <!-- Image clean-up -->
     <string name="settings_cleanup_profiles">Cleanup profiles</string>

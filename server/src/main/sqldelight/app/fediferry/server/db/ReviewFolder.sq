@@ -1,5 +1,4 @@
--- Folders for ready posts, kept apart from the library's: review is sorted by
--- when and where a post goes, the library by what a picture is.
+-- Folders for ready posts: review is sorted by when and where a post goes.
 CREATE TABLE review_folder (
     project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     id TEXT NOT NULL,

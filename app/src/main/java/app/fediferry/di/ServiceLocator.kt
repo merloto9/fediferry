@@ -22,7 +22,10 @@ package app.fediferry.di
 import app.fediferry.connect.LocalImporter
 import app.fediferry.connect.ProjectSync
 import app.fediferry.connect.ServerAuth
-import app.fediferry.library.PendingShares
+import app.fediferry.upload.PendingShares
+import app.fediferry.backend.PostBackend
+import app.fediferry.backend.ServerBackend
+import app.fediferry.connect.ServerConnection
 import app.fediferry.connect.ServerConnections
 import android.annotation.SuppressLint
 import android.content.Context
@@ -167,6 +170,21 @@ object ServiceLocator {
 
     fun pendingShares(context: Context): PendingShares = pendingShares ?: synchronized(this) {
         pendingShares ?: PendingShares(context.applicationContext).also { pendingShares = it }
+    }
+
+    @Volatile private var serverBackend: Pair<ServerConnection, ServerBackend>? = null
+
+    /**
+     * Where the screens' posts live: the connected server's project. Null while
+     * the app works on its own.
+     */
+    fun backend(context: Context): PostBackend? {
+        val connections = serverConnections(context)
+        val connection = connections.current() ?: return null
+        serverBackend?.takeIf { it.first == connection }?.let { return it.second }
+        return synchronized(this) {
+            ServerBackend(connections.client(connection), connections.deviceId).also { serverBackend = connection to it }
+        }
     }
 
     fun serverConnections(context: Context): ServerConnections = serverConnections ?: synchronized(this) {

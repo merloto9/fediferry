@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.R
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostStages
+import app.fediferry.api.PublishedStatusDto
 import app.fediferry.drafts.ServerMessages
 import app.fediferry.ui.LoadingScreen
 import app.fediferry.ui.Space
@@ -71,7 +74,7 @@ import app.fediferry.ui.SpaceBar
 import app.fediferry.work.ScheduleWords
 import coil3.compose.AsyncImage
 
-/** What goes out when, what failed, and what went out. */
+/** What goes out when, what failed, and — read from Mastodon — what went out. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublishingScreen(
@@ -83,6 +86,7 @@ fun PublishingScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val resources = LocalResources.current
+    val uriHandler = LocalUriHandler.current
 
     LifecycleResumeEffect(Unit) {
         viewModel.start()
@@ -108,7 +112,7 @@ fun PublishingScreen(
         if (!state.loadedOnce) {
             LoadingScreen(
                 title = stringResource(R.string.publishing_loading),
-                detail = stringResource(R.string.library_loading_detail),
+                detail = stringResource(R.string.server_loading_detail),
                 modifier = Modifier.padding(padding),
             )
             return@Scaffold
@@ -160,16 +164,58 @@ fun PublishingScreen(
                 }
             }
 
-            if (state.published.isNotEmpty()) {
+            if (state.published.isNotEmpty() || state.publishedUnreachable.isNotEmpty()) {
                 item { Heading(stringResource(R.string.publishing_published)) }
-                items(state.published, key = { it.id }) { post ->
-                    PostRow(
-                        post, thumbnail = post.media.firstOrNull()?.let { viewModel.thumbnailUrl(it.asset.id) },
-                        headline = post.publication?.publishedAt?.let { ScheduleWords.fullText(resources, it) }.orEmpty(),
-                        detail = channelOf(post),
-                        onClick = { onOpenPost(post.id) },
+                state.publishedUnreachable.forEach { id ->
+                    val name = state.channels.firstOrNull { it.id == id }?.let { "@${it.acct}" } ?: id
+                    item(key = "unreachable-$id") { Notice(stringResource(R.string.publishing_published_unreachable, name)) }
+                }
+                items(state.published, key = { "${it.channelId}/${it.id}" }) { status ->
+                    PublishedRow(
+                        status,
+                        detail = state.channels.firstOrNull { it.id == status.channelId }?.let { "@${it.acct}" },
+                        onClick = status.url?.let { url -> { uriHandler.openUri(url) } },
                     )
                 }
+            }
+        }
+    }
+}
+
+/** A post as Mastodon has it: FediFerry kept nothing of it once it was out. */
+@Composable
+private fun PublishedRow(status: PublishedStatusDto, detail: String?, onClick: (() -> Unit)?) {
+    val resources = LocalResources.current
+    val media = status.media.firstOrNull()
+    Card(
+        modifier = Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClickLabel = stringResource(R.string.post_open_remote), onClick = onClick) else Modifier),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Row(Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (media?.previewUrl != null) {
+                    AsyncImage(model = media.previewUrl, contentDescription = media.description, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                } else {
+                    Icon(Icons.Outlined.Notes, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.TaskAlt, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    Text(
+                        ScheduleWords.fullText(resources, status.createdAt),
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+                status.contentWarning?.let {
+                    Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text(status.text, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                detail?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
     }

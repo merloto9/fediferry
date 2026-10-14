@@ -59,6 +59,18 @@ data class PostedStatus(
     val url: String? = null,
 )
 
+/** A post on an account's timeline, as `GET /api/v1/accounts/:id/statuses` lists it. */
+@Serializable
+data class AccountStatus(
+    val id: String,
+    @SerialName("created_at") val createdAt: String,
+    val url: String? = null,
+    /** HTML; see [MastodonText.plain]. */
+    val content: String = "",
+    @SerialName("spoiler_text") val spoilerText: String = "",
+    @SerialName("media_attachments") val media: List<MediaAttachment> = emptyList(),
+)
+
 /** A post Mastodon holds to publish later. Only the server keeps these. */
 @Serializable
 data class ScheduledStatus(

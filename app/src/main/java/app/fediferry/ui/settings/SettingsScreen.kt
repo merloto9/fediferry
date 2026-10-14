@@ -652,24 +652,6 @@ private fun PostingSection(state: SettingsState, viewModel: SettingsViewModel) {
         valueRange = 0f..30f,
         steps = 29,
     )
-
-    Text(
-        if (state.settings.purgePostedAfterDays == 0) {
-            stringResource(R.string.settings_purge_never)
-        } else {
-            pluralStringResource(
-                R.plurals.settings_purge_after,
-                state.settings.purgePostedAfterDays,
-                state.settings.purgePostedAfterDays,
-            )
-        },
-    )
-    Slider(
-        value = state.settings.purgePostedAfterDays.toFloat(),
-        onValueChange = { viewModel.setPurgeAfterDays(it.toInt()) },
-        valueRange = 0f..90f,
-        steps = 89,
-    )
 }
 
 @Composable

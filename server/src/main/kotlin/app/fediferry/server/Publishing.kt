@@ -65,7 +65,8 @@ import java.util.UUID
  * Upload schedules and the way out. A ready post is planned — now, at a
  * time, or into the next free slot of its channel's schedules — and the
  * [run] loop publishes it once its time has come: with the same key on every
- * try, again later when the instance was busy, and never twice.
+ * try, again later when the instance was busy, and never twice. Once out, the
+ * post is deleted; what went out is read back from the channel ([Channels.published]).
  */
 class Publishing(
     private val storage: Storage,
@@ -144,7 +145,7 @@ class Publishing(
 
     /**
      * Puts a ready post in the queue, moves a planned one to a new time, or
-     * tries a failed one again. A post already being sent, or out, stays as it is.
+     * tries a failed one again. A post already being sent stays as it is.
      */
     fun plan(projectId: String, postId: String, request: PlanRequest): PostDto {
         val post = db.postQueries.byId(projectId, postId).executeAsOneOrNull() ?: throw ApiException.notFound("post")
@@ -249,12 +250,11 @@ class Publishing(
     private suspend fun send(p: Publication) {
         val outcome = runCatching { publisher.publish(job(p)) }
         val now = clock()
-        outcome.onSuccess { published ->
-            feed.change(p.project_id, "post", p.post_id) {
-                db.publicationQueries.published(published.remoteId, published.url, now, now, p.project_id, p.post_id)
-                db.postQueries.setStage(PostStages.PUBLISHED, now, p.project_id, p.post_id)
-            }
-            countHashtags(p.project_id, p.post_id)
+        outcome.onSuccess {
+            // Out: Mastodon keeps it from here, and the server lets go of the
+            // post and every file no other post uses.
+            runCatching { countHashtags(p.project_id, p.post_id) }
+            posts.purge(p.project_id, p.post_id)
             log.info("Published a post")
         }.onFailure { e ->
             val code = (e as? MastodonException)?.message ?: (e as? ApiException)?.code ?: "publish.error"
@@ -332,9 +332,7 @@ class Publishing(
             slotAt = p.slot_at,
             publishAfter = p.publish_after,
             attempts = p.attempts.toInt(),
-            remoteUrl = p.remote_url,
             failureCode = p.failure_code,
-            publishedAt = p.published_at,
         )
     }
 }

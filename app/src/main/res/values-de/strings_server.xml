@@ -3,7 +3,7 @@
     <string name="settings_page_server">FediFerry-Server</string>
     <string name="server_summary_none">Nicht verbunden – alles bleibt auf diesem Telefon</string>
     <string name="server_summary_connected">Projekt %1$s</string>
-    <string name="server_intro">Ein FediFerry-Server hält Bibliothek, Entwürfe und Kanäle eines Projekts an einem Ort, sodass mehrere Telefone gemeinsam daran arbeiten können. Frag, wer den Server betreibt, nach seiner Adresse und einem Projekt-Token.</string>
+    <string name="server_intro">Ein FediFerry-Server führt die Beiträge eines Projekts vom Entwurf über die Prüfung bis zur Veröffentlichung, sodass mehrere Telefone gemeinsam daran arbeiten können. Ein Beitrag wird nur aufbewahrt, bis er raus ist. Frag, wer den Server betreibt, nach seiner Adresse und einem Projekt-Token.</string>
     <string name="server_address">Server-Adresse</string>
     <string name="server_address_hint">Zum Beispiel fediferry.example.org. Außerhalb deines Heimnetzes mit https://.</string>
     <string name="server_token">Projekt-Token</string>
@@ -24,9 +24,9 @@
         <item quantity="one">%1$d Beitrag auf diesem Telefon ist noch nicht im Projekt.</item>
         <item quantity="other">%1$d Beiträge auf diesem Telefon sind noch nicht im Projekt.</item>
     </plurals>
-    <string name="server_import">In die Bibliothek kopieren</string>
+    <string name="server_import">Als Entwürfe kopieren</string>
     <plurals name="server_imported">
-        <item quantity="one">%1$d Beitrag wird in die Bibliothek kopiert.</item>
-        <item quantity="other">%1$d Beiträge werden in die Bibliothek kopiert.</item>
+        <item quantity="one">%1$d Beitrag wird als Entwurf kopiert.</item>
+        <item quantity="other">%1$d Beiträge werden als Entwürfe kopiert.</item>
     </plurals>
 </resources>

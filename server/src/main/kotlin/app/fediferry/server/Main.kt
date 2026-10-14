@@ -60,7 +60,7 @@ fun main(args: Array<String>) = Root().subcommands(
 ).main(args)
 
 private class Root : NoOpCliktCommand(name = "fediferry") {
-    override fun help(context: Context) = "The FediFerry server: one library and its fediverse channels per project."
+    override fun help(context: Context) = "The FediFerry server: drafts, review and publishing to fediverse channels, per project."
 }
 
 /** Commands that work on the data directory. */
@@ -80,8 +80,11 @@ private class Serve : DataCommand("serve") {
         val services = Services(storage, File(data))
         echo("FediFerry server $SERVER_VERSION on http://$host:$port — data in ${File(data).absolutePath}")
         if (services.projects.all().isEmpty()) echo("No projects yet. Create one with: fediferry project create \"Name\"")
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         // Publishes planned posts when their time comes, with or without a phone around.
-        services.publishing.start(CoroutineScope(SupervisorJob() + Dispatchers.IO))
+        services.publishing.start(scope)
+        // Removes files no post uses, left by edits never saved or by an older version.
+        services.startSweeping(scope)
         embeddedServer(Netty, port = port, host = host) { fediferry(services) }.start(wait = true)
     }
 }
@@ -128,10 +131,11 @@ private class ProjectDelete : DataCommand("delete") {
         val projects = Projects(storage)
         val project = projects.find(key) ?: throw UsageError("No project \"$key\".")
         if (!yes) {
-            echo("Delete \"${project.name}\" with its whole library, drafts and channels? Type the name to confirm:")
+            echo("Delete \"${project.name}\" with all its posts, media and channels? Type the name to confirm:")
             if (readlnOrNull()?.trim() != project.name) throw UsageError("Not deleted.")
         }
         projects.delete(project)
+        MediaStore(storage, File(data)).deleteProject(project.id)
         echo("Deleted \"${project.name}\".")
     }
 }

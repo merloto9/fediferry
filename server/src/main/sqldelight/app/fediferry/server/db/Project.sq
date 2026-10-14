@@ -1,4 +1,4 @@
--- A project: one library, its channels and everything that goes with them.
+-- A project: its posts, channels and everything that goes with them.
 -- Projects never see each other's data; every other table hangs off one.
 CREATE TABLE project (
     id TEXT NOT NULL PRIMARY KEY,

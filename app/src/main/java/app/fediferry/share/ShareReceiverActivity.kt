@@ -19,7 +19,7 @@
  */
 package app.fediferry.share
 
-import app.fediferry.library.UploadWorker
+import app.fediferry.upload.UploadWorker
 import app.fediferry.api.IngestModes
 import app.fediferry.i18n.AppLocale
 import android.content.Context
@@ -85,9 +85,9 @@ class ShareReceiverActivity : ComponentActivity() {
                 "${payload.imageUris.size} image(s), link ${if (payload.link == null) "no" else "yes"}",
         )
 
-        // Connected to a FediFerry server: a share kept for later goes to the
-        // project's library there, and Compose starts a draft there. Post now
-        // goes through the server's queue, with the undo window before it.
+        // Connected to a FediFerry server: every share becomes a draft there.
+        // Save for later stops at that, Compose opens it, and Post now sends it
+        // through the server's queue, with the undo window before it.
         val server = ServiceLocator.serverConnections(this).current()
         if (server != null && mode == ShareMode.COMPOSE) {
             composeOnServer(payload, server.projectName)
@@ -104,7 +104,7 @@ class ShareReceiverActivity : ComponentActivity() {
                         .add(IngestModes.SAVE, payload.imageUris, payload.link, payload.text)
                 }.onSuccess { shares ->
                     UploadWorker.enqueue(this@ShareReceiverActivity)
-                    toast(resources.getQuantityString(R.plurals.receiver_to_library, shares.size, shares.size, server.projectName))
+                    toast(resources.getQuantityString(R.plurals.receiver_to_drafts, shares.size, shares.size, server.projectName))
                 }.onFailure { error ->
                     DebugLog.w(LOG, "Keeping a share for the server failed", error)
                     toast(getString(R.string.receiver_read_failed, error.describe()))
@@ -141,7 +141,7 @@ class ShareReceiverActivity : ComponentActivity() {
 
     /**
      * Keeps the share like any other, sends it straight away and opens the
-     * draft the server starts from it. Without a connection it waits with the
+     * draft the server makes of it. Without a connection it waits with the
      * other shares, and the draft is made when it goes up.
      */
     private fun composeOnServer(payload: SharePayload, project: String) = lifecycleScope.launch {

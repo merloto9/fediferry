@@ -42,7 +42,6 @@ data class Settings(
     val visionModel: String = "",
     val visionApiKey: String = "",
     val visionPrompt: String = DEFAULT_VISION_PROMPT,
-    val purgePostedAfterDays: Int = 0, // 0 = keep forever
     /**
      * Trim a screenshot to the detected picture without asking, in the modes
      * that do not stop for input. The untouched screenshot is kept either way,
@@ -109,7 +108,6 @@ class SettingsStore(private val context: Context) {
         val visionModel = stringPreferencesKey("vision_model")
         val visionApiKey = stringPreferencesKey("vision_api_key")
         val visionPrompt = stringPreferencesKey("vision_prompt")
-        val purgeAfterDays = intPreferencesKey("purge_posted_after_days")
         val autoCrop = booleanPreferencesKey("auto_crop")
         val resolveLinks = booleanPreferencesKey("resolve_links")
         val lastCleanupProfile = stringPreferencesKey("last_cleanup_profile")
@@ -134,7 +132,6 @@ class SettingsStore(private val context: Context) {
             visionModel = p[Keys.visionModel].orEmpty(),
             visionApiKey = p[Keys.visionApiKey].orEmpty(),
             visionPrompt = p[Keys.visionPrompt] ?: Settings.DEFAULT_VISION_PROMPT,
-            purgePostedAfterDays = p[Keys.purgeAfterDays] ?: 0,
             autoCrop = p[Keys.autoCrop] ?: true,
             resolveLinks = p[Keys.resolveLinks] ?: true,
             lastCleanupProfileId = p[Keys.lastCleanupProfile].orEmpty(),
@@ -181,7 +178,6 @@ class SettingsStore(private val context: Context) {
     suspend fun setThemeMode(v: ThemeMode) = edit { it[Keys.themeMode] = v.name }
     suspend fun setColorSource(v: ColorSource) = edit { it[Keys.colorSource] = v.name }
     suspend fun setContrastLevel(v: ContrastLevel) = edit { it[Keys.contrastLevel] = v.name }
-    suspend fun setPurgeAfterDays(days: Int) = edit { it[Keys.purgeAfterDays] = days.coerceAtLeast(0) }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         context.dataStore.edit(block)

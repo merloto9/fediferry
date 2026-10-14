@@ -20,6 +20,7 @@
 package app.fediferry.data.db
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -40,6 +41,12 @@ import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.Source
 import app.fediferry.data.model.Template
 import app.fediferry.template.TemplateEngine
+import app.fediferry.phone.PhoneAsset
+import app.fediferry.phone.PhoneChannel
+import app.fediferry.phone.PhoneDao
+import app.fediferry.phone.PhonePost
+import app.fediferry.phone.PhoneReviewFolder
+import app.fediferry.phone.PhoneSchedule
 
 @Database(
     entities = [
@@ -55,9 +62,16 @@ import app.fediferry.template.TemplateEngine
         AiModel::class,
         HashtagUsage::class,
         InboxStack::class,
+        PhoneChannel::class,
+        PhonePost::class,
+        PhoneAsset::class,
+        PhoneReviewFolder::class,
+        PhoneSchedule::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
+    // The phone's project: new tables only, so Room adds them by itself.
+    autoMigrations = [AutoMigration(from = 11, to = 12)],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -71,6 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun aiModels(): AiModelDao
     abstract fun hashtagUsage(): HashtagUsageDao
     abstract fun stacks(): StackDao
+    abstract fun phone(): PhoneDao
 
     companion object {
         /**

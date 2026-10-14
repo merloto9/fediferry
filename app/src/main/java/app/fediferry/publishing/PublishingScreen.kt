@@ -117,7 +117,7 @@ fun PublishingScreen(
             )
             return@Scaffold
         }
-        val channelOf = { post: PostDto -> state.channels.firstOrNull { it.id == post.channelId }?.let { "@${it.acct}" } }
+        val channelOf = { post: PostDto -> state.channels.firstOrNull { it.id == post.channelId }?.label }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(12.dp),
@@ -167,13 +167,13 @@ fun PublishingScreen(
             if (state.published.isNotEmpty() || state.publishedUnreachable.isNotEmpty()) {
                 item { Heading(stringResource(R.string.publishing_published)) }
                 state.publishedUnreachable.forEach { id ->
-                    val name = state.channels.firstOrNull { it.id == id }?.let { "@${it.acct}" } ?: id
+                    val name = state.channels.firstOrNull { it.id == id }?.label ?: id
                     item(key = "unreachable-$id") { Notice(stringResource(R.string.publishing_published_unreachable, name)) }
                 }
                 items(state.published, key = { "${it.channelId}/${it.id}" }) { status ->
                     PublishedRow(
                         status,
-                        detail = state.channels.firstOrNull { it.id == status.channelId }?.let { "@${it.acct}" },
+                        detail = state.channels.firstOrNull { it.id == status.channelId }?.label,
                         onClick = status.url?.let { url -> { uriHandler.openUri(url) } },
                     )
                 }

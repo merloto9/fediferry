@@ -1,0 +1,29 @@
+-- A channel is a project's destination: a fediverse account (connected later
+-- if need be), its platform, its instance's limits, and how posts there start.
+-- That last part was a template picked per post; each channel now has its own.
+
+ALTER TABLE channel RENAME COLUMN type TO platform;
+ALTER TABLE channel RENAME COLUMN capabilities_json TO limits_json;
+ALTER TABLE channel ADD COLUMN post_json TEXT NOT NULL DEFAULT '{}';
+
+-- Each channel takes the template its posts started with: the one it named,
+-- else the project's default template, else the first.
+UPDATE channel SET post_json = COALESCE(
+    (SELECT s.json FROM settings_entry s
+     WHERE s.project_id = channel.project_id AND s.kind = 'template' AND s.id = json_extract(channel.defaults_json, '$.templateId')),
+    (SELECT s.json FROM settings_entry s
+     WHERE s.project_id = channel.project_id AND s.kind = 'template' AND json_extract(s.json, '$.isDefault') = 1 LIMIT 1),
+    (SELECT s.json FROM settings_entry s
+     WHERE s.project_id = channel.project_id AND s.kind = 'template' ORDER BY json_extract(s.json, '$.sortOrder') LIMIT 1),
+    '{}'
+);
+-- A visibility the channel set for itself beat the template's.
+UPDATE channel SET post_json = json_set(post_json, '$.visibility', json_extract(defaults_json, '$.visibility'))
+WHERE json_extract(defaults_json, '$.visibility') IS NOT NULL;
+ALTER TABLE channel DROP COLUMN defaults_json;
+
+-- A sign-in can be for a channel that exists already.
+ALTER TABLE oauth_pending ADD COLUMN channel_id TEXT;
+
+-- A post follows its channel's settings; there is no template to name.
+ALTER TABLE post DROP COLUMN template_id;

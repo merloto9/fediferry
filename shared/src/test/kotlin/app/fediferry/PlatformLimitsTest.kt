@@ -27,7 +27,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ChannelCapabilitiesTest {
+class PlatformLimitsTest {
 
     @Test
     fun `reads what a Mastodon 4_6 instance says it takes`() {
@@ -42,7 +42,7 @@ class ChannelCapabilitiesTest {
                "polls":{"max_options":4,"max_characters_per_option":50}}}
             """.trimIndent(),
         )
-        val caps = MastodonAccounts.parseCapabilities(reply, now = 42)
+        val caps = MastodonAccounts.parseLimits(reply, now = 42)
         assertEquals(500, caps.maxCharacters)
         assertEquals(10000, caps.altTextMaxLength)
         assertEquals(listOf("image/jpeg", "image/png", "image/heic"), caps.imageMimeTypes)
@@ -53,7 +53,7 @@ class ChannelCapabilitiesTest {
 
     @Test
     fun `an instance that says little keeps Mastodon's defaults`() {
-        val caps = MastodonAccounts.parseCapabilities(Json.decodeFromString("""{"configuration":{"statuses":{"max_characters":5000}}}"""), 0)
+        val caps = MastodonAccounts.parseLimits(Json.decodeFromString("""{"configuration":{"statuses":{"max_characters":5000}}}"""), 0)
         assertEquals(5000, caps.maxCharacters)
         assertEquals(4, caps.maxMediaAttachments)
         assertEquals(1500, caps.altTextMaxLength)

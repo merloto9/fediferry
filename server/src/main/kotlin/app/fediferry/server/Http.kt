@@ -22,6 +22,7 @@ package app.fediferry.server
 import app.fediferry.channel.ChannelPublisher
 import app.fediferry.channel.MastodonPublisher
 import app.fediferry.mastodon.MastodonAccounts
+import app.fediferry.platform.PlatformDetector
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -74,6 +75,7 @@ class Services(
     fetcher: MediaFetcher = OkHttpMediaFetcher(outboundHttp),
     mastodon: MastodonAccounts = MastodonAccounts(outboundHttp),
     publisher: ChannelPublisher = MastodonPublisher(outboundHttp),
+    detector: PlatformDetector = PlatformDetector(outboundHttp),
 ) {
     val projects = Projects(storage, clock)
     val feed = ChangeFeed(storage, clock)
@@ -81,7 +83,7 @@ class Services(
     val crypto = Crypto.load(dataDir)
     val secrets = Secrets(storage.db, crypto, clock)
     val settings = SettingsStore(storage, feed, clock)
-    val channels = Channels(storage, secrets, crypto, feed, mastodon, clock)
+    val channels = Channels(storage, secrets, crypto, feed, mastodon, detector, clock)
     val posts = Posts(storage, feed, settings, secrets, media, outboundHttp, clock)
     val intake = Intake(storage, media, posts, resolvers, fetcher, clock)
     val publishing = Publishing(storage, feed, posts, channels, media, settings, publisher, clock)

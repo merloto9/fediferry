@@ -23,6 +23,8 @@ import android.content.Context
 import app.fediferry.data.db.AppDatabase
 import app.fediferry.upload.PendingShares
 import app.fediferry.upload.UploadWorker
+import app.fediferry.api.PostStages
+import app.fediferry.phone.PhoneBackend
 import java.io.File
 
 /**
@@ -40,22 +42,27 @@ class LocalImporter(private val context: Context, private val db: AppDatabase, p
     private fun imported(projectId: String): Set<String> =
         marker(projectId).takeIf { it.exists() }?.readLines()?.toSet().orEmpty()
 
+    /** What the phone's own project holds that is not on its way out: drafts, review, failures. */
+    private suspend fun posts() = db.phone().posts(listOf(PostStages.DRAFT, PostStages.READY, PostStages.FAILED))
+
     /** Posts on this phone that are not in the project yet. */
     suspend fun waiting(projectId: String): Int {
         val done = imported(projectId)
-        return db.items().unposted().count { "import-${it.id}" !in done && !pending.has("import-${it.id}") }
+        return posts().count { "import-${it.id}" !in done && !pending.has("import-${it.id}") }
     }
 
     /** Queues them for upload; returns how many were queued. */
     suspend fun importAll(projectId: String): Int {
         val done = imported(projectId).toMutableSet()
         var queued = 0
-        for (item in db.items().unposted()) {
-            val id = "import-${item.id}"
+        for (post in posts()) {
+            val id = "import-${post.id}"
             if (id in done || pending.has(id)) continue
-            val file = item.mediaPath?.let(::File)?.takeIf { it.exists() }
-            if (file == null && item.sourceUrl == null) continue
-            pending.addFile(id, item.sourceUrl, file, item.mimeType, item.createdAt)
+            val picture = runCatching { PhoneBackend.json.decodeFromString(PhoneBackend.MEDIA, post.mediaJson) }.getOrNull()
+                ?.firstOrNull()?.let { db.phone().asset(it.assetId) }
+            val file = picture?.path?.let(::File)?.takeIf { it.exists() }
+            if (file == null && post.sourceUrl == null) continue
+            pending.addFile(id, post.sourceUrl, file, picture?.mime, post.createdAt)
             done += id
             queued++
         }

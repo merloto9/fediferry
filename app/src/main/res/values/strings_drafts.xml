@@ -27,7 +27,7 @@
     <string name="draft_length_of">%1$d of %2$d characters</string>
     <string name="draft_channel">Post to: %1$s</string>
     <string name="draft_pick_channel">pick a channel</string>
-    <string name="draft_no_channels">No channel yet. Connect a Mastodon account in Settings → Mastodon account.</string>
+    <string name="draft_no_channels">No channel yet. Add one in Settings → Channels.</string>
 
     <string name="draft_offline">No connection to the server right now.</string>
     <string name="server_error_locked">%1$s is editing this draft (until %2$s).</string>
@@ -45,4 +45,5 @@
         <item quantity="one">%1$d draft started.</item>
         <item quantity="other">%1$d drafts started; the first is open.</item>
     </plurals>
+    <string name="draft_saved_generic">Saved</string>
 </resources>

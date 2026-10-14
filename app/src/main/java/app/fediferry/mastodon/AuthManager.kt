@@ -20,6 +20,7 @@
 package app.fediferry.mastodon
 
 import android.content.Context
+import app.fediferry.api.AuthorizeResponse
 import androidx.core.net.toUri
 import androidx.browser.customtabs.CustomTabsIntent
 import app.fediferry.BuildConfig
@@ -45,16 +46,29 @@ class AuthManager(
 ) {
 
     /** Survives only for the duration of one authorisation; not persisted. */
-    private data class Pending(val instance: String, val state: String)
+    private data class Pending(val instance: String, val state: String, val channelId: String? = null)
+
+    /** A finished sign-in: the account, its id on the instance, and the channel it was for. */
+    data class Connected(val account: Account, val remoteAccountId: String, val channelId: String?)
 
     @Volatile private var pending: Pending? = null
 
     suspend fun beginAuthorization(rawInstance: String) {
+        val auth = authorize(rawInstance, channelId = null)
+        CustomTabsIntent.Builder().build().apply {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }.launchUrl(context, auth.url.toUri())
+    }
+
+    /**
+     * Registers with [rawInstance] if need be and returns where to sign in, for
+     * the caller to open; the account goes to [channelId] when the browser is back.
+     */
+    suspend fun authorize(rawInstance: String, channelId: String?): AuthorizeResponse {
         val instance = normalise(rawInstance)
         val app = accounts.appFor(instance)?.takeIf { it.scopes == SCOPES } ?: registerApp(instance)
         val state = randomState()
-        pending = Pending(instance, state)
-
+        pending = Pending(instance, state, channelId)
         val url = client.authorizeUrl(
             instance = instance,
             clientId = app.clientId,
@@ -62,16 +76,14 @@ class AuthManager(
             scopes = SCOPES,
             state = state,
         )
-        CustomTabsIntent.Builder().build().apply {
-            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        }.launchUrl(context, url.toUri())
+        return AuthorizeResponse(url, state)
     }
 
     /**
      * Completes the flow. Returns the connected account, or fails if the
      * redirect did not match the authorisation we started.
      */
-    suspend fun completeAuthorization(code: String, state: String): Result<Account> =
+    suspend fun completeAuthorization(code: String, state: String): Result<Connected> =
         runCatching {
             val session = pending
                 ?: throw MastodonException(context.getString(R.string.auth_no_sign_in))
@@ -104,7 +116,7 @@ class AuthManager(
             accounts.upsert(account)
             tokens.put(account.id, token.accessToken)
             if (account.isDefault) accounts.setDefault(account.id)
-            account
+            Connected(account, me.id, session.channelId)
         }
 
     fun cancel() {

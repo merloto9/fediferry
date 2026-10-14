@@ -48,7 +48,7 @@
     <string name="models_report_detail">%1$s: %2$s</string>
 
     <!-- Einstellungen → Hashtags -->
-    <string name="placeholders_hashtags_intro">Die Hashtags, mit denen du postest – eine Liste für alles. Jede Vorlage hakt die an, die ihr Thema nutzt; der Editor zeigt die ganze Liste, so kann jeder Beitrag mehr bekommen.</string>
+    <string name="placeholders_hashtags_intro">Die Hashtags, mit denen du postest – eine Liste für alles. Jeder Kanal hakt die an, mit denen seine Beiträge beginnen; der Editor zeigt die ganze Liste, so kann jeder Beitrag mehr bekommen.</string>
     <string name="placeholders_remove_hashtag">%1$s entfernen</string>
     <string name="placeholders_new_hashtag">Neuer Hashtag</string>
     <string name="placeholders_new_hashtag_example">#politik</string>

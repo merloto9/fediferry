@@ -38,6 +38,7 @@ import app.fediferry.api.PostPatch
 import app.fediferry.api.CompleteRequest
 import app.fediferry.api.ChannelPatch
 import app.fediferry.api.ChannelDto
+import app.fediferry.api.ChannelInput
 import app.fediferry.api.AuthorizeResponse
 import app.fediferry.api.AuthorizeRequest
 import kotlinx.serialization.json.JsonObject
@@ -208,10 +209,14 @@ class ServerClient(
 
     suspend fun deleteChannel(id: String) = sendNoContent("channels/${encode(id)}", "DELETE")
 
-    suspend fun refreshCapabilities(id: String): ChannelDto = send("channels/${encode(id)}/refresh-capabilities", "POST", "{}")
+    suspend fun refreshLimits(id: String): ChannelDto = send("channels/${encode(id)}/refresh-limits", "POST", "{}")
 
-    suspend fun authorizeMastodon(instance: String, redirectUri: String): AuthorizeResponse =
-        post("channels/mastodon/authorize", json.encodeToString(AuthorizeRequest(instance, redirectUri)))
+    /** A channel with no account yet. */
+    suspend fun createChannel(input: ChannelInput): ChannelDto = post("channels", json.encodeToString(input))
+
+    /** Starts signing in to [instance]; the account goes to [channelId], or to a new channel. */
+    suspend fun authorizeMastodon(instance: String, redirectUri: String, channelId: String? = null): AuthorizeResponse =
+        post("channels/mastodon/authorize", json.encodeToString(AuthorizeRequest(instance, redirectUri, channelId)))
 
     suspend fun completeMastodon(code: String, state: String): ChannelDto =
         post("channels/mastodon/complete", json.encodeToString(CompleteRequest(code, state)))

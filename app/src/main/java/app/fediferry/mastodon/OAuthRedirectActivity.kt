@@ -76,7 +76,8 @@ class OAuthRedirectActivity : ComponentActivity() {
 
         // A sign-in started through the FediFerry server finishes there: the
         // server exchanges the code and keeps the token.
-        if (PendingChannelSignIn.take(this, state)) {
+        val pendingServer = PendingChannelSignIn.take(this, state)
+        if (pendingServer && ServiceLocator.serverConnections(this).current() != null) {
             lifecycleScope.launch {
                 val connections = ServiceLocator.serverConnections(this@OAuthRedirectActivity)
                 val result = runCatching {
@@ -85,7 +86,7 @@ class OAuthRedirectActivity : ComponentActivity() {
                 }
                 toast(
                     result.fold(
-                        onSuccess = { getString(R.string.auth_connected, it.acct) },
+                        onSuccess = { getString(R.string.auth_connected, it.account?.acct ?: it.name) },
                         onFailure = { getString(R.string.auth_failed, (it as? ServerException)?.code ?: it.message.orEmpty()) },
                     ),
                 )
@@ -94,13 +95,17 @@ class OAuthRedirectActivity : ComponentActivity() {
             return
         }
 
+        // The phone's own sign-in: the account goes to the phone project's channel.
         lifecycleScope.launch {
-            val result = ServiceLocator.auth(this@OAuthRedirectActivity)
-                .completeAuthorization(code, state)
+            val context = this@OAuthRedirectActivity
+            val result = ServiceLocator.auth(context).completeAuthorization(code, state).mapCatching { connected ->
+                ServiceLocator.phone(context).attachAccount(connected.channelId, connected.account, connected.remoteAccountId)
+                connected.account
+            }
             toast(
                 result.fold(
                     onSuccess = { getString(R.string.auth_connected, it.acct) },
-                    onFailure = { getString(R.string.auth_failed, it.message.orEmpty()) },
+                    onFailure = { getString(R.string.auth_failed, (it as? ServerException)?.code ?: it.message.orEmpty()) },
                 ),
             )
             openApp()

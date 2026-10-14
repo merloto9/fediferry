@@ -19,6 +19,8 @@
  */
 package app.fediferry.backend
 
+import app.fediferry.api.ChannelInput
+import app.fediferry.api.ChannelPatch
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.PlanRequest
 import app.fediferry.api.PostPatch
@@ -26,6 +28,7 @@ import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.ScheduleInput
 import app.fediferry.client.ServerClient
+import app.fediferry.mastodon.AuthManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -74,6 +77,12 @@ class ServerBackend(private val client: ServerClient, override val deviceId: Str
     override suspend fun published(limit: Int) = client.published(limit)
 
     override suspend fun channels() = client.channels()
+    override suspend fun createChannel(input: ChannelInput) = client.createChannel(input)
+    override suspend fun patchChannel(id: String, patch: ChannelPatch) = client.patchChannel(id, patch)
+    override suspend fun deleteChannel(id: String) = client.deleteChannel(id)
+    override suspend fun refreshLimits(id: String) = client.refreshLimits(id)
+    override suspend fun connectAccount(instance: String, channelId: String?) =
+        client.authorizeMastodon(instance, AuthManager.REDIRECT_URI, channelId)
     override fun mediaUrl(assetId: String) = client.mediaUrl(assetId)
     override fun thumbnailUrl(assetId: String) = client.thumbnailUrl(assetId)
 

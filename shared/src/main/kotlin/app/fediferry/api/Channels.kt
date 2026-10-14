@@ -19,19 +19,53 @@
  */
 package app.fediferry.api
 
+import app.fediferry.data.model.ContentSource
+import app.fediferry.data.model.Hashtags
+import app.fediferry.template.TemplateSpec
 import kotlinx.serialization.Serializable
 
-object ChannelTypes {
-    const val MASTODON = "MASTODON"
+/**
+ * Fediverse software a channel can post to. Each knows its usual limits,
+ * used until the instance itself says otherwise; only [supported] ones can be
+ * connected. The instance's software is detected when an account is
+ * connected (see [app.fediferry.platform.PlatformDetector]).
+ */
+enum class Platform(
+    val label: String,
+    /** The names the software gives itself in its nodeinfo. */
+    val software: Set<String>,
+    val supported: Boolean,
+    val defaultLimits: PlatformLimits,
+) {
+    MASTODON("Mastodon", setOf("mastodon"), supported = true, PlatformLimits()),
+    PIXELFED(
+        "Pixelfed", setOf("pixelfed"), supported = false,
+        PlatformLimits(
+            maxCharacters = 500,
+            maxMediaAttachments = 4,
+            imageMimeTypes = listOf("image/jpeg", "image/png", "image/gif", "image/webp"),
+            maxImageBytes = 15L * 1024 * 1024,
+            maxVideoBytes = 15L * 1024 * 1024,
+            altTextMaxLength = 1000,
+            textOnly = false,
+        ),
+    ),
+    ;
+
+    companion object {
+        fun ofSoftware(name: String): Platform? = entries.firstOrNull { name.trim().lowercase() in it.software }
+        fun fromName(name: String?): Platform? = entries.firstOrNull { it.name == name }
+    }
 }
 
 /**
- * What a channel's destination takes, read from the server it lives on. A
- * post is checked against these before it can be ready, and the editor shows
- * them while writing. Unknown values fall back to Mastodon's defaults.
+ * What a channel's instance takes: read from the instance where its platform
+ * says, else the platform's [Platform.defaultLimits]. A post is checked
+ * against these before it can be ready, and the editor shows them while
+ * writing.
  */
 @Serializable
-data class ChannelCapabilities(
+data class PlatformLimits(
     val maxCharacters: Int = 500,
     val maxMediaAttachments: Int = 4,
     val imageMimeTypes: List<String> = listOf("image/jpeg", "image/png", "image/gif", "image/webp"),
@@ -46,38 +80,81 @@ data class ChannelCapabilities(
     val pollMaxCharactersPerOption: Int = 50,
     /** Mastodon 4.6 (API version 10) takes a poll and pictures in one post. */
     val pollWithMedia: Boolean = false,
-    /** When these were read, so the app can say how fresh they are. */
+    /** When these were read from the instance; 0 while they are the platform's defaults. */
     val readAt: Long = 0,
 )
 
-/** What a new post on a channel starts with. */
+/**
+ * How a channel's posts start: the text with its placeholders, the hashtags
+ * picked, visibility, content warning and alt text. One per channel — what
+ * was a template, picked per post, before.
+ */
 @Serializable
-data class ChannelDefaults(
+data class PostSettings(
+    override val body: String = "{tags}\n\nvia {link}",
+    /** Picks from the project's hashtag list, space-separated. */
+    val tags: String = "#meme",
     /** A [app.fediferry.data.model.Visibility] name. */
-    val visibility: String? = null,
-    val templateId: String? = null,
+    val visibility: String = "PUBLIC",
+    val contentWarning: String? = null,
+    /** NONE, STATIC or VISION. */
+    val altTextMode: String = "NONE",
+    val staticAltText: String? = null,
+    override val addSourceHashtags: Boolean = true,
+    /** Sources whose data this channel's text ignores: their placeholders come out empty. */
+    val excludedSources: Set<ContentSource> = emptySet(),
+) : TemplateSpec {
+    override val hashtagList: List<String> get() = Hashtags.parse(tags)
+    override fun usesSource(source: ContentSource): Boolean = source !in excludedSources
+}
+
+/** The fediverse account a channel posts as. Its credential stays with the backend. */
+@Serializable
+data class ChannelAccount(
+    /** A [Platform] name. */
+    val platform: String,
+    val instance: String,
+    val acct: String,
+    val displayName: String = "",
+    val avatarUrl: String? = null,
 )
 
+/**
+ * A destination of a project: one fediverse account, its instance's limits,
+ * and how the project's posts there start. Every post goes to one channel;
+ * schedules belong to one. A channel can be set up before its account is
+ * connected, but nothing goes out on it until then.
+ */
 @Serializable
 data class ChannelDto(
     val id: String,
-    val type: String,
     val name: String,
-    val instance: String,
-    val acct: String,
-    val displayName: String,
-    val avatarUrl: String? = null,
     val isDefault: Boolean = false,
-    val capabilities: ChannelCapabilities = ChannelCapabilities(),
-    val defaults: ChannelDefaults = ChannelDefaults(),
-)
+    val account: ChannelAccount? = null,
+    val limits: PlatformLimits = PlatformLimits(),
+    val post: PostSettings = PostSettings(),
+) {
+    /** How the channel is named in lists: its account's handle, or its name before one is connected. */
+    val label: String get() = account?.let { "@${it.acct}" } ?: name
+
+    /** Its name with its account's handle, for pickers: "Memes · @memes". */
+    val title: String get() = account?.let { "$name · @${it.acct}" } ?: name
+}
+
+/** `POST /channels`: a new channel, with no account yet. */
+@Serializable
+data class ChannelInput(val name: String, val post: PostSettings? = null)
 
 @Serializable
-data class ChannelPatch(val name: String? = null, val isDefault: Boolean? = null, val defaults: ChannelDefaults? = null)
+data class ChannelPatch(val name: String? = null, val isDefault: Boolean? = null, val post: PostSettings? = null)
 
-/** Step one of connecting an account: the server registers itself and returns where to sign in. */
+/**
+ * Step one of connecting an account: the server detects the instance's
+ * platform, registers itself and returns where to sign in. The account goes
+ * to [channelId], or to a new channel when there is none.
+ */
 @Serializable
-data class AuthorizeRequest(val instance: String, val redirectUri: String)
+data class AuthorizeRequest(val instance: String, val redirectUri: String, val channelId: String? = null)
 
 @Serializable
 data class AuthorizeResponse(val url: String, val state: String)

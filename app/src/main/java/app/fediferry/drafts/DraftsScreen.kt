@@ -218,7 +218,7 @@ private fun DraftRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    channel?.let { "@${it.acct}" } ?: stringResource(R.string.drafts_no_channel),
+                    channel?.label ?: stringResource(R.string.drafts_no_channel),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

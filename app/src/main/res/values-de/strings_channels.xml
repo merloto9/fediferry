@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="channels_intro">Die Kanäle des Projekts: die Konten, in die seine Beiträge gehen. Angemeldet wird über den FediFerry-Server, der das Token des Kontos verwahrt; es liegt nie auf einem Telefon.</string>
-    <string name="channels_none">Noch kein Kanal. Melde dich unten bei einem Mastodon-Konto an.</string>
+    <string name="channels_intro">Ein Kanal ist, wohin die Beiträge des Projekts gehen: ein Fediverse-Konto, was seine Instanz annimmt und wie Beiträge dort beginnen. Jeder Beitrag geht an einen Kanal.</string>
+    <string name="channels_none">Noch kein Kanal. Leg einen an und verbinde dann ein Konto damit.</string>
     <string name="channels_failed">Das hat nicht geklappt (%1$s).</string>
     <plurals name="channels_local_accounts">
         <item quantity="one">Dieses Telefon ist bei %1$d Konto angemeldet, welches dem Projekt noch fehlt.</item>
@@ -10,8 +10,8 @@
     <string name="channels_take_over">Ins Projekt übernehmen</string>
     <string name="channels_add_title">Mastodon-Konto hinzufügen</string>
     <string name="channels_instance">Instanz</string>
-    <string name="channels_sign_in">Anmelden</string>
-    <string name="channels_capabilities">Zeichen: %1$d · Bilder: %2$d · Bildbeschreibung: %3$d</string>
+    <string name="channels_sign_in">Verbinden</string>
+    <string name="channels_limits">Zeichen: %1$d · Bilder: %2$d · Bildbeschreibung: %3$d</string>
     <string name="channels_default">Standardkanal</string>
     <string name="channels_actions">Aktionen für %1$s</string>
     <string name="channels_make_default">Als Standard</string>
@@ -20,4 +20,45 @@
     <string name="channels_remove">Entfernen</string>
     <string name="channels_remove_title">%1$s entfernen?</string>
     <string name="channels_remove_text">Das Projekt postet dort nicht mehr, und der Server vergisst das Token des Kontos. Das Konto selbst bleibt, wie es ist.</string>
+    <string name="settings_group_project">Projekt</string>
+    <string name="settings_page_project">Projekt</string>
+    <string name="settings_group_channels">Kanäle</string>
+    <string name="settings_page_channels">Kanäle</string>
+    <string name="project_summary_phone">Dieses Telefon – alles bleibt hier</string>
+    <string name="project_summary_server">„%1$s“ auf einem FediFerry-Server</string>
+    <string name="project_this_phone">Dieses Telefon</string>
+    <string name="project_local_intro">Das Projekt liegt auf diesem Telefon: Beiträge, Kanäle und Einstellungen bleiben hier, ein Server ist nicht nötig.</string>
+    <string name="project_join_server">Mit einem FediFerry-Server arbeiten</string>
+    <string name="channels_summary_none">Noch kein Kanal</string>
+    <string name="channels_new">Neuer Kanal</string>
+    <string name="channels_create">Anlegen</string>
+    <string name="channels_no_account">Noch kein Konto verbunden</string>
+    <string name="channel_name">Name</string>
+    <string name="channel_name_example">Memes</string>
+    <string name="channel_default_detail">Neue Entwürfe beginnen in diesem Kanal.</string>
+    <string name="channel_account">Konto</string>
+    <string name="channel_platform">Läuft mit %1$s</string>
+    <string name="channel_change_account">Anderes Konto verbinden</string>
+    <string name="channel_instance_hint">Welche Software der Server nutzt, wird erkannt; verbinden lässt sich bisher nur Mastodon.</string>
+    <string name="channel_limits">Grenzen</string>
+    <string name="channel_limits_of">Was %1$s annimmt</string>
+    <string name="channel_limit_characters">%1$d Zeichen</string>
+    <string name="channel_limit_pictures">%1$d Bilder pro Beitrag</string>
+    <string name="channel_limit_alt">%1$d Zeichen Bildbeschreibung</string>
+    <string name="channel_limit_cw">Inhaltswarnungen</string>
+    <string name="channel_limit_no_cw">Keine Inhaltswarnungen</string>
+    <string name="channel_limit_text_only">Beiträge ohne Bild</string>
+    <string name="channel_limit_needs_picture">Jeder Beitrag braucht ein Bild</string>
+    <string name="channel_limits_read">Von der Instanz gelesen: %1$s</string>
+    <string name="channel_limits_usual">Die üblichen Grenzen von Mastodon, bis ein Konto verbunden ist.</string>
+    <string name="channel_post_settings">Wie Beiträge beginnen</string>
+    <string name="channel_post_settings_detail">Neue Entwürfe in diesem Kanal beginnen so. Ein hierher verschobener Entwurf wird danach neu geschrieben, außer sein Text wurde von Hand geändert.</string>
+    <string name="channel_error_unsupported">%1$s lässt sich noch nicht verbinden – bisher nur Mastodon.</string>
+    <string name="channel_error_unknown">Diese Instanz läuft mit %1$s, das FediFerry nicht kennt.</string>
+    <string name="channel_error_undetected">Es ließ sich nicht erkennen, was auf %1$s läuft. Prüf die Adresse.</string>
+    <string name="channel_error_in_use">Dieses Konto ist schon mit dem Kanal „%1$s“ verbunden.</string>
+    <plurals name="channels_summary">
+        <item quantity="one">%1$d Kanal · Standard: %2$s</item>
+        <item quantity="other">%1$d Kanäle · Standard: %2$s</item>
+    </plurals>
 </resources>

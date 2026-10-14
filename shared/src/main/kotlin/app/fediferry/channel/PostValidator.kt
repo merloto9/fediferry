@@ -32,6 +32,7 @@ import app.fediferry.template.TemplateEngine
  */
 object PostValidator {
     const val NO_CHANNEL = "ready.no_channel"
+    const val NO_ACCOUNT = "ready.no_account"
     const val EMPTY = "ready.empty"
     const val TOO_LONG = "ready.too_long"
     const val TOO_MANY_MEDIA = "ready.too_many_media"
@@ -59,9 +60,10 @@ object PostValidator {
         val found = mutableListOf<Violation>()
         val text = finalText(post)
         if (channel == null) found += Violation(NO_CHANNEL)
+        else if (channel.account == null) found += Violation(NO_ACCOUNT)
         if (text.isBlank() && post.media.isEmpty()) found += Violation(EMPTY)
 
-        val caps = channel?.capabilities
+        val caps = channel?.limits
         if (caps != null) {
             val length = length(post)
             if (length > caps.maxCharacters) found += Violation(TOO_LONG, mapOf("length" to "$length", "max" to "${caps.maxCharacters}"))

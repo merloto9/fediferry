@@ -27,17 +27,12 @@ import app.fediferry.work.ScheduleWords
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,11 +46,11 @@ import app.fediferry.work.ScheduleFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.ZoneOffset
 
 /**
  * Picks when Mastodon should publish a post: a day, then a time, never less
- * than [ScheduleFormat.MIN_LEAD_MINUTES] away.
+ * than [ScheduleFormat.MIN_LEAD_MINUTES] away. The days and times [planned]
+ * already show, so a post is not put on top of another by accident.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,41 +62,30 @@ fun SchedulePicker(
     onDismiss: () -> Unit,
     /** The FediFerry server publishes, not Mastodon: a minute ahead is enough. */
     byServer: Boolean = false,
+    planned: List<PlannedMark> = emptyList(),
 ) {
     val zone = ZoneId.systemDefault()
     val start = Instant.ofEpochMilli(initial).atZone(zone)
     val today = LocalDate.now(zone)
     var pickingTime by remember { mutableStateOf(false) }
 
-    // The date picker counts in UTC midnights, whatever the phone's zone.
-    val dateState = rememberDatePickerState(
-        initialSelectedDateMillis = start.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
-                !Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate().isBefore(today)
-
-            override fun isSelectableYear(year: Int): Boolean = year >= today.year
-        },
-    )
+    var date by remember { mutableStateOf(maxOf(start.toLocalDate(), today)) }
     val timeState = rememberTimePickerState(
         initialHour = start.hour,
         initialMinute = start.minute,
         is24Hour = DateFormat.is24HourFormat(LocalContext.current),
     )
-    val date = dateState.selectedDateMillis
-        ?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
-        ?: start.toLocalDate()
-
     if (!pickingTime) {
-        DatePickerDialog(
+        AlertDialog(
             onDismissRequest = onDismiss,
+            title = { Text(title) },
+            text = { PlannedCalendar(selected = date, onSelect = { date = it }, today = today, planned = planned, zone = zone) },
             confirmButton = { TextButton(onClick = { pickingTime = true }) { Text(stringResource(R.string.schedule_next)) } },
             dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.schedule_cancel)) } },
-        ) {
-            DatePicker(state = dateState, title = { Text(title, modifier = Modifier.padding(start = 24.dp, top = 16.dp)) })
-        }
+        )
         return
     }
+    val taken = planned.filter { !it.isThis && Instant.ofEpochMilli(it.at).atZone(zone).toLocalDate() == date }.sortedBy { it.at }
 
     val at = ScheduleFormat.combine(date, timeState.hour, timeState.minute, zone)
     val tooSoon = at < if (byServer) System.currentTimeMillis() + SERVER_LEAD_MS else ScheduleFormat.earliest()
@@ -112,6 +96,14 @@ fun SchedulePicker(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(ScheduleWords.dayHeading(LocalResources.current, at), style = MaterialTheme.typography.titleSmall)
                 TimePicker(state = timeState)
+                if (taken.isNotEmpty()) {
+                    val resources = LocalResources.current
+                    Text(
+                        stringResource(R.string.calendar_taken_times, taken.joinToString { ScheduleWords.timeText(resources, it.at) }),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (tooSoon && byServer) {
                     Text(stringResource(R.string.schedule_too_soon_server), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 } else if (tooSoon) {

@@ -19,7 +19,7 @@
  */
 package app.fediferry.mastodon
 
-import app.fediferry.api.ChannelCapabilities
+import app.fediferry.api.PlatformLimits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -94,8 +94,8 @@ class MastodonAccounts(private val http: OkHttpClient) {
     }
 
     /** What the instance accepts, from `/api/v2/instance`; Mastodon's defaults where it does not say. */
-    suspend fun capabilities(instance: String, now: Long = System.currentTimeMillis()): ChannelCapabilities =
-        parseCapabilities(get<JsonObject>(instance, "api/v2/instance", null), now)
+    suspend fun limits(instance: String, now: Long = System.currentTimeMillis()): PlatformLimits =
+        parseLimits(get<JsonObject>(instance, "api/v2/instance", null), now)
 
     private suspend inline fun <reified T> get(instance: String, path: String, token: String?): T = withContext(Dispatchers.IO) {
         val request = Request.Builder().url(base(instance).addPathSegments(path).build())
@@ -152,8 +152,8 @@ class MastodonAccounts(private val http: OkHttpClient) {
         }
 
         /** Reads an `/api/v2/instance` reply; every value it lacks keeps its default. */
-        fun parseCapabilities(instance: JsonObject, now: Long): ChannelCapabilities {
-            val defaults = ChannelCapabilities()
+        fun parseLimits(instance: JsonObject, now: Long): PlatformLimits {
+            val defaults = PlatformLimits()
             val config = instance["configuration"]?.jsonObject
             val statuses = config?.get("statuses")?.jsonObject
             val media = config?.get("media_attachments")?.jsonObject
@@ -162,7 +162,7 @@ class MastodonAccounts(private val http: OkHttpClient) {
             fun JsonObject?.long(key: String) = this?.get(key)?.jsonPrimitive?.longOrNull
             val mimes = media?.get("supported_mime_types")?.jsonArray?.map { it.jsonPrimitive.content }
             val apiVersion = instance["api_versions"]?.jsonObject?.get("mastodon")?.jsonPrimitive?.intOrNull ?: 0
-            return ChannelCapabilities(
+            return PlatformLimits(
                 maxCharacters = statuses.int("max_characters") ?: defaults.maxCharacters,
                 maxMediaAttachments = statuses.int("max_media_attachments") ?: defaults.maxMediaAttachments,
                 imageMimeTypes = mimes?.filter { it.startsWith("image/") }?.takeIf { it.isNotEmpty() } ?: defaults.imageMimeTypes,

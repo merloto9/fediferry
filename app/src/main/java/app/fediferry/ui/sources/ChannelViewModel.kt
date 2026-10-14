@@ -78,19 +78,38 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Downloads the chosen picture and makes an item of it, so it continues into
-     * the same editor as a share or a screenshot.
+     * Downloads the chosen picture and makes a draft of it in the project the
+     * phone works on, so it continues in the same editor as a share; [onReady]
+     * gets the draft's id.
      */
     fun pick(post: SourcePost, imageUrl: String, onReady: (String) -> Unit) = viewModelScope.launch {
         _state.update { it.copy(picking = imageUrl) }
-        repo.ingestFromSource(
-            imageUrl = imageUrl,
-            permalink = post.permalink,
-            fields = fieldsOf("text" to post.text, "channel" to post.author),
-        ).fold(
-            onSuccess = { item ->
+        val context = getApplication<Application>()
+        val connections = ServiceLocator.serverConnections(context)
+        val made: Result<String> = if (connections.current() != null) {
+            // A server's project: the picture goes up like a share, with its link.
+            runCatching {
+                val bytes = ServiceLocator.mediaFetcher().fetch(imageUrl).getOrThrow()
+                val file = java.io.File.createTempFile("source", null, context.cacheDir).apply { writeBytes(bytes) }
+                val id = java.util.UUID.randomUUID().toString()
+                val pending = ServiceLocator.pendingShares(context)
+                pending.addFile(id, post.permalink, file, "image/jpeg", System.currentTimeMillis())
+                file.delete()
+                val share = pending.all.value.first { it.id == id }
+                val client = connections.client(connections.current()!!)
+                app.fediferry.upload.UploadWorker.send(context, client, share) ?: error("no draft")
+            }
+        } else {
+            repo.ingestFromSource(
+                imageUrl = imageUrl,
+                permalink = post.permalink,
+                fields = fieldsOf("text" to post.text, "channel" to post.author),
+            ).mapCatching { item -> ServiceLocator.phone(context).adopt(item).postId }
+        }
+        made.fold(
+            onSuccess = { postId ->
                 _state.update { it.copy(picking = null) }
-                onReady(item.id)
+                onReady(postId)
             },
             onFailure = { e ->
                 _state.update {

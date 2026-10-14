@@ -48,7 +48,7 @@
     <string name="models_report_detail">%1$s: %2$s</string>
 
     <!-- Settings → Hashtags -->
-    <string name="placeholders_hashtags_intro">The hashtags you post with, one list for everything. Each template ticks the ones its topic uses; the editor shows the whole list, so any post can take more.</string>
+    <string name="placeholders_hashtags_intro">The hashtags you post with, one list for everything. Each channel ticks the ones its posts start with; the editor shows the whole list, so any post can take more.</string>
     <string name="placeholders_remove_hashtag">Remove %1$s</string>
     <string name="placeholders_new_hashtag">New hashtag</string>
     <string name="placeholders_new_hashtag_example">#politics</string>

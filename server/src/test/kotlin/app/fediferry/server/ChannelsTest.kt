@@ -28,6 +28,9 @@ import app.fediferry.api.CompleteRequest
 import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.PublishedPage
 import app.fediferry.mastodon.MastodonAccounts
+import app.fediferry.platform.PlatformDetector
+import app.fediferry.api.ChannelInput
+import app.fediferry.api.PostSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -66,11 +69,15 @@ class ChannelsTest {
     private val storage = Storage.open(File(dir, "fediferry.db"))
     private var appRegistrations = 0
     private var statusesDown = false
+    /** What the fake instance says it runs. */
+    private var software = "mastodon"
 
     /** A Mastodon instance in miniature: registration, token exchange, the account, the instance. */
     private val fakeMastodon = Interceptor { chain ->
         val request = chain.request()
         val (code, body) = when (request.url.encodedPath) {
+            "/.well-known/nodeinfo" -> 200 to """{"links":[{"rel":"http://nodeinfo.diaspora.software/ns/schema/2.0","href":"https://${request.url.host}/nodeinfo/2.0"}]}"""
+            "/nodeinfo/2.0" -> 200 to """{"version":"2.0","software":{"name":"$software","version":"1"}}"""
             "/api/v1/apps" -> { appRegistrations++; 200 to """{"client_id":"cid","client_secret":"csecret"}""" }
             "/oauth/token" -> 200 to """{"access_token":"good-token","token_type":"Bearer"}"""
             "/api/v1/accounts/verify_credentials" ->
@@ -91,6 +98,7 @@ class ChannelsTest {
     private val services = Services(
         storage, dir, version = "test", resolvers = emptyList(), fetcher = { Result.failure(IllegalStateException()) },
         mastodon = MastodonAccounts(OkHttpClient.Builder().addInterceptor(fakeMastodon).build()),
+        detector = PlatformDetector(OkHttpClient.Builder().addInterceptor(fakeMastodon).build()),
     )
 
     @After fun cleanUp() {
@@ -123,9 +131,10 @@ class ChannelsTest {
 
         val channel = client.postJson("/api/v1/channels/mastodon/complete", token, CompleteRequest("the-code", auth.state)).body<ChannelDto>()
         assertEquals("mastodon.social/memes", channel.id)
-        assertEquals("Meme Account", channel.displayName)
+        assertEquals("Meme Account", channel.account?.displayName)
+        assertEquals("MASTODON", channel.account?.platform)
         assertTrue("the first channel is the default", channel.isDefault)
-        assertEquals(1000, channel.capabilities.maxCharacters)
+        assertEquals(1000, channel.limits.maxCharacters)
 
         val projectId = services.projects.all().single().id
         assertEquals("good-token", services.channels.token(projectId, channel.id))
@@ -174,7 +183,7 @@ class ChannelsTest {
     @Test
     fun `channels are renamed, made default and removed with their token`() = test { client, token ->
         val first = client.signIn(token)
-        val second = client.postJson("/api/v1/channels/mastodon/import", token, ImportAccountRequest("mastodon.social", "good-token", "second")).body<ChannelDto>()
+        val second = client.postJson("/api/v1/channels", token, ChannelInput("Second")).body<ChannelDto>()
         assertFalse(second.isDefault)
 
         val renamed = client.patch("/api/v1/channels/${enc(second.id)}") {
@@ -184,8 +193,8 @@ class ChannelsTest {
         assertTrue(renamed.isDefault)
         assertFalse(client.get("/api/v1/channels/${enc(first.id)}") { bearerAuth(token) }.body<ChannelDto>().isDefault)
 
-        assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/channels/${enc(second.id)}") { bearerAuth(token) }.status)
-        assertNull(services.channels.token(services.projects.all().single().id, second.id))
+        assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/channels/${enc(first.id)}") { bearerAuth(token) }.status)
+        assertNull(services.channels.token(services.projects.all().single().id, first.id))
     }
 
     @Test
@@ -211,5 +220,53 @@ class ChannelsTest {
         val page = response.body<PublishedPage>()
         assertTrue(page.statuses.isEmpty())
         assertEquals(listOf(channel.id), page.unreachable)
+    }
+
+    @Test
+    fun `a channel set up first gets its account by signing in to it`() = test { client, token ->
+        val made = client.postJson("/api/v1/channels", token, ChannelInput("Cats", PostSettings(body = "{tags}", tags = "#cats"))).body<ChannelDto>()
+        assertNull(made.account)
+        assertEquals("Cats", made.label)
+
+        val auth = client.postJson("/api/v1/channels/mastodon/authorize", token, AuthorizeRequest("mastodon.social", "fediferry-debug://oauth", made.id)).body<AuthorizeResponse>()
+        val channel = client.postJson("/api/v1/channels/mastodon/complete", token, CompleteRequest("the-code", auth.state)).body<ChannelDto>()
+        assertEquals(made.id, channel.id)
+        assertEquals("memes", channel.account?.acct)
+        assertEquals("@memes", channel.label)
+        assertEquals("#cats", channel.post.tags)
+        assertEquals(1, client.get("/api/v1/channels") { bearerAuth(token) }.body<List<ChannelDto>>().size)
+    }
+
+    @Test
+    fun `an account already on one channel is not connected to a second`() = test { client, token ->
+        client.signIn(token)
+        val other = client.postJson("/api/v1/channels", token, ChannelInput("Other")).body<ChannelDto>()
+        val auth = client.postJson("/api/v1/channels/mastodon/authorize", token, AuthorizeRequest("mastodon.social", "fediferry-debug://oauth", other.id)).body<AuthorizeResponse>()
+        val response = client.postJson("/api/v1/channels/mastodon/complete", token, CompleteRequest("the-code", auth.state))
+        assertEquals(HttpStatusCode.Conflict, response.status)
+        assertEquals("channel.account_in_use", response.body<ApiErrorBody>().code)
+    }
+
+    @Test
+    fun `an instance running other software is detected and refused`() = test { client, token ->
+        software = "pixelfed"
+        val pixelfed = client.postJson("/api/v1/channels/mastodon/authorize", token, AuthorizeRequest("pixelfed.social", "fediferry-debug://oauth"))
+        assertEquals(HttpStatusCode.UnprocessableEntity, pixelfed.status)
+        assertEquals("platform.unsupported" to "Pixelfed", pixelfed.body<ApiErrorBody>().let { it.code to it.args["platform"] })
+
+        software = "misskey"
+        val misskey = client.postJson("/api/v1/channels/mastodon/authorize", token, AuthorizeRequest("misskey.io", "fediferry-debug://oauth")).body<ApiErrorBody>()
+        assertEquals("platform.unknown" to "misskey", misskey.code to misskey.args["software"])
+    }
+
+    @Test
+    fun `a channel's post settings are changed with the channel`() = test { client, token ->
+        val channel = client.signIn(token)
+        val changed = client.patch("/api/v1/channels/${enc(channel.id)}") {
+            bearerAuth(token); contentType(ContentType.Application.Json)
+            setBody(ChannelPatch(post = PostSettings(body = "{link}", tags = "#dogs", visibility = "UNLISTED")))
+        }.body<ChannelDto>()
+        assertEquals("{link}", changed.post.body)
+        assertEquals("UNLISTED", changed.post.visibility)
     }
 }

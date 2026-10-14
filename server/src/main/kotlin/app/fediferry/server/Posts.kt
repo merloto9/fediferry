@@ -22,7 +22,6 @@ package app.fediferry.server
 import app.fediferry.alt.VisionAltTextProvider
 import app.fediferry.api.AiModelData
 import app.fediferry.api.AltSuggestion
-import app.fediferry.api.ChannelDefaults
 import app.fediferry.api.LockDto
 import app.fediferry.api.PlaceholderKeyData
 import app.fediferry.api.PostDto
@@ -35,7 +34,7 @@ import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.channel.PostValidator
 import app.fediferry.api.SettingsKinds
-import app.fediferry.api.TemplateData
+import app.fediferry.api.PostSettings
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtags
 import app.fediferry.server.db.Media_asset
@@ -86,7 +85,6 @@ class Posts(
             stage = post.stage,
             version = post.version,
             channelId = post.channel_id,
-            templateId = post.template_id,
             body = post.body,
             hashtags = Hashtags.parse(post.hashtags),
             addSourceHashtags = post.add_source_hashtags != 0L,
@@ -121,8 +119,8 @@ class Posts(
     )
 
     /**
-     * A draft from one share, on the default channel with its template: the
-     * link and what its service said feed the template, the picture becomes
+     * A draft from one share, on the default channel with its settings: the
+     * link and what its service said feed the channel's text, the picture becomes
      * the post's first. A share of text alone becomes the draft's text.
      * [shareId] is recorded with it, so the same share sent again finds it.
      */
@@ -137,9 +135,7 @@ class Posts(
         createdAt: Long,
     ): PostDto {
         val channelId = defaultChannelId(projectId)
-        val channelDefaults = channelId?.let { db.channelQueries.byId(projectId, it).executeAsOneOrNull() }
-            ?.let { runCatching { json.decodeFromString<ChannelDefaults>(it.defaults_json) }.getOrNull() }
-        val template = template(projectId, channelDefaults?.templateId)
+        val template = settingsOf(projectId, channelId)
         val keys = keys(projectId)
         val inputs = TemplateEngine.Inputs(link = source.url, source = ContentSource.fromName(source.origin), fields = source.fields)
         val body = if (source.url == null && asset == null && !text.isNullOrBlank()) text.trim() else TemplateEngine.render(template, keys, inputs)
@@ -148,12 +144,12 @@ class Posts(
         val now = clock()
         feed.change(projectId, "post", id) {
             db.postQueries.insert(
-                projectId, id, PostStages.DRAFT, channelId, template.id,
+                projectId, id, PostStages.DRAFT, channelId,
                 body,
                 Hashtags.format(TemplateEngine.hashtagsFor(template, keys, inputs)),
                 if (template.addSourceHashtags) 1 else 0,
                 template.contentWarning,
-                channelDefaults?.visibility ?: template.visibility,
+                template.visibility,
                 source.url, source.origin, json.encodeToString(source.fields),
                 if (source.linkMayIdentify) 1 else 0, deviceId, createdAt.coerceAtMost(now), now,
             )
@@ -168,7 +164,7 @@ class Posts(
         val post = row(projectId, postId)
         val now = clock()
         feed.change(projectId, "post", postId) {
-            db.postMediaQueries.insert(projectId, postId, 0, asset.id, staticAlt(template(projectId, post.template_id)), 0)
+            db.postMediaQueries.insert(projectId, postId, 0, asset.id, staticAlt(settingsOf(projectId, post.channel_id)), 0)
             db.postQueries.touch(now, projectId, postId)
             shareId?.let { db.ingestRecordQueries.insert(projectId, it, postId, now) }
         }
@@ -177,12 +173,12 @@ class Posts(
 
     /**
      * The link a draft waited for. Its text is written again so `{link}`
-     * resolves — but only while it is still the template's own link-less text,
+     * resolves — but only while it is still the channel's own link-less text,
      * so nothing typed by hand is overwritten.
      */
     fun attachLink(projectId: String, postId: String, shareId: String?, source: Source): PostDto {
         val post = row(projectId, postId)
-        val template = template(projectId, post.template_id)
+        val template = settingsOf(projectId, post.channel_id)
         val keys = keys(projectId)
         val untouched = post.body == TemplateEngine.render(template, keys, TemplateEngine.Inputs(link = null, source = null, fields = emptyMap()))
         val inputs = TemplateEngine.Inputs(link = source.url, source = ContentSource.fromName(source.origin), fields = source.fields)
@@ -204,7 +200,7 @@ class Posts(
         db.ingestRecordQueries.insert(projectId, shareId, postId, clock())
     }
 
-    private fun staticAlt(template: TemplateData): String? = template.staticAltText?.takeIf { template.altTextMode == "STATIC" }
+    private fun staticAlt(template: PostSettings): String? = template.staticAltText?.takeIf { template.altTextMode == "STATIC" }
 
     // --- editing --------------------------------------------------------------------
 
@@ -226,31 +222,40 @@ class Posts(
         feed.change(projectId, "post", postId) { db.postLockQueries.release(projectId, postId, device) }
     }
 
+    /**
+     * Changes a draft. With [PostPatch.rerender] its text, hashtags, visibility
+     * and content warning are written again from its channel's settings; moving
+     * it to another channel does that too, as long as its text is still the old
+     * channel's own — text written by hand is never replaced unasked.
+     */
     fun patch(projectId: String, postId: String, deviceId: String?, version: Long?, patch: PostPatch): PostDto {
         val post = row(projectId, postId)
         requireEditable(projectId, post, deviceId, version)
         val keys = keys(projectId)
-        val templateId = patch.templateId ?: post.template_id
-        var body = patch.body ?: post.body
-        var hashtags = patch.hashtags?.let(Hashtags::format) ?: post.hashtags
-        val addSource = patch.addSourceHashtags ?: (post.add_source_hashtags != 0L)
-        if (patch.rerender) {
-            val template = template(projectId, templateId)
-            val fields = runCatching { json.decodeFromString<Map<String, String>>(post.source_fields_json) }.getOrDefault(emptyMap())
-            val inputs = TemplateEngine.Inputs(link = post.source_url, source = ContentSource.fromName(post.origin), fields = fields)
-            body = TemplateEngine.render(template, keys, inputs)
-            hashtags = Hashtags.format(TemplateEngine.hashtagsFor(template, keys, inputs, addSource))
-        }
         val channelId = when (val c = patch.channelId) {
             null -> post.channel_id
             "" -> null
             else -> c.also { db.channelQueries.byId(projectId, it).executeAsOneOrNull() ?: throw ApiException.notFound("channel") }
         }
+        var body = patch.body ?: post.body
+        var hashtags = patch.hashtags?.let(Hashtags::format) ?: post.hashtags
+        var contentWarning = patch.contentWarning?.let { it.ifBlank { null } } ?: post.content_warning.takeIf { patch.contentWarning == null }
+        var visibility = patch.visibility ?: post.visibility
+        val addSource = patch.addSourceHashtags ?: (post.add_source_hashtags != 0L)
+        val fields = runCatching { json.decodeFromString<Map<String, String>>(post.source_fields_json) }.getOrDefault(emptyMap())
+        val inputs = TemplateEngine.Inputs(link = post.source_url, source = ContentSource.fromName(post.origin), fields = fields)
+        val moved = channelId != post.channel_id && patch.body == null &&
+            post.body == TemplateEngine.render(settingsOf(projectId, post.channel_id), keys, inputs)
+        if (patch.rerender || moved) {
+            val settings = settingsOf(projectId, channelId)
+            body = TemplateEngine.render(settings, keys, inputs)
+            hashtags = Hashtags.format(TemplateEngine.hashtagsFor(settings, keys, inputs, addSource))
+            if (patch.visibility == null) visibility = settings.visibility
+            if (patch.contentWarning == null) contentWarning = settings.contentWarning
+        }
         feed.change(projectId, "post", postId) {
             db.postQueries.update(
-                channelId, templateId, body, hashtags, if (addSource) 1 else 0,
-                patch.contentWarning?.let { it.ifBlank { null } } ?: post.content_warning.takeIf { patch.contentWarning == null },
-                patch.visibility ?: post.visibility,
+                channelId, body, hashtags, if (addSource) 1 else 0, contentWarning, visibility,
                 clock(), projectId, postId,
             )
             patch.media?.let { applyMedia(projectId, postId, it) }
@@ -426,11 +431,9 @@ class Posts(
 
     // --- settings ------------------------------------------------------------------
 
-    private fun template(projectId: String, id: String?): TemplateData {
-        val all = settings.list(projectId, SettingsKinds.TEMPLATE)
-            .mapNotNull { runCatching { json.decodeFromJsonElement(TemplateData.serializer(), it.data) }.getOrNull() }
-        return all.firstOrNull { it.id == id } ?: all.firstOrNull { it.isDefault } ?: all.firstOrNull() ?: TemplateData.FALLBACK
-    }
+    /** How posts on [channelId] start; without a channel, as a new channel's would. */
+    private fun settingsOf(projectId: String, channelId: String?): PostSettings =
+        channelId?.let { db.channelQueries.byId(projectId, it).executeAsOneOrNull() }?.let(Channels::postOf) ?: PostSettings()
 
     private fun keys(projectId: String): List<PlaceholderKeyData> = settings.list(projectId, SettingsKinds.PLACEHOLDER_KEY)
         .mapNotNull { runCatching { json.decodeFromJsonElement(PlaceholderKeyData.serializer(), it.data) }.getOrNull() }

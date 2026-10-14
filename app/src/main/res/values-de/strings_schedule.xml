@@ -22,4 +22,14 @@
     <string name="schedule_notification_title">Geplant</string>
     <string name="schedule_notification_text">Mastodon postet ihn %1$s</string>
     <string name="schedule_too_soon_failure">Die gewählte Zeit ist weniger als 5 Minuten entfernt, das akzeptiert Mastodon nicht. Plane ihn erneut.</string>
+    <string name="calendar_previous_month">Voriger Monat</string>
+    <string name="calendar_next_month">Nächster Monat</string>
+    <string name="calendar_nothing_planned">An diesem Tag ist noch nichts geplant.</string>
+    <string name="calendar_planned_heading">An diesem Tag geplant</string>
+    <string name="calendar_this_post">dieser Beitrag (bisher)</string>
+    <string name="calendar_taken_times">An dem Tag schon geplant: %1$s</string>
+    <plurals name="calendar_planned_count">
+        <item quantity="one">%d Beitrag geplant</item>
+        <item quantity="other">%d Beiträge geplant</item>
+    </plurals>
 </resources>

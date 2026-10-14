@@ -4,11 +4,13 @@ CREATE TABLE oauth_pending (
     project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     instance TEXT NOT NULL,
     redirect_uri TEXT NOT NULL,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    -- The channel the account is for; null makes a new one.
+    channel_id TEXT
 );
 
 insert:
-INSERT INTO oauth_pending(state, project_id, instance, redirect_uri, created_at) VALUES (?, ?, ?, ?, ?);
+INSERT INTO oauth_pending(state, project_id, instance, redirect_uri, created_at, channel_id) VALUES (?, ?, ?, ?, ?, ?);
 
 take:
 SELECT * FROM oauth_pending WHERE state = ? AND project_id = ?;

@@ -74,6 +74,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalResources
@@ -144,7 +145,7 @@ fun DraftEditorScreen(
                     Column {
                         Text(stringResource(R.string.draft_title))
                         Text(
-                            stringResource(if (state.unsaved) R.string.draft_saving else R.string.draft_saved),
+                            stringResource(if (state.unsaved) R.string.draft_saving else R.string.draft_saved_generic),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -197,7 +198,7 @@ fun DraftEditorScreen(
 
             var showHashtags by remember { mutableStateOf(false) }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TemplatePicker(state, enabled = editable, onPick = viewModel::applyTemplate)
+                RewriteButton(state, enabled = editable, onConfirm = viewModel::rewriteFromChannel)
                 TextButton(onClick = { showHashtags = !showHashtags }, enabled = editable) {
                     Text(stringResource(R.string.editor_adjust_hashtags))
                     Icon(
@@ -230,7 +231,7 @@ fun DraftEditorScreen(
                 label = stringResource(R.string.editor_post_text),
                 minLines = 3,
                 enabled = editable,
-                supportingText = { Counter(post, state.channel?.capabilities?.maxCharacters) },
+                supportingText = { Counter(post, state.channel?.limits?.maxCharacters) },
                 trailingIcon = {
                     IconButton(onClick = { placeholderHelp = true }) {
                         Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.editor_placeholder_help))
@@ -244,7 +245,7 @@ fun DraftEditorScreen(
                 LinkWarning(enabled = editable, onRemoveLink = viewModel::removeLink)
             }
 
-            if (state.channel?.capabilities?.contentWarning != false) {
+            if (state.channel?.limits?.contentWarning != false) {
                 ContentWarningField(
                     key = post.id to editable,
                     value = post.contentWarning.orEmpty(),
@@ -498,18 +499,23 @@ private fun Counter(post: PostDto, max: Int?) {
     }
 }
 
+/** Writes the text again from the channel's settings, after asking: what was typed is replaced. */
 @Composable
-private fun TemplatePicker(state: DraftEditorState, enabled: Boolean, onPick: (app.fediferry.data.model.Template) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        TextButton(onClick = { open = true }, enabled = enabled) {
-            Text(stringResource(R.string.editor_template, state.template?.name ?: "—"))
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            state.templates.forEach { template ->
-                DropdownMenuItem(text = { Text(template.name) }, onClick = { open = false; onPick(template) })
-            }
-        }
+private fun RewriteButton(state: DraftEditorState, enabled: Boolean, onConfirm: () -> Unit) {
+    var asking by remember { mutableStateOf(false) }
+    // A focused text field keeps what is typed; let go of it so the rewritten text shows.
+    val focus = LocalFocusManager.current
+    TextButton(onClick = { asking = true }, enabled = enabled && state.channel != null) {
+        Text(stringResource(R.string.draft_rewrite))
+    }
+    if (asking) {
+        AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text(stringResource(R.string.draft_rewrite_title)) },
+            text = { Text(stringResource(R.string.draft_rewrite_text, state.channel?.label.orEmpty())) },
+            confirmButton = { TextButton(onClick = { asking = false; focus.clearFocus(); onConfirm() }) { Text(stringResource(R.string.draft_rewrite_confirm)) } },
+            dismissButton = { TextButton(onClick = { asking = false }) { Text(stringResource(R.string.delete_back)) } },
+        )
     }
 }
 
@@ -522,12 +528,12 @@ private fun ChannelPicker(state: DraftEditorState, enabled: Boolean, onPick: (St
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }, enabled = enabled) {
-            Text(stringResource(R.string.draft_channel, state.channel?.let { "@${it.acct}" } ?: stringResource(R.string.draft_pick_channel)))
+            Text(stringResource(R.string.draft_channel, state.channel?.label ?: stringResource(R.string.draft_pick_channel)))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             state.channels.forEach { channel ->
                 DropdownMenuItem(
-                    text = { Text("${channel.name} · @${channel.acct}") },
+                    text = { Text(channel.title) },
                     onClick = { open = false; onPick(channel.id) },
                 )
             }

@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import app.fediferry.api.ChannelDto
 import app.fediferry.api.LabelDto
 import app.fediferry.api.PostDto
+import app.fediferry.api.PostStages
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.PlanRequest
@@ -44,6 +45,8 @@ data class ReviewPostState(
     val folders: List<ReviewFolderDto> = emptyList(),
     val labels: List<LabelDto> = emptyList(),
     val schedules: List<ScheduleDto> = emptyList(),
+    /** Posts in the queue, on every channel, for the calendar to show. */
+    val queue: List<PostDto> = emptyList(),
     /** An error code, for the screen to word. */
     val message: String? = null,
 ) {
@@ -80,6 +83,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
         runCatching { Triple(api.channels(), api.reviewFolders(), api.labels()) }
             .onSuccess { (channels, folders, labels) -> _state.update { it.copy(channels = channels, folders = folders, labels = labels) } }
         runCatching { api.schedules() }.onSuccess { schedules -> _state.update { it.copy(schedules = schedules) } }
+        runCatching { api.posts(PostStages.SCHEDULED, PostStages.PUBLISHING) }.onSuccess { queue -> _state.update { it.copy(queue = queue) } }
     }
 
     fun setFolder(folderId: String?) = sort(ReviewPatch(folderId = folderId ?: ""))
@@ -107,6 +111,7 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
             .onSuccess { post -> _state.update { it.copy(post = post) } }
             .onFailure { e -> _state.update { it.copy(message = code(e)) } }
         runCatching { api.schedules() }.onSuccess { schedules -> _state.update { it.copy(schedules = schedules) } }
+        runCatching { api.posts(PostStages.SCHEDULED, PostStages.PUBLISHING) }.onSuccess { queue -> _state.update { it.copy(queue = queue) } }
     }
 
     /** Out of the queue, back to review. */

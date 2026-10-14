@@ -97,4 +97,42 @@ class MigrationTest {
             assertNull(media2.byId("p", "a3"))
         }
     }
+
+    @Test
+    fun `each channel takes the template its posts started with`() {
+        File("src/main/sqldelight/databases/7.db").copyTo(file)
+        DriverManager.getConnection("jdbc:sqlite:${file.absolutePath}").use { c ->
+            c.createStatement().use { st ->
+                listOf(
+                    "INSERT INTO project(id, name, created_at) VALUES ('p', 'Memes', 1)",
+                    "INSERT INTO settings_entry(project_id, kind, id, json, updated_at) VALUES ('p', 'template', 'meme', " +
+                        "'{\"id\":\"meme\",\"name\":\"Meme\",\"body\":\"{tags} via {link}\",\"tags\":\"#meme\",\"isDefault\":true}', 1)",
+                    "INSERT INTO settings_entry(project_id, kind, id, json, updated_at) VALUES ('p', 'template', 'cats', " +
+                        "'{\"id\":\"cats\",\"name\":\"Cats\",\"body\":\"Cat! {link}\",\"tags\":\"#cats\",\"altTextMode\":\"VISION\"}', 1)",
+                    // Names a template, and a visibility of its own.
+                    "INSERT INTO channel(project_id, id, type, name, instance, remote_account_id, acct, display_name, defaults_json, created_at, updated_at) " +
+                        "VALUES ('p', 'c1', 'MASTODON', 'Cats', 'social.example', '1', 'cats', 'Cats', '{\"templateId\":\"cats\",\"visibility\":\"UNLISTED\"}', 1, 1)",
+                    // Names none: the default template.
+                    "INSERT INTO channel(project_id, id, type, name, instance, remote_account_id, acct, display_name, created_at, updated_at) " +
+                        "VALUES ('p', 'c2', 'MASTODON', 'Memes', 'social.example', '2', 'memes', 'Memes', 1, 1)",
+                    "INSERT INTO post(project_id, id, stage, body, template_id, channel_id, created_at, updated_at) VALUES ('p', 'x', 'DRAFT', 'Hi', 'cats', 'c1', 1, 1)",
+                    "PRAGMA user_version = 7",
+                ).forEach(st::execute)
+            }
+        }
+
+        Storage.open(file).use { storage ->
+            val cats = Channels.dto(storage.db.channelQueries.byId("p", "c1").executeAsOne())
+            assertEquals("Cat! {link}", cats.post.body)
+            assertEquals("#cats", cats.post.tags)
+            assertEquals("VISION", cats.post.altTextMode)
+            assertEquals("UNLISTED", cats.post.visibility)
+            assertEquals("MASTODON", cats.account?.platform)
+
+            val memes = Channels.dto(storage.db.channelQueries.byId("p", "c2").executeAsOne())
+            assertEquals("{tags} via {link}", memes.post.body)
+            assertEquals("PUBLIC", memes.post.visibility)
+            assertEquals("c1", storage.db.postQueries.byId("p", "x").executeAsOne().channel_id)
+        }
+    }
 }

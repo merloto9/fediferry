@@ -40,37 +40,18 @@ class UndoReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_UNDO) return
         val appContext = context.applicationContext
-        intent.getStringExtra(EXTRA_POST_ID)?.let { postId ->
-            undoOnServer(appContext, postId)
-            return
-        }
-        val itemId = intent.getStringExtra(EXTRA_ITEM_ID) ?: return
-        val pending = goAsync()
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                PostScheduler.cancel(appContext, itemId)
-                ServiceLocator.items(appContext).markDraft(itemId)
-                Notifications.cancel(appContext, itemId)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(appContext, appContext.getString(R.string.notify_undone), Toast.LENGTH_SHORT)
-                        .show()
-                }
-            } finally {
-                pending.finish()
-            }
-        }
+        val postId = intent.getStringExtra(EXTRA_POST_ID) ?: return
+        undo(appContext, postId)
     }
 
-    /** Takes the post out of the server's queue, back to review, if it has not gone yet. */
-    private fun undoOnServer(context: Context, postId: String) {
+    /** Takes the post out of the queue — the server's or the phone's — back to review, if it has not gone yet. */
+    private fun undo(context: Context, postId: String) {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val connections = ServiceLocator.serverConnections(context)
-                val outcome = connections.current()?.let(connections::client)?.let { api -> runCatching { api.unplan(postId) } }
+                val outcome = runCatching { ServiceLocator.backend(context).unplan(postId) }
                 Notifications.cancel(context, postId)
-                val text = if (outcome?.isSuccess == true) R.string.notify_undone_server else R.string.notify_undo_too_late
+                val text = if (outcome.isSuccess) R.string.notify_undone_server else R.string.notify_undo_too_late
                 withContext(Dispatchers.Main) { Toast.makeText(context, context.getString(text), Toast.LENGTH_LONG).show() }
             } finally {
                 pending.finish()

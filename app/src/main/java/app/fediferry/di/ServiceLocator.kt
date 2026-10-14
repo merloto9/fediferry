@@ -24,6 +24,8 @@ import app.fediferry.connect.ProjectSync
 import app.fediferry.connect.ServerAuth
 import app.fediferry.upload.PendingShares
 import app.fediferry.backend.PostBackend
+import app.fediferry.phone.PhoneBackend
+import app.fediferry.link.MediaFetcher
 import app.fediferry.backend.ServerBackend
 import app.fediferry.connect.ServerConnection
 import app.fediferry.connect.ServerConnections
@@ -104,7 +106,7 @@ object ServiceLocator {
                 items = database.items(),
                 templates = database.templates(),
                 accounts = database.accounts(),
-                media = MediaVault(context.applicationContext),
+                media = mediaVault(context),
                 cleanupDao = database.cleanup(),
                 editProvider = { imageEditProvider(context) },
                 maskPolarity = { maskPolarity(context) },
@@ -173,14 +175,28 @@ object ServiceLocator {
     }
 
     @Volatile private var serverBackend: Pair<ServerConnection, ServerBackend>? = null
+    @Volatile private var phoneBackend: PhoneBackend? = null
+    @Volatile private var vault: MediaVault? = null
+
+    fun mediaVault(context: Context): MediaVault = vault ?: synchronized(this) {
+        vault ?: MediaVault(context.applicationContext).also { vault = it }
+    }
+
+    /** Fetches media from services, with the client link resolvers use. */
+    fun mediaFetcher(): MediaFetcher = OkHttpMediaFetcher(linkHttp())
+
+    /** The phone's own project, there whether or not a server is connected. */
+    fun phone(context: Context): PhoneBackend = phoneBackend ?: synchronized(this) {
+        phoneBackend ?: PhoneBackend(context.applicationContext).also { phoneBackend = it }
+    }
 
     /**
-     * Where the screens' posts live: the connected server's project. Null while
-     * the app works on its own.
+     * Where the screens' posts live: the connected server's project, or the
+     * phone's own while the app works alone.
      */
-    fun backend(context: Context): PostBackend? {
+    fun backend(context: Context): PostBackend {
         val connections = serverConnections(context)
-        val connection = connections.current() ?: return null
+        val connection = connections.current() ?: return phone(context)
         serverBackend?.takeIf { it.first == connection }?.let { return it.second }
         return synchronized(this) {
             ServerBackend(connections.client(connection), connections.deviceId).also { serverBackend = connection to it }

@@ -12,6 +12,35 @@ Obtainium installs.
 
 ### Changed
 
+- **One app, two places a project can live.** The phone works on its own
+  project or on one on a FediFerry server, and both use the same screens:
+  Drafts → Review → Publishing, and Sources. The Inbox, the old editor and the
+  Queue are gone. On the update, everything in the inbox moves to Review as it
+  was written, and each stack becomes a review folder.
+- **Channels.** A channel is where a project's posts go: one fediverse
+  account, what its instance takes, and how posts there start. A project can
+  have several. Each channel has its own post settings — text, hashtags,
+  visibility, content warning, alt text — in place of templates picked per
+  post; the editor's template menu is now *Rewrite*, and moving a draft to
+  another channel writes it again from that channel unless its text was
+  changed by hand. Accounts and templates of an earlier version become
+  channels on the update.
+- **Platforms are detected.** Connecting an account reads which software the
+  instance runs. Only Mastodon can be connected so far; Pixelfed and others are
+  known and refused with a clear message. What an instance takes (characters,
+  pictures, alt text …) is shown on the channel's page and checked before a
+  post can be ready.
+- **Settings are regrouped** into *Project* (this phone, or a FediFerry
+  server), *Channels*, and the project's posts settings: hashtags,
+  placeholders & sources, sharing & posting.
+- **Planning a post shows what is planned.** *Plan* lists every schedule of
+  the post's channel to pick from, with its next free slot. *Pick a time* opens
+  a calendar that marks the days that already have posts, lists them for the
+  chosen day, and names the times already taken.
+- **Without a server, posts planned for later go to Mastodon** with their
+  time, so the phone need not be on then; Publishing shows Mastodon's queue,
+  where a post can be moved or taken back to review.
+
 - **No more library: a post goes Drafts → Review → Publishing.** With a
   FediFerry server, a share becomes a draft straight away — Save for later
   keeps it there, Compose opens it, Post now sends it — and the Library space,

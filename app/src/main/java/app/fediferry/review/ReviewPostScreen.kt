@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.R
+import app.fediferry.ui.PlannedMark
 import app.fediferry.api.PostStages
 import app.fediferry.api.PlanModes
 import app.fediferry.api.PlanRequest
@@ -163,6 +164,12 @@ fun ReviewPostScreen(
             PlanSheet(
                 post = post,
                 schedules = state.channelSchedules,
+                planned = state.queue.mapNotNull { queued ->
+                    val at = queued.publication?.publishAfter ?: return@mapNotNull null
+                    val channel = state.channels.firstOrNull { it.id == queued.channelId }?.label
+                    val text = queued.finalText.orEmpty().lineSequence().firstOrNull { it.isNotBlank() }.orEmpty()
+                    PlannedMark(at, listOfNotNull(channel, text.ifBlank { null }).joinToString(" · "), isThis = queued.id == post.id)
+                },
                 onPlan = { planning = false; viewModel.plan(it) },
                 onDismiss = { planning = false },
             )
@@ -206,7 +213,7 @@ fun ReviewPostScreen(
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Text(post.finalText.orEmpty(), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(12.dp))
             }
-            Detail(stringResource(R.string.review_channel), state.channel?.let { "${it.name} · @${it.acct}" } ?: "—")
+            Detail(stringResource(R.string.review_channel), state.channel?.title ?: "—")
             Detail(stringResource(R.string.options_visibility), (Visibility.entries.firstOrNull { it.name == post.visibility } ?: Visibility.PUBLIC).label)
             post.readyAt?.let { Detail(stringResource(R.string.review_ready_since), DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it))) }
 

@@ -23,8 +23,7 @@
     <string name="editor_tags_empty">{tags} ist leer – keine Hashtags ausgewählt, daher fällt die Zeile weg.</string>
     <string name="editor_tags_becomes">{tags} wird beim Senden zu %1$s.</string>
     <string name="editor_tags_missing">Der Text enthält kein {tags}, daher werden die ausgewählten Hashtags nicht gepostet.</string>
-    <string name="editor_template">Vorlage: %1$s</string>
-    <string name="editor_no_account">Kein Konto verbunden – füge vor dem Posten eins unter Einstellungen → Mastodon-Konto hinzu.</string>
+    <string name="editor_no_account">Kein Konto verbunden – füge vor dem Posten eins unter Einstellungen → Kanäle hinzu.</string>
     <string name="editor_account">Konto: @%1$s</string>
     <string name="editor_link_warning_title">Dieser Link verrät eventuell, wer ihn geteilt hat</string>
     <string name="editor_link_warning_body">Er wurde mit Angaben zum Absender geteilt, und ein bereinigter Link, der zum selben Beitrag führt, ließ sich nicht bestätigen. Deshalb wird er so gepostet, wie er geteilt wurde.</string>
@@ -86,4 +85,9 @@
     <string name="nav_inbox">Eingang</string>
     <string name="nav_queue">Geplant</string>
     <string name="nav_sources">Quellen</string>
+    <string name="editor_template">Vorlage: %1$s</string>
+    <string name="draft_rewrite">Neu schreiben</string>
+    <string name="draft_rewrite_title">Text neu schreiben?</string>
+    <string name="draft_rewrite_text">Text, Hashtags, Sichtbarkeit und Inhaltswarnung werden neu aus den Einstellungen von %1$s geschrieben. Was du daran geändert hast, wird ersetzt.</string>
+    <string name="draft_rewrite_confirm">Neu schreiben</string>
 </resources>

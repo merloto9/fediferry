@@ -40,35 +40,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import app.fediferry.R
 
-/**
- * The app's spaces. Drafts, review and publishing — the stages a post goes
- * through — are there only while the phone works with a FediFerry server.
- */
+/** The app's spaces: the stages a post goes through, and the sources it can come from. */
 enum class Space(val route: String, @StringRes val labelRes: Int) {
     DRAFTS(Routes.DRAFTS, R.string.nav_drafts),
     REVIEW(Routes.REVIEW, R.string.nav_review),
     PUBLISHING(Routes.PUBLISHING, R.string.nav_publishing),
-    INBOX(Routes.INBOX, R.string.nav_inbox),
-    QUEUE(Routes.QUEUE, R.string.nav_queue),
     SOURCES(Routes.SOURCES, R.string.nav_sources),
 }
 
 @Composable
 fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
-    val context = LocalContext.current
-    val connected = ServiceLocator.serverConnections(context).current() != null
-    // With a server, the inbox steps aside once what was in it has moved on;
-    // five spaces are what a bottom bar holds.
-    val inbox by remember { ServiceLocator.items(context).observeInbox() }.collectAsState(initial = null)
-    val shown = Space.entries.filter { space ->
-        when (space) {
-            Space.DRAFTS, Space.REVIEW, Space.PUBLISHING -> connected
-            // Mastodon's own scheduled posts; with a server, the server's queue takes its place.
-            Space.QUEUE -> !connected || space == current
-            Space.INBOX -> !connected || space == current || !inbox.isNullOrEmpty()
-            else -> true
-        }
-    }
+    val shown = Space.entries
     NavigationBar {
         shown.forEach { space ->
             val label = stringResource(space.labelRes)
@@ -81,8 +63,6 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
                             Space.DRAFTS -> Icons.Outlined.EditNote
                             Space.REVIEW -> Icons.Outlined.TaskAlt
                             Space.PUBLISHING -> Icons.AutoMirrored.Outlined.Send
-                            Space.INBOX -> Icons.Default.Inbox
-                            Space.QUEUE -> Icons.Default.Schedule
                             Space.SOURCES -> Icons.Default.Subscriptions
                         },
                         contentDescription = label,

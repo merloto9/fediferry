@@ -53,7 +53,6 @@ data class PostDto(
     /** Grows with every change; a change must name the version it was made on. */
     val version: Long,
     val channelId: String? = null,
-    val templateId: String? = null,
     val body: String,
     val hashtags: List<String> = emptyList(),
     val addSourceHashtags: Boolean = true,
@@ -80,8 +79,8 @@ data class PostDto(
 /**
  * `PATCH /posts/{id}`, with `If-Match: <version>`, by the device holding the
  * lock. Only given fields change; `""` clears a text field. With [rerender],
- * the body and hashtags are written again from [templateId] (or the current
- * template).
+ * the text, hashtags, visibility and content warning are written again from
+ * the channel's settings.
  */
 @Serializable
 data class PostPatch(
@@ -91,7 +90,6 @@ data class PostPatch(
     val contentWarning: String? = null,
     val visibility: String? = null,
     val channelId: String? = null,
-    val templateId: String? = null,
     val rerender: Boolean = false,
     val media: List<PostMediaPatch>? = null,
 )

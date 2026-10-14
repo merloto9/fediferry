@@ -183,7 +183,35 @@ Failed auto-posts land in the inbox as `FAILED` and can be retried with one tap.
 This is why workflow 1 still writes to the store: it makes the zero-touch path
 recoverable instead of silently lossy.
 
+## Projects and channels
+
+A **project** is where posts are made and published. It lives on the phone
+("This phone") or on a FediFerry server, shared by several phones; that is
+the only difference between the two, and the app shows the same screens for
+both through one interface (`PostBackend`: `PhoneBackend`, `ServerBackend`).
+Placeholders, hashtags and the sharing options belong to the project.
+
+A **channel** is a destination of a project: exactly one fediverse account
+(it may be connected after the channel is set up), what its instance takes
+(`PlatformLimits`), and how posts there start (`PostSettings`, which replaced
+per-post templates). A project has any number of channels; every post goes to
+one of them, every schedule belongs to one. There is no cross-posting.
+
+A channel's **platform** (`Platform`: Mastodon, Pixelfed, …) is detected from
+the instance's nodeinfo when an account is connected. Each platform knows its
+usual limits; only supported ones can be connected, and only Mastodon is so
+far. The instance's own limits are read where its API offers them.
+
+On the phone, a post planned for later is handed to Mastodon at once with
+`scheduled_at`; from then on Mastodon holds it, and Publishing reads it from
+Mastodon's queue. A post planned for now is sent from the phone after the undo
+window. Either way it leaves the phone's store once Mastodon has it.
+
 ## Templates
+
+*Superseded by channels' post settings (see above); the rules below describe
+what a channel's settings hold.*
+
 
 A template is a named bundle of: body text with placeholders, default visibility,
 default content warning, alt-text mode, and tag set.

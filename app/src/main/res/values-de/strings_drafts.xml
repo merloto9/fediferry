@@ -27,7 +27,7 @@
     <string name="draft_length_of">%1$d von %2$d Zeichen</string>
     <string name="draft_channel">Posten auf: %1$s</string>
     <string name="draft_pick_channel">Kanal wählen</string>
-    <string name="draft_no_channels">Noch kein Kanal. Verbinde ein Mastodon-Konto unter Einstellungen → Mastodon-Konto.</string>
+    <string name="draft_no_channels">Noch kein Kanal. Leg einen unter Einstellungen → Kanäle an.</string>
 
     <string name="draft_offline">Gerade keine Verbindung zum Server.</string>
     <string name="server_error_locked">%1$s bearbeitet diesen Entwurf (bis %2$s).</string>
@@ -45,4 +45,5 @@
         <item quantity="one">%1$d Entwurf angelegt.</item>
         <item quantity="other">%1$d Entwürfe angelegt; der erste ist offen.</item>
     </plurals>
+    <string name="draft_saved_generic">Gespeichert</string>
 </resources>

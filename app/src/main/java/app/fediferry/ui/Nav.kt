@@ -28,9 +28,7 @@ import app.fediferry.review.ReviewPostScreen
 import app.fediferry.review.ReviewScreen
 import app.fediferry.publishing.PublishingScreen
 import app.fediferry.publishing.SchedulesScreen
-import app.fediferry.ui.queue.QueuedPostScreen
 import android.net.Uri
-import app.fediferry.ui.queue.QueueScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
@@ -38,10 +36,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import app.fediferry.ui.cleanup.CleanupScreen
-import app.fediferry.ui.crop.CropScreen
-import app.fediferry.ui.editor.EditorScreen
-import app.fediferry.ui.inbox.InboxScreen
+import app.fediferry.channels.ChannelSettingsScreen
 import app.fediferry.ui.settings.SettingsPage
 import app.fediferry.ui.settings.SettingsPageScreen
 import app.fediferry.ui.settings.SettingsScreen
@@ -50,65 +45,46 @@ import app.fediferry.ui.sources.SourcesScreen
 import androidx.navigation.NavController
 
 object Routes {
-    const val INBOX = "inbox"
     const val DRAFTS = "drafts"
     const val DRAFT = "draft/{postId}"
     const val REVIEW = "review"
     const val REVIEW_POST = "review/{postId}"
     const val PUBLISHING = "publishing"
     const val SCHEDULES = "schedules"
-    const val QUEUE = "queue"
-    const val QUEUED_POST = "queue/{accountId}/{statusId}"
     const val SOURCES = "sources"
     const val CHANNEL = "channel/{sourceId}"
     const val SETTINGS = "settings"
     const val SETTINGS_PAGE = "settings/{page}"
-    const val EDITOR = "editor/{itemId}"
-    const val CROP = "crop/{itemId}"
-    const val CLEANUP = "cleanup/{itemId}"
+    const val CHANNEL_SETTINGS = "settings/channel/{channelId}"
 
-    fun editor(itemId: String) = "editor/$itemId"
     fun draft(postId: String) = "draft/$postId"
     fun reviewPost(postId: String) = "review/$postId"
-    fun crop(itemId: String) = "crop/$itemId"
-    fun cleanup(itemId: String) = "cleanup/$itemId"
     fun channel(sourceId: String) = "channel/$sourceId"
-    /** An account id holds a slash ("instance/acct"), so it travels encoded. */
-    fun queuedPost(accountId: String, statusId: String) = "queue/${Uri.encode(accountId)}/${Uri.encode(statusId)}"
     fun settingsPage(page: SettingsPage) = "settings/${page.route}"
+    /** A channel id may hold a slash ("instance/acct"), so it travels encoded. */
+    fun channelSettings(channelId: String) = "settings/channel/${Uri.encode(channelId)}"
 }
 
 @Composable
 fun FediFerryNavHost(
     navController: NavHostController,
-    editItemId: String?,
-    cropItemId: String?,
     editPostId: String? = null,
     onEditConsumed: () -> Unit,
 ) {
     // A Compose-mode share lands here: jump straight to the editor for the item
     // the share receiver already persisted — or to the trim step first, when the
     // share brought an image that still looks like a full screenshot.
-    LaunchedEffect(editItemId, cropItemId, editPostId) {
-        val crop = cropItemId
-        val edit = editItemId
-        val draft = editPostId
-        when {
-            draft != null -> navController.navigate(Routes.draft(draft))
-            crop != null -> navController.navigate(Routes.crop(crop))
-            edit != null -> navController.navigate(Routes.editor(edit))
-            else -> return@LaunchedEffect
-        }
+    LaunchedEffect(editPostId) {
+        val draft = editPostId ?: return@LaunchedEffect
+        navController.navigate(Routes.draft(draft))
         onEditConsumed()
     }
 
     // Asks once whether to clean the links of posts shared before links were cleaned.
     OldLinkCleanupPrompt()
 
-    // Working with a server, the drafts are home; on its own, the inbox is.
-    val context = LocalContext.current
-    val start = remember { if (ServiceLocator.serverConnections(context).current() != null) Routes.DRAFTS else Routes.INBOX }
-    NavHost(navController = navController, startDestination = start) {
+    // Drafts are home, whichever project the phone works on.
+    NavHost(navController = navController, startDestination = Routes.DRAFTS) {
         composable(Routes.DRAFTS) {
             DraftsScreen(
                 onOpenDraft = { navController.navigate(Routes.draft(it)) },
@@ -153,33 +129,6 @@ fun FediFerryNavHost(
                 onOpenDraft = { id -> navController.navigate(Routes.draft(id)) { popUpTo(Routes.REVIEW_POST) { inclusive = true } } },
             )
         }
-        composable(Routes.INBOX) {
-            InboxScreen(
-                onOpenItem = { navController.navigate(Routes.editor(it)) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                onSwitchSpace = { navController.switchSpace(it) },
-            )
-        }
-        composable(Routes.QUEUE) {
-            QueueScreen(
-                onOpenPost = { navController.navigate(Routes.queuedPost(it.account.id, it.status.id)) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                onSwitchSpace = { navController.switchSpace(it) },
-            )
-        }
-        composable(
-            route = Routes.QUEUED_POST,
-            arguments = listOf(
-                navArgument("accountId") { type = NavType.StringType },
-                navArgument("statusId") { type = NavType.StringType },
-            ),
-        ) { entry ->
-            QueuedPostScreen(
-                accountId = entry.arguments?.getString("accountId").orEmpty(),
-                statusId = entry.arguments?.getString("statusId").orEmpty(),
-                onBack = { navController.popBackStack() },
-            )
-        }
         composable(Routes.SOURCES) {
             SourcesScreen(
                 onOpenChannel = { navController.navigate(Routes.channel(it)) },
@@ -194,55 +143,22 @@ fun FediFerryNavHost(
             ChannelScreen(
                 sourceId = entry.arguments?.getString("sourceId").orEmpty(),
                 onBack = { navController.popBackStack() },
-                onPicked = { itemId -> navController.navigate(Routes.editor(itemId)) },
-            )
-        }
-        composable(
-            route = Routes.EDITOR,
-            arguments = listOf(navArgument("itemId") { type = NavType.StringType }),
-        ) { entry ->
-            EditorScreen(
-                itemId = entry.arguments?.getString("itemId").orEmpty(),
-                onTrim = { navController.navigate(Routes.crop(it)) },
-                onCleanUp = { navController.navigate(Routes.cleanup(it)) },
-                onDone = {
-                    if (!navController.popBackStack()) {
-                        navController.navigate(Routes.INBOX)
-                    }
-                },
-            )
-        }
-        composable(
-            route = Routes.CROP,
-            arguments = listOf(navArgument("itemId") { type = NavType.StringType }),
-        ) { entry ->
-            val id = entry.arguments?.getString("itemId").orEmpty()
-            CropScreen(
-                itemId = id,
-                onDone = { croppedId ->
-                    navController.navigate(Routes.editor(croppedId)) {
-                        popUpTo(Routes.CROP) { inclusive = true }
-                    }
-                },
-            )
-        }
-        composable(
-            route = Routes.CLEANUP,
-            arguments = listOf(navArgument("itemId") { type = NavType.StringType }),
-        ) { entry ->
-            CleanupScreen(
-                itemId = entry.arguments?.getString("itemId").orEmpty(),
-                onDone = { cleanedId ->
-                    navController.navigate(Routes.editor(cleanedId)) {
-                        popUpTo(Routes.CLEANUP) { inclusive = true }
-                    }
-                },
+                onPicked = { postId -> navController.navigate(Routes.draft(postId)) },
             )
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onOpen = { navController.navigate(Routes.settingsPage(it)) },
+            )
+        }
+        composable(
+            Routes.CHANNEL_SETTINGS,
+            arguments = listOf(navArgument("channelId") { type = NavType.StringType }),
+        ) { entry ->
+            ChannelSettingsScreen(
+                channelId = entry.arguments?.getString("channelId").orEmpty(),
+                onBack = { navController.popBackStack() },
             )
         }
         composable(
@@ -253,7 +169,11 @@ fun FediFerryNavHost(
             if (page == null) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
             } else {
-                SettingsPageScreen(page = page, onBack = { navController.popBackStack() })
+                SettingsPageScreen(
+                    page = page,
+                    onBack = { navController.popBackStack() },
+                    onOpenChannel = { navController.navigate(Routes.channelSettings(it)) },
+                )
             }
         }
     }

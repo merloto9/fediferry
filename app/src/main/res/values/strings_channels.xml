@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="channels_intro">The project\'s channels: the accounts its posts go to. Signing in happens through the FediFerry server, which keeps the account\'s token; it never sits on a phone.</string>
-    <string name="channels_none">No channel yet. Sign in to a Mastodon account below.</string>
+    <string name="channels_intro">A channel is where the project\'s posts go: one fediverse account, what its instance takes, and how posts there start. Every post goes to one channel.</string>
+    <string name="channels_none">No channel yet. Add one, then connect an account to it.</string>
     <string name="channels_failed">That didn\'t work (%1$s).</string>
     <plurals name="channels_local_accounts">
         <item quantity="one">This phone is signed in to %1$d account the project does not have yet.</item>
@@ -10,8 +10,8 @@
     <string name="channels_take_over">Move them to the project</string>
     <string name="channels_add_title">Add a Mastodon account</string>
     <string name="channels_instance">Instance</string>
-    <string name="channels_sign_in">Sign in</string>
-    <string name="channels_capabilities">Characters: %1$d · Pictures: %2$d · Alt text: %3$d</string>
+    <string name="channels_sign_in">Connect</string>
+    <string name="channels_limits">Characters: %1$d · Pictures: %2$d · Alt text: %3$d</string>
     <string name="channels_default">Default channel</string>
     <string name="channels_actions">Actions for %1$s</string>
     <string name="channels_make_default">Make default</string>
@@ -20,4 +20,45 @@
     <string name="channels_remove">Remove</string>
     <string name="channels_remove_title">Remove %1$s?</string>
     <string name="channels_remove_text">The project stops posting there and the server forgets the account\'s token. The account itself stays as it is.</string>
+    <string name="settings_group_project">Project</string>
+    <string name="settings_page_project">Project</string>
+    <string name="settings_group_channels">Channels</string>
+    <string name="settings_page_channels">Channels</string>
+    <string name="project_summary_phone">This phone — everything stays here</string>
+    <string name="project_summary_server">“%1$s” on a FediFerry server</string>
+    <string name="project_this_phone">This phone</string>
+    <string name="project_local_intro">The project lives on this phone: its posts, channels and settings stay here, and nothing needs a server.</string>
+    <string name="project_join_server">Work with a FediFerry server</string>
+    <string name="channels_summary_none">No channel yet</string>
+    <string name="channels_new">New channel</string>
+    <string name="channels_create">Create</string>
+    <string name="channels_no_account">No account connected yet</string>
+    <string name="channel_name">Name</string>
+    <string name="channel_name_example">Memes</string>
+    <string name="channel_default_detail">New drafts start on this channel.</string>
+    <string name="channel_account">Account</string>
+    <string name="channel_platform">Runs %1$s</string>
+    <string name="channel_change_account">Connect another account</string>
+    <string name="channel_instance_hint">The server it runs on is detected; only Mastodon can be connected so far.</string>
+    <string name="channel_limits">Limits</string>
+    <string name="channel_limits_of">What %1$s takes</string>
+    <string name="channel_limit_characters">%1$d characters</string>
+    <string name="channel_limit_pictures">%1$d pictures per post</string>
+    <string name="channel_limit_alt">%1$d characters of alt text</string>
+    <string name="channel_limit_cw">Content warnings</string>
+    <string name="channel_limit_no_cw">No content warnings</string>
+    <string name="channel_limit_text_only">Posts without a picture</string>
+    <string name="channel_limit_needs_picture">Every post needs a picture</string>
+    <string name="channel_limits_read">Read from the instance %1$s</string>
+    <string name="channel_limits_usual">Mastodon’s usual limits, until an account is connected.</string>
+    <string name="channel_post_settings">How posts start</string>
+    <string name="channel_post_settings_detail">New drafts on this channel start like this. A draft moved here is written again from it, unless its text was changed by hand.</string>
+    <string name="channel_error_unsupported">%1$s can’t be connected yet — only Mastodon so far.</string>
+    <string name="channel_error_unknown">This instance runs %1$s, which FediFerry doesn’t know.</string>
+    <string name="channel_error_undetected">Couldn’t tell what %1$s runs. Check the address.</string>
+    <string name="channel_error_in_use">That account is already connected to the channel “%1$s”.</string>
+    <plurals name="channels_summary">
+        <item quantity="one">%1$d channel · default: %2$s</item>
+        <item quantity="other">%1$d channels · default: %2$s</item>
+    </plurals>
 </resources>

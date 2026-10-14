@@ -43,13 +43,7 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(AppLocale.wrap(base))
     }
 
-    /** Item to open the editor on, set by a Compose-mode share. */
-    private val editItemId = mutableStateOf<String?>(null)
-
-    /** Item to trim first, when the share brought an untrimmed screenshot. */
-    private val cropItemId = mutableStateOf<String?>(null)
-
-    /** A draft on the server to open, made by a Compose-mode share. */
+    /** A draft to open, made by a Compose-mode share. */
     private val editPostId = mutableStateOf<String?>(null)
 
     private val notificationPermission =
@@ -58,26 +52,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        editItemId.value = intent.editTarget()
-        cropItemId.value = intent.cropTarget()
         editPostId.value = intent.draftTarget()
         requestNotificationPermission()
 
         setContent {
             FediFerryTheme {
-                val edit by editItemId
-                val crop by cropItemId
                 val draft by editPostId
                 FediFerryNavHost(
                     navController = rememberNavController(),
-                    editItemId = edit,
-                    cropItemId = crop,
                     editPostId = draft,
-                    onEditConsumed = {
-                        editItemId.value = null
-                        cropItemId.value = null
-                        editPostId.value = null
-                    },
+                    onEditConsumed = { editPostId.value = null },
                 )
             }
         }
@@ -86,19 +70,11 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        intent.editTarget()?.let { editItemId.value = it }
-        intent.cropTarget()?.let { cropItemId.value = it }
         intent.draftTarget()?.let { editPostId.value = it }
     }
 
-    private fun Intent.editTarget(): String? =
-        takeIf { it.action == ACTION_EDIT }?.getStringExtra(EXTRA_ITEM_ID)
-
     private fun Intent.draftTarget(): String? =
         takeIf { it.action == ACTION_EDIT_POST }?.getStringExtra(EXTRA_POST_ID)
-
-    private fun Intent.cropTarget(): String? =
-        takeIf { it.action == ACTION_CROP }?.getStringExtra(EXTRA_ITEM_ID)
 
     /**
      * Without this the undo notification is silently dropped on 33+, which would
@@ -115,9 +91,6 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val ACTION_EDIT = "app.fediferry.action.EDIT"
-        const val ACTION_CROP = "app.fediferry.action.CROP"
-        const val EXTRA_ITEM_ID = "app.fediferry.extra.ITEM_ID"
         const val ACTION_EDIT_POST = "app.fediferry.action.EDIT_POST"
         const val EXTRA_POST_ID = "app.fediferry.extra.POST_ID"
     }

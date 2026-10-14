@@ -97,6 +97,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.BuildConfig
 import app.fediferry.R
@@ -135,9 +136,8 @@ enum class SettingsPage(
     @StringRes val group: Int,
     val icon: ImageVector,
 ) {
-    ACCOUNT("account", R.string.settings_page_account, R.string.settings_group_account, Icons.Outlined.AccountCircle),
-    SERVER("server", R.string.settings_page_server, R.string.settings_group_account, Icons.Outlined.Dns),
-    TEMPLATES("templates", R.string.settings_page_templates, R.string.settings_group_posts, Icons.Outlined.Description),
+    PROJECT("project", R.string.settings_page_project, R.string.settings_group_project, Icons.Outlined.Dns),
+    CHANNELS("channels", R.string.settings_page_channels, R.string.settings_group_channels, Icons.Outlined.AccountCircle),
     HASHTAGS("hashtags", R.string.settings_page_hashtags, R.string.settings_group_posts, Icons.Outlined.Tag),
     PLACEHOLDERS("placeholders", R.string.settings_page_placeholders, R.string.settings_group_posts, Icons.Outlined.DataObject),
     SHARING("sharing", R.string.settings_page_sharing, R.string.settings_group_posts, Icons.AutoMirrored.Outlined.Send),
@@ -150,6 +150,7 @@ enum class SettingsPage(
 
     companion object {
         fun fromRoute(route: String?): SettingsPage? = entries.firstOrNull { it.route == route }
+
     }
 }
 
@@ -161,28 +162,16 @@ private fun SettingsPage.summary(state: SettingsState, context: Context): String
     // Strings independent facts together with " · ".
     fun join(a: String, b: String) = context.getString(R.string.settings_summary_separator, a, b)
     return when (this) {
-        SettingsPage.SERVER -> ServiceLocator.serverConnections(context).current()
-            ?.let { context.getString(R.string.server_summary_connected, it.projectName) }
-            ?: context.getString(R.string.server_summary_none)
-        SettingsPage.ACCOUNT -> {
-            val default = state.accounts.firstOrNull { it.isDefault } ?: state.accounts.firstOrNull()
-            when {
-                default == null -> context.getString(R.string.settings_summary_not_connected)
-                state.accounts.size == 1 ->
-                    context.getString(R.string.settings_summary_account, default.acct, default.instance)
-                else -> context.resources.getQuantityString(
-                    R.plurals.settings_summary_account_more,
-                    state.accounts.size - 1,
-                    default.acct,
-                    default.instance,
-                    state.accounts.size - 1,
-                )
+        SettingsPage.PROJECT -> ServiceLocator.serverConnections(context).current()
+            ?.let { context.getString(R.string.project_summary_server, it.projectName) }
+            ?: context.getString(R.string.project_summary_phone)
+        SettingsPage.CHANNELS -> {
+            val default = state.channels.firstOrNull { it.isDefault } ?: state.channels.firstOrNull()
+            if (default == null) {
+                context.getString(R.string.channels_summary_none)
+            } else {
+                res.getQuantityString(R.plurals.channels_summary, state.channels.size, state.channels.size, default.label)
             }
-        }
-        SettingsPage.TEMPLATES -> {
-            val default = state.templates.firstOrNull { it.isDefault }?.name
-            val n = count(R.plurals.settings_summary_templates, state.templates.size)
-            default?.let { context.getString(R.string.settings_summary_default, n, it) } ?: n
         }
         SettingsPage.HASHTAGS -> {
             val n = count(R.plurals.settings_summary_hashtags, state.hashtags.size)
@@ -259,6 +248,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshChannels()
+        onPauseOrDispose { }
+    }
 
     Scaffold(
         contentWindowInsets = ScaffoldDefaults.typingInsets,
@@ -310,6 +303,7 @@ fun SettingsScreen(
 fun SettingsPageScreen(
     page: SettingsPage,
     onBack: () -> Unit,
+    onOpenChannel: (String) -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -338,13 +332,6 @@ fun SettingsPageScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back_to_settings))
                     }
                 },
-                actions = {
-                    if (page == SettingsPage.TEMPLATES) {
-                        IconButton(onClick = viewModel::newTemplate) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.settings_new_template))
-                        }
-                    }
-                },
             )
         },
     ) { padding ->
@@ -357,14 +344,8 @@ fun SettingsPageScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             when (page) {
-                SettingsPage.ACCOUNT -> if (ServiceLocator.serverConnections(LocalContext.current).current() != null) {
-                    // With a server, accounts are the project's channels and live there.
-                    ChannelsSection()
-                } else {
-                    AccountsSection(state, viewModel)
-                }
-                SettingsPage.SERVER -> ServerSection()
-                SettingsPage.TEMPLATES -> TemplatesSection(state, viewModel) { showPlaceholderHelp = true }
+                SettingsPage.PROJECT -> ServerSection()
+                SettingsPage.CHANNELS -> ChannelsSection(onOpenChannel = onOpenChannel)
                 SettingsPage.HASHTAGS -> HashtagsSection(state, viewModel)
                 SettingsPage.PLACEHOLDERS -> {
                     PlaceholdersSection(state, viewModel)
@@ -381,211 +362,6 @@ fun SettingsPageScreen(
                 SettingsPage.APPEARANCE -> AppearanceSection(state, viewModel)
                 SettingsPage.LANGUAGE -> LanguageSection()
                 SettingsPage.DIAGNOSTICS -> DiagnosticsSection(state, viewModel)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccountsSection(state: SettingsState, viewModel: SettingsViewModel) {
-    var instance by remember { mutableStateOf("") }
-
-    state.accounts.forEach { account ->
-        Card(Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("@${account.acct}", style = MaterialTheme.typography.titleSmall)
-                    Text(account.instance, style = MaterialTheme.typography.bodySmall)
-                }
-                if (account.isDefault) {
-                    Text(stringResource(R.string.settings_default), style = MaterialTheme.typography.labelSmall)
-                } else {
-                    TextButton(onClick = { viewModel.makeDefaultAccount(account.id) }) {
-                        Text(stringResource(R.string.settings_make_default))
-                    }
-                }
-                IconButton(onClick = { viewModel.disconnect(account.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.settings_disconnect))
-                }
-            }
-        }
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        OutlinedTextField(
-            value = instance,
-            onValueChange = { instance = it },
-            label = { Text(stringResource(R.string.settings_instance)) },
-            placeholder = { Text("mastodon.social") },
-            singleLine = true,
-            modifier = Modifier.weight(1f),
-        )
-        Button(
-            onClick = { viewModel.connect(instance) },
-            enabled = !state.connecting,
-        ) { Text(stringResource(R.string.settings_connect)) }
-    }
-
-    if (state.connecting) {
-        LoadingOverlay(
-            title = stringResource(
-                R.string.settings_contacting,
-                instance.trim().ifBlank { stringResource(R.string.settings_your_instance) },
-            ),
-            detail = stringResource(R.string.settings_contacting_detail),
-            icon = Icons.AutoMirrored.Outlined.Login,
-        )
-    }
-}
-
-@Composable
-private fun TemplatesSection(
-    state: SettingsState,
-    viewModel: SettingsViewModel,
-    onShowPlaceholderHelp: () -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            stringResource(R.string.settings_templates_intro),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(onClick = onShowPlaceholderHelp) { Text(stringResource(R.string.settings_what_can_i_use)) }
-    }
-
-    state.templates.forEach { template ->
-        TemplateCard(
-            template = template,
-            viewModel = viewModel,
-            visionConfigured = state.aiModels.any { it.kind == AiKind.ALT_TEXT },
-            placeholderNames = PlaceholderKey.RESERVED + state.placeholderKeys.map { it.name },
-            hashtags = state.hashtags,
-        )
-    }
-}
-
-@Composable
-private fun TemplateCard(
-    template: Template,
-    viewModel: SettingsViewModel,
-    visionConfigured: Boolean,
-    placeholderNames: Set<String>,
-    hashtags: List<String>,
-) {
-    var draft by remember(template.id) { mutableStateOf(template) }
-
-    Card(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedTextField(
-                value = draft.name,
-                onValueChange = { draft = draft.copy(name = it) },
-                label = { Text(stringResource(R.string.settings_template_name)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            val unknown = TemplateEngine.unknownIn(draft.body, placeholderNames)
-            OutlinedTextField(
-                value = draft.body,
-                onValueChange = { draft = draft.copy(body = it) },
-                label = { Text(stringResource(R.string.settings_template_body)) },
-                minLines = 2,
-                isError = unknown.isNotEmpty(),
-                supportingText = if (unknown.isNotEmpty()) {
-                    {
-                        Text(
-                            pluralStringResource(
-                                R.plurals.settings_template_unknown,
-                                unknown.size,
-                                unknown.joinToString { "{$it}" },
-                            ),
-                        )
-                    }
-                } else {
-                    null
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            SourcePicker(
-                excluded = draft.excludedSources,
-                onChange = { draft = draft.copy(excludedSources = it) },
-            )
-            TemplateHashtags(
-                picked = draft.hashtagList,
-                list = hashtags,
-                onChange = { draft = draft.copy(tags = Hashtags.format(it)) },
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = draft.addSourceHashtags,
-                    onCheckedChange = { draft = draft.copy(addSourceHashtags = it) },
-                )
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.settings_add_source_hashtags), style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        stringResource(R.string.settings_add_source_hashtags_detail),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            ContentWarningField(
-                key = template.id,
-                value = draft.contentWarning.orEmpty(),
-                onValueChange = { draft = draft.copy(contentWarning = it.ifBlank { null }) },
-                label = stringResource(R.string.settings_default_content_warning),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            VisibilityPicker(
-                selected = draft.visibility,
-                onSelect = { draft = draft.copy(visibility = it) },
-                text = draft.body,
-                title = stringResource(R.string.settings_default_visibility),
-                titleStyle = MaterialTheme.typography.labelMedium,
-            )
-
-            AltTextModePicker(
-                selected = draft.altTextMode,
-                onSelect = { draft = draft.copy(altTextMode = it) },
-                visionConfigured = visionConfigured,
-            )
-
-            if (draft.altTextMode == AltTextMode.STATIC) {
-                OutlinedTextField(
-                    value = draft.staticAltText.orEmpty(),
-                    onValueChange = { draft = draft.copy(staticAltText = it) },
-                    label = { Text(stringResource(R.string.settings_fixed_description)) },
-                    placeholder = { Text(stringResource(R.string.settings_fixed_description_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Button(onClick = { viewModel.saveTemplate(draft) }) { Text(stringResource(R.string.settings_save)) }
-                if (!template.isDefault) {
-                    TextButton(onClick = { viewModel.makeDefaultTemplate(template.id) }) {
-                        Text(stringResource(R.string.settings_make_default))
-                    }
-                    TextButton(onClick = { viewModel.deleteTemplate(template.id) }) {
-                        Text(stringResource(R.string.settings_delete))
-                    }
-                } else {
-                    Text(stringResource(R.string.settings_default), style = MaterialTheme.typography.labelSmall)
-                }
             }
         }
     }
@@ -878,7 +654,7 @@ private val TreatmentKind.label: Int
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSource>) -> Unit) {
+internal fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSource>) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.settings_fill_placeholders_from), style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -911,7 +687,7 @@ private fun SourcePicker(excluded: Set<ContentSource>, onChange: (Set<ContentSou
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TemplateHashtags(picked: List<String>, list: List<String>, onChange: (List<String>) -> Unit) {
+internal fun TemplateHashtags(picked: List<String>, list: List<String>, onChange: (List<String>) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.settings_template_hashtags), style = MaterialTheme.typography.labelMedium)
         val offered = Hashtags.sortedAlphabetically(Hashtags.union(list, picked))

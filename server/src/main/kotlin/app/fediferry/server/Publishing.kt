@@ -278,7 +278,7 @@ class Publishing(
         val channel = channels.get(p.project_id, p.channel_id)
         val token = channels.token(p.project_id, p.channel_id) ?: throw ApiException(HttpStatusCode.Conflict, "channel.no_token")
         return PublishJob(
-            instance = channel.instance,
+            instance = channel.account?.instance ?: throw ApiException(HttpStatusCode.Conflict, "channel.no_account"),
             token = token,
             text = post.finalText ?: throw ApiException(HttpStatusCode.Conflict, "post.no_final_text"),
             contentWarning = post.contentWarning,

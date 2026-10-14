@@ -19,7 +19,8 @@
  */
 package app.fediferry
 
-import app.fediferry.api.ChannelCapabilities
+import app.fediferry.api.PlatformLimits
+import app.fediferry.api.ChannelAccount
 import app.fediferry.api.ChannelDto
 import app.fediferry.api.MediaAssetDto
 import app.fediferry.api.PostDto
@@ -32,7 +33,7 @@ import org.junit.Test
 
 class PostValidatorTest {
 
-    private val channel = ChannelDto("social/me", "MASTODON", "Me", "social", "me", "Me")
+    private val channel = ChannelDto("social/me", "Me", account = ChannelAccount("MASTODON", "social", "me", "Me"))
     private fun picture(position: Int = 0, mime: String = "image/png", bytes: Long = 1000, alt: String? = "A cat") =
         PostMediaDto(position, MediaAssetDto("a$position", "s", mime, bytes = bytes), altText = alt)
     private fun post(body: String = "{tags}\n\nvia https://example.org/x", tags: List<String> = listOf("#meme"), media: List<PostMediaDto> = listOf(picture()), cw: String? = null) =
@@ -51,7 +52,7 @@ class PostValidatorTest {
 
     @Test
     fun `too long counts links as 23 and the content warning`() {
-        val small = channel.copy(capabilities = ChannelCapabilities(maxCharacters = 40))
+        val small = channel.copy(limits = PlatformLimits(maxCharacters = 40))
         // "#meme\n\nvia " is 11, the link 23: 34 fits; with a 10-letter warning it does not.
         assertTrue(PostValidator.check(post(), small).isEmpty())
         val v = PostValidator.check(post(cw = "spiders!!!"), small).single()
@@ -61,7 +62,7 @@ class PostValidatorTest {
 
     @Test
     fun `media the channel does not take blocks`() {
-        val strict = channel.copy(capabilities = ChannelCapabilities(maxMediaAttachments = 1, imageMimeTypes = listOf("image/jpeg"), maxImageBytes = 500))
+        val strict = channel.copy(limits = PlatformLimits(maxMediaAttachments = 1, imageMimeTypes = listOf("image/jpeg"), maxImageBytes = 500))
         val found = codes(post(media = listOf(picture(0, "image/png"), picture(1, "image/jpeg", bytes = 2000))), strict)
         assertEquals(listOf(PostValidator.TOO_MANY_MEDIA, PostValidator.MEDIA_TYPE, PostValidator.MEDIA_TOO_BIG), found)
     }
@@ -78,7 +79,7 @@ class PostValidatorTest {
 
     @Test
     fun `a text-only post on a picture channel blocks`() =
-        assertEquals(listOf(PostValidator.NEEDS_MEDIA), codes(post(media = emptyList()), channel.copy(capabilities = ChannelCapabilities(textOnly = false))))
+        assertEquals(listOf(PostValidator.NEEDS_MEDIA), codes(post(media = emptyList()), channel.copy(limits = PlatformLimits(textOnly = false))))
 
     @Test
     fun `a misspelt placeholder warns`() {

@@ -271,7 +271,7 @@ class IntakeTest {
         val a = client.share(token, "a", picture = png(5, 5, 1)).body<IngestResult>().post!!
         val asset = a.media.single().asset
         // A second draft on the same file, as an older server's library could leave behind.
-        storage.db.postQueries.insert(projectId(), "b", "DRAFT", null, null, "", "", 1, null, "PUBLIC", null, null, "{}", 0, null, now, now)
+        storage.db.postQueries.insert(projectId(), "b", "DRAFT", null, "", "", 1, null, "PUBLIC", null, null, "{}", 0, null, now, now)
         storage.db.postMediaQueries.insert(projectId(), "b", 0, asset.id, null, 0)
 
         client.delete("/api/v1/posts/${a.id}") { bearerAuth(token); header("X-Device-Id", "phone") }

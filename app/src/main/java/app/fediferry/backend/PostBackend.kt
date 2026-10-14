@@ -20,7 +20,10 @@
 package app.fediferry.backend
 
 import app.fediferry.api.AltSuggestion
+import app.fediferry.api.AuthorizeResponse
 import app.fediferry.api.ChannelDto
+import app.fediferry.api.ChannelInput
+import app.fediferry.api.ChannelPatch
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.LabelDto
 import app.fediferry.api.LockDto
@@ -117,9 +120,30 @@ interface PostBackend {
     /** The latest posts that went out, as their channels have them. */
     suspend fun published(limit: Int = 20): PublishedPage
 
-    // --- channels and pictures ---------------------------------------------------------------
+    // --- channels ------------------------------------------------------------------------------
 
     suspend fun channels(): List<ChannelDto>
+
+    /** A channel with no account yet. */
+    suspend fun createChannel(input: ChannelInput): ChannelDto
+
+    /** Renames a channel, makes it the default or changes how its posts start. */
+    suspend fun patchChannel(id: String, patch: ChannelPatch): ChannelDto
+
+    suspend fun deleteChannel(id: String)
+
+    /** Reads again what the channel's instance takes. */
+    suspend fun refreshLimits(id: String): ChannelDto
+
+    /**
+     * Starts connecting the account at [instance] to [channelId] — or to a new
+     * channel when null. Refused with `platform.*` codes when the instance runs
+     * software that cannot be connected. The caller opens [AuthorizeResponse.url];
+     * the sign-in finishes when the instance sends the browser back.
+     */
+    suspend fun connectAccount(instance: String, channelId: String?): AuthorizeResponse
+
+    // --- pictures --------------------------------------------------------------------------------
 
     /** Something the image loader can show [assetId] from. */
     fun mediaUrl(assetId: String): String

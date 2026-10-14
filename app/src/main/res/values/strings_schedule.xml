@@ -25,4 +25,14 @@
     <string name="schedule_notification_title">Scheduled</string>
     <string name="schedule_notification_text">Mastodon posts it %1$s</string>
     <string name="schedule_too_soon_failure">The time picked is less than 5 minutes away, which Mastodon does not accept. Schedule it again.</string>
+    <string name="calendar_previous_month">Previous month</string>
+    <string name="calendar_next_month">Next month</string>
+    <string name="calendar_nothing_planned">Nothing planned on this day yet.</string>
+    <string name="calendar_planned_heading">Planned on this day</string>
+    <string name="calendar_this_post">this post (now)</string>
+    <string name="calendar_taken_times">Already planned that day: %1$s</string>
+    <plurals name="calendar_planned_count">
+        <item quantity="one">%d post planned</item>
+        <item quantity="other">%d posts planned</item>
+    </plurals>
 </resources>

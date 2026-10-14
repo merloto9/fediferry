@@ -37,4 +37,5 @@
     <string name="ready_unknown_placeholder">%1$s ist kein Platzhalter, den etwas ausfüllt; er würde so gepostet, wie er dasteht.</string>
     <string name="ready_no_alt">Bild %1$s hat keine Bildbeschreibung.</string>
     <string name="ready_link_may_identify">Der Link nennt womöglich, wer ihn geteilt hat.</string>
+    <string name="ready_no_account">Verbinde unter Einstellungen → Kanäle ein Konto mit diesem Kanal.</string>
 </resources>

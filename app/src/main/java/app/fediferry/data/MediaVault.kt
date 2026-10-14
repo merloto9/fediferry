@@ -47,6 +47,20 @@ class MediaVault(private val context: Context) {
      * same screenshot therefore reuses the existing file rather than duplicating
      * it; callers dedupe on [Stored.sha256].
      */
+    /** The content hash a stored file is known by. */
+    fun sha256Of(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buf)
+                if (read <= 0) break
+                digest.update(buf, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
     suspend fun ingest(uri: Uri): Result<Stored> = withContext(Dispatchers.IO) {
         runCatching {
             val mime = resolveMimeType(uri)

@@ -1,27 +1,29 @@
--- Where a project publishes: a Mastodon account now, other fediverse
--- software later. What the destination can take is kept in capabilities_json.
+-- A project's destination: one fediverse account on one platform, its
+-- instance's limits (limits_json) and how the project's posts there start
+-- (post_json). Set up before an account is connected, the account columns
+-- are empty strings.
 CREATE TABLE channel (
     project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     id TEXT NOT NULL,
-    type TEXT NOT NULL,
+    platform TEXT NOT NULL,
     name TEXT NOT NULL,
     instance TEXT NOT NULL,
     remote_account_id TEXT NOT NULL,
     acct TEXT NOT NULL,
     display_name TEXT NOT NULL,
     avatar_url TEXT,
-    capabilities_json TEXT NOT NULL DEFAULT '{}',
-    defaults_json TEXT NOT NULL DEFAULT '{}',
+    limits_json TEXT NOT NULL DEFAULT '{}',
     is_default INTEGER NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
+    post_json TEXT NOT NULL DEFAULT '{}',
     PRIMARY KEY (project_id, id)
 );
 
 insert:
-INSERT INTO channel(project_id, id, type, name, instance, remote_account_id, acct, display_name, avatar_url,
-    capabilities_json, defaults_json, is_default, sort_order, created_at, updated_at)
+INSERT INTO channel(project_id, id, platform, name, instance, remote_account_id, acct, display_name, avatar_url,
+    limits_json, is_default, sort_order, created_at, updated_at, post_json)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 all:
@@ -30,17 +32,25 @@ SELECT * FROM channel WHERE project_id = ? ORDER BY sort_order, name;
 byId:
 SELECT * FROM channel WHERE project_id = ? AND id = ?;
 
+-- The channel an account is connected to already, if any.
+byAccount:
+SELECT * FROM channel WHERE project_id = ? AND instance = ? AND acct = ? AND acct != '';
+
 count:
 SELECT COUNT(*) FROM channel WHERE project_id = ?;
+
+setAccount:
+UPDATE channel SET platform = ?, instance = ?, remote_account_id = ?, acct = ?, display_name = ?, avatar_url = ?, limits_json = ?, updated_at = ?
+WHERE project_id = ? AND id = ?;
 
 refreshAccount:
 UPDATE channel SET display_name = ?, avatar_url = ?, remote_account_id = ?, updated_at = ? WHERE project_id = ? AND id = ?;
 
-setCapabilities:
-UPDATE channel SET capabilities_json = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+setLimits:
+UPDATE channel SET limits_json = ?, updated_at = ? WHERE project_id = ? AND id = ?;
 
 update:
-UPDATE channel SET name = ?, defaults_json = ?, sort_order = ?, updated_at = ? WHERE project_id = ? AND id = ?;
+UPDATE channel SET name = ?, post_json = ?, sort_order = ?, updated_at = ? WHERE project_id = ? AND id = ?;
 
 setDefault:
 UPDATE channel SET is_default = (id = ?), updated_at = ? WHERE project_id = ?;

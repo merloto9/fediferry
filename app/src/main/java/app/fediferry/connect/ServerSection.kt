@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -47,14 +48,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.R
 
 /**
- * Settings → FediFerry server: the address of the server and the project token,
- * or — once connected — which project this phone works on.
+ * Settings → Project: which project this phone works on — its own, or one on
+ * a FediFerry server, joined with the server's address and a project token.
+ * Settings that belong to the project as a whole go here as they come.
  */
 @Composable
 fun ServerSection(viewModel: ConnectViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
     val connection = state.connection
 
+    if (connection == null) {
+        Text(stringResource(R.string.project_this_phone), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.project_local_intro), style = MaterialTheme.typography.bodySmall)
+        HorizontalDivider()
+        Text(stringResource(R.string.project_join_server), style = MaterialTheme.typography.titleMedium)
+    }
     Text(stringResource(R.string.server_intro), style = MaterialTheme.typography.bodySmall)
 
     if (connection != null) {

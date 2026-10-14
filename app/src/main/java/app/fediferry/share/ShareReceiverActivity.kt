@@ -21,6 +21,9 @@ package app.fediferry.share
 
 import app.fediferry.upload.UploadWorker
 import app.fediferry.api.IngestModes
+import app.fediferry.api.PlanModes
+import app.fediferry.api.PlanRequest
+import app.fediferry.client.ServerException
 import app.fediferry.i18n.AppLocale
 import android.content.Context
 import android.content.Intent
@@ -38,13 +41,11 @@ import app.fediferry.MainActivity
 import app.fediferry.R
 import app.fediferry.data.ItemRepository
 import app.fediferry.data.model.Item
-import app.fediferry.data.model.Status
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
 import app.fediferry.ui.LoadingScrim
 import app.fediferry.ui.theme.FediFerryTheme
 import app.fediferry.work.Notifications
-import app.fediferry.work.PostScheduler
 import kotlinx.coroutines.launch
 
 /**
@@ -118,10 +119,7 @@ class ShareReceiverActivity : ComponentActivity() {
             val repo = ServiceLocator.items(this@ShareReceiverActivity)
             repo.seedIfEmpty()
 
-            val result = repo.ingest(
-                payload = payload,
-                status = if (mode == ShareMode.POST_NOW) Status.QUEUED else Status.DRAFT,
-            )
+            val result = repo.ingest(payload = payload)
 
             result.fold(
                 onSuccess = { ingested -> handle(mode, ingested) },
@@ -244,64 +242,76 @@ class ShareReceiverActivity : ComponentActivity() {
         finish()
     }
 
+    /**
+     * The phone's own project: the share is cleaned, its picture fetched or
+     * trimmed, and it becomes a draft there. Then the modes part ways: Save
+     * stops, Compose opens the draft, Post now makes it ready and sends it
+     * after the undo window.
+     */
     private suspend fun handle(mode: ShareMode, shared: ItemRepository.Ingested) {
-        // First, the link loses whatever says who shared it. Everything after
-        // compares against this item, so "was media fetched?" stays accurate.
-        val original = shared.copy(item = cleanLink(shared.item))
-        // A link-only share may carry media we can fetch. This is a no-op for
-        // Instagram and for anything already carrying an image.
-        val resolved = resolveLink(original.item)
-        val ingested = if (resolved === original.item) original else original.copy(item = resolved)
-        val itemId = ingested.item.id
+        val repo = ServiceLocator.items(this)
+        // First, the link loses whatever says who shared it.
+        val original = cleanLink(shared.item)
+        // A link-only share may carry media we can fetch; a no-op for Instagram.
+        val resolved = resolveLink(original)
+        // Only a screenshot needs trimming; fetched media arrives cropped.
+        var trimmed = false
+        if (resolved === original && resolved.mediaPath != null) {
+            val after = autoCropped(resolved)
+            trimmed = after !== resolved
+            repo.applyDefaultCleanup(after)
+        }
+        val item = repo.byId(shared.item.id) ?: resolved
+        val phone = ServiceLocator.phone(this)
+        val adopted = runCatching { phone.adopt(item) }.getOrElse { error ->
+            DebugLog.w(LOG, "Making a draft of a share failed", error)
+            toast(getString(R.string.receiver_read_failed, error.describe()))
+            finish()
+            return
+        }
         when (mode) {
-            ShareMode.POST_NOW -> {
-                // Only a screenshot needs trimming; fetched media arrives cropped.
-                if (resolved === original.item) {
-                    val trimmed = autoCropped(ingested.item)
-                    ServiceLocator.items(this).applyDefaultCleanup(trimmed)
-                }
-                val delay = ServiceLocator.settings(this).current().undoDelaySeconds
-                if (delay > 0) Notifications.showUndo(this, itemId, delay)
-                PostScheduler.enqueue(this, itemId, delay * 1000L)
-                toast(if (delay > 0) getString(R.string.receiver_posting_in, delay) else getString(R.string.receiver_posting))
-                finish()
-            }
+            ShareMode.POST_NOW -> postNowOnPhone(adopted.postId)
+            ShareMode.COMPOSE -> openDraft(adopted.postId)
+            ShareMode.SAVE_FOR_LATER -> toast(
+                when {
+                    adopted.duplicate -> getString(R.string.receiver_duplicate)
+                    adopted.paired -> getString(R.string.receiver_paired)
+                    resolved !== original -> getString(R.string.receiver_saved_with_link_image)
+                    item.mediaPath == null && item.sourceUrl != null -> getString(R.string.receiver_awaiting_media)
+                    trimmed -> getString(R.string.receiver_saved_trimmed, getString(R.string.receiver_saved))
+                    else -> getString(R.string.receiver_saved)
+                },
+            )
+        }
+        finish()
+    }
 
-            ShareMode.COMPOSE -> {
-                // Offer the trim step only for a screenshot with something to
-                // trim. Media fetched from a link is already exactly the
-                // picture, and running the screenshot detector over it proposes
-                // a crop through the middle of the meme.
-                val trim = resolved === original.item &&
-                    ingested.item.mediaPath != null &&
-                    ServiceLocator.items(this).suggestCrop(ingested.item) != null
-                startActivity(
-                    Intent(this, MainActivity::class.java)
-                        .setAction(if (trim) MainActivity.ACTION_CROP else MainActivity.ACTION_EDIT)
-                        .putExtra(MainActivity.EXTRA_ITEM_ID, itemId)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                )
-                finish()
-            }
-
-            ShareMode.SAVE_FOR_LATER -> {
-                var trimmed = false
-                if (resolved === original.item) {
-                    val after = autoCropped(ingested.item)
-                    trimmed = after !== ingested.item
-                    ServiceLocator.items(this).applyDefaultCleanup(after)
-                }
-                toast(
-                    when {
-                        resolved !== original.item -> getString(R.string.receiver_saved_with_link_image)
-                        trimmed -> getString(R.string.receiver_saved_trimmed, ingested.describe())
-                        else -> ingested.describe()
-                    },
-                )
-                finish()
-            }
+    /** Post now, on the phone: ready (checked like any other), then out after the undo window. */
+    private suspend fun postNowOnPhone(postId: String) {
+        val phone = ServiceLocator.phone(this)
+        val delay = ServiceLocator.settings(this).current().undoDelaySeconds
+        val outcome = runCatching {
+            val draft = phone.post(postId)
+            phone.markReady(postId, draft.version)
+            phone.plan(postId, PlanRequest(PlanModes.NOW, delaySeconds = delay))
+        }
+        outcome.onSuccess {
+            if (delay > 0) Notifications.showUndo(this, postId, delay, onServer = true)
+            toast(if (delay > 0) getString(R.string.receiver_posting_in, delay) else getString(R.string.receiver_posting))
+        }.onFailure { e ->
+            // The channel would not take it as it is: the draft opens to fix it.
+            val why = (e as? ServerException)?.violations?.firstOrNull()?.let { app.fediferry.drafts.ServerMessages.violation(resources, it) }
+            toast(getString(R.string.receiver_post_not_ready, why ?: (e as? ServerException)?.code.orEmpty()))
+            openDraft(postId)
         }
     }
+
+    private fun openDraft(postId: String) = startActivity(
+        Intent(this, MainActivity::class.java)
+            .setAction(MainActivity.ACTION_EDIT_POST)
+            .putExtra(MainActivity.EXTRA_POST_ID, postId)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+    )
 
     /**
      * Direct-share taps carry the mode as an extra. A plain "Open with FediFerry"
@@ -382,18 +392,6 @@ class ShareReceiverActivity : ComponentActivity() {
         return repo.applyCrop(item, suggestion.crop)
             .onFailure { Log.e(TAG, "Auto-crop failed", it) }
             .getOrDefault(item)
-    }
-
-    /**
-     * Says what actually happened. A permalink on its own is the common
-     * Instagram case and looks like a no-op otherwise — the user cannot tell
-     * that the post still has no image.
-     */
-    private fun ItemRepository.Ingested.describe(): String = when (outcome) {
-        ItemRepository.Ingested.Outcome.PAIRED -> getString(R.string.receiver_paired)
-        ItemRepository.Ingested.Outcome.DUPLICATE -> getString(R.string.receiver_duplicate)
-        ItemRepository.Ingested.Outcome.AWAITING_MEDIA -> getString(R.string.receiver_awaiting_media)
-        ItemRepository.Ingested.Outcome.CREATED -> getString(R.string.receiver_saved)
     }
 
     private fun toast(message: String) =

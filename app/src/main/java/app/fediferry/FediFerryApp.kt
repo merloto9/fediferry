@@ -29,6 +29,7 @@ import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.video.VideoFrameDecoder
 import app.fediferry.di.ServiceLocator
+import app.fediferry.phone.LegacyInbox
 import app.fediferry.log.DebugLog
 import app.fediferry.share.ShortcutPublisher
 import app.fediferry.work.Notifications
@@ -89,12 +90,13 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
         scope.launch {
             val repo = ServiceLocator.items(this@FediFerryApp)
             repo.seedIfEmpty()
-            // Anything left POSTING is a survivor of a killed process, not a
-            // running send; put it back in the queue.
-            repo.recoverStalePosting()
             // Posts are not kept once they are out; this clears what an
             // older version kept, pictures included.
             repo.purgePosted()
+            // What an older version kept in its inbox moves into the phone's project, once.
+            LegacyInbox.bringOver(this@FediFerryApp)
+            // A post the app was killed while sending goes back in the queue.
+            ServiceLocator.phone(this@FediFerryApp).recover()
         }
     }
 }

@@ -23,8 +23,7 @@
     <string name="editor_tags_empty">{tags} is empty — no hashtags are picked, so its line is left out.</string>
     <string name="editor_tags_becomes">{tags} becomes %1$s when the post is sent.</string>
     <string name="editor_tags_missing">The text has no {tags}, so the hashtags you picked are not posted.</string>
-    <string name="editor_template">Template: %1$s</string>
-    <string name="editor_no_account">No account connected — add one in Settings → Mastodon account before posting.</string>
+    <string name="editor_no_account">No account connected — add one in Settings → Channels before posting.</string>
     <string name="editor_account">Account: @%1$s</string>
     <string name="editor_link_warning_title">This link may show who shared it</string>
     <string name="editor_link_warning_body">It was shared with details about the sender, and a clean link that still leads to the same post couldn\'t be confirmed, so it is posted as shared.</string>
@@ -86,4 +85,9 @@
     <string name="nav_inbox">Inbox</string>
     <string name="nav_queue">Queue</string>
     <string name="nav_sources">Sources</string>
+    <string name="editor_template">Template: %1$s</string>
+    <string name="draft_rewrite">Rewrite</string>
+    <string name="draft_rewrite_title">Rewrite the text?</string>
+    <string name="draft_rewrite_text">The text, hashtags, visibility and content warning are written again from the settings of %1$s. What you changed in them is replaced.</string>
+    <string name="draft_rewrite_confirm">Rewrite</string>
 </resources>

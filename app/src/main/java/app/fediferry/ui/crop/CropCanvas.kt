@@ -58,100 +58,28 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.R
+import app.fediferry.media.ScreenshotCropper
 import coil3.compose.AsyncImage
 import java.io.File
 
-/**
- * Approve or adjust the crop before the post is made.
- *
- * The suggestion comes from [app.fediferry.media.ScreenshotCropper]; this screen
- * exists because that suggestion is a heuristic and the user is the one who
- * knows where the meme actually ends.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CropScreen(
-    itemId: String,
-    onDone: (String) -> Unit,
-    viewModel: CropViewModel = viewModel(),
+/** The crop rectangle in fractions of the image, so it survives any scaling. */
+data class NormalisedCrop(
+    val left: Float = 0f,
+    val top: Float = 0f,
+    val right: Float = 1f,
+    val bottom: Float = 1f,
 ) {
-    val state by viewModel.state.collectAsState()
-    val snackbar = remember { SnackbarHostState() }
+    fun toPixels(width: Int, height: Int) = ScreenshotCropper.Crop(
+        left = (left * width).toInt().coerceIn(0, width - 1),
+        top = (top * height).toInt().coerceIn(0, height - 1),
+        right = (right * width).toInt().coerceIn(1, width),
+        bottom = (bottom * height).toInt().coerceIn(1, height),
+    )
 
-    LaunchedEffect(itemId) { viewModel.load(itemId) }
-    LaunchedEffect(state.message) {
-        state.message?.let {
-            snackbar.showSnackbar(it)
-            viewModel.clearMessage()
-        }
-    }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.crop_title)) },
-                actions = {
-                    TextButton(onClick = { onDone(itemId) }) { Text(stringResource(R.string.crop_skip)) }
-                },
-            )
-        },
-    ) { padding ->
-        val path = state.sourcePath
-        if (path == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                if (state.loaded) Text(stringResource(R.string.crop_no_image)) else CircularProgressIndicator()
-            }
-            return@Scaffold
-        }
-
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            Text(
-                text = if (state.suggestion != null) {
-                    stringResource(R.string.crop_hint_suggested)
-                } else {
-                    stringResource(R.string.crop_hint_none)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-
-            CropCanvas(
-                model = File(path),
-                crop = state.crop,
-                onCropChange = viewModel::setCrop,
-                aspect = state.imageAspect,
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (state.suggestion != null) {
-                    TextButton(onClick = viewModel::useSuggestion) { Text(stringResource(R.string.crop_suggested)) }
-                }
-                TextButton(onClick = viewModel::useWholeImage) { Text(stringResource(R.string.crop_whole_image)) }
-                Button(
-                    onClick = { viewModel.apply(onDone) },
-                    enabled = !state.applying,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(if (state.applying) R.string.crop_trimming else R.string.crop_use_this))
-                }
-            }
-        }
-    }
+    val isWholeImage: Boolean
+        get() = left <= 0.001f && top <= 0.001f && right >= 0.999f && bottom >= 0.999f
 }
-
-/** How close a touch must be to a corner to grab it, in pixels. */
-private const val HANDLE_GRAB_RADIUS = 64f
-
-/** The crop can never be shrunk below this fraction of the image. */
-private const val MIN_CROP_FRACTION = 0.05f
 
 /** The picture with a crop frame over it; [model] is anything the image loader takes. */
 @Composable
@@ -287,3 +215,10 @@ private fun NormalisedCrop.moved(handle: Handle, delta: Offset, shown: Rect): No
         Handle.NONE -> this
     }
 }
+
+/** How close a touch must be to a corner to grab it, in pixels. */
+private const val HANDLE_GRAB_RADIUS = 64f
+
+/** The crop can never be shrunk below this fraction of the image. */
+private const val MIN_CROP_FRACTION = 0.05f
+

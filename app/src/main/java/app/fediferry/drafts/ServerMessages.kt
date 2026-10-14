@@ -51,6 +51,7 @@ object ServerMessages {
         val a = v.args
         return when (v.code) {
             PostValidator.NO_CHANNEL -> resources.getString(R.string.ready_no_channel)
+            PostValidator.NO_ACCOUNT -> resources.getString(R.string.ready_no_account)
             PostValidator.EMPTY -> resources.getString(R.string.ready_empty)
             PostValidator.TOO_LONG -> resources.getString(R.string.ready_too_long, a["length"].orEmpty(), a["max"].orEmpty())
             PostValidator.TOO_MANY_MEDIA -> resources.getString(R.string.ready_too_many_media, a["count"].orEmpty(), a["max"].orEmpty())

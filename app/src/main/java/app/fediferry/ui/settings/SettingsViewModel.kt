@@ -69,6 +69,8 @@ data class SettingsState(
     /** The last test result per model, and which are being tested right now. */
     val aiTests: Map<String, ModelTestReport> = emptyMap(),
     val aiTesting: Set<String> = emptySet(),
+    /** The project's channels, wherever the project is. */
+    val channels: List<app.fediferry.api.ChannelDto> = emptyList(),
 )
 
 class SettingsViewModel(app: Application) : AndroidViewModel(app) {
@@ -82,6 +84,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     private val aiModels = ServiceLocator.aiModels(app)
+
+    /** Reads the project's channels again, for the overview; called when it shows. */
+    fun refreshChannels() = viewModelScope.launch {
+        runCatching { ServiceLocator.backend(getApplication()).channels() }.onSuccess { list -> _state.update { it.copy(channels = list) } }
+    }
 
     init {
         viewModelScope.launch {

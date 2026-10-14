@@ -2,7 +2,6 @@
 <resources>
     <!-- Pages and their groups -->
     <string name="settings_title">Settings</string>
-    <string name="settings_page_account">Mastodon account</string>
     <string name="settings_page_templates">Templates</string>
     <string name="settings_page_hashtags">Hashtags</string>
     <string name="settings_page_placeholders">Placeholders &amp; sources</string>
@@ -11,7 +10,6 @@
     <string name="settings_page_alt_text">Alt text</string>
     <string name="settings_page_appearance">Appearance</string>
     <string name="settings_page_diagnostics">Diagnostics</string>
-    <string name="settings_group_account">Account</string>
     <string name="settings_group_posts">Posts</string>
     <string name="settings_group_pictures">Pictures</string>
     <string name="settings_group_app">App</string>
@@ -138,7 +136,7 @@
     <string name="settings_instruction">Instruction</string>
 
     <!-- Alt text -->
-    <string name="settings_vision_intro">Writes alt text for templates set to Generated. Any OpenAI-compatible chat-completions endpoint whose model can look at images works. The picture is sent there, so pick a service you trust with it. A failure never blocks a post; it goes out without a description instead.</string>
+    <string name="settings_vision_intro">Writes alt text for channels set to Generated. Any OpenAI-compatible chat-completions endpoint whose model can look at images works. The picture is sent there, so pick a service you trust with it. A failure never blocks a post; it goes out without a description instead.</string>
     <string name="settings_prompt">Prompt</string>
 
     <!-- Diagnostics -->

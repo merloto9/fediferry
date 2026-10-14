@@ -7,7 +7,6 @@ CREATE TABLE post (
     stage TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     channel_id TEXT,
-    template_id TEXT,
     body TEXT NOT NULL,
     hashtags TEXT NOT NULL DEFAULT '',
     add_source_hashtags INTEGER NOT NULL DEFAULT 1,
@@ -29,9 +28,9 @@ CREATE TABLE post (
 CREATE INDEX post_stage ON post(project_id, stage, updated_at);
 
 insert:
-INSERT INTO post(project_id, id, stage, version, channel_id, template_id, body, hashtags, add_source_hashtags, content_warning,
+INSERT INTO post(project_id, id, stage, version, channel_id, body, hashtags, add_source_hashtags, content_warning,
     visibility, source_url, origin, source_fields_json, link_may_identify, created_by, created_at, updated_at)
-VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 byId:
 SELECT * FROM post WHERE project_id = ? AND id = ?;
@@ -40,7 +39,7 @@ byStage:
 SELECT * FROM post WHERE project_id = ? AND stage = ? ORDER BY updated_at DESC;
 
 update:
-UPDATE post SET channel_id = ?, template_id = ?, body = ?, hashtags = ?, add_source_hashtags = ?, content_warning = ?, visibility = ?,
+UPDATE post SET channel_id = ?, body = ?, hashtags = ?, add_source_hashtags = ?, content_warning = ?, visibility = ?,
     version = version + 1, updated_at = ?
 WHERE project_id = ? AND id = ?;
 

@@ -155,7 +155,7 @@ fun SchedulesScreen(onBack: () -> Unit, viewModel: SchedulesViewModel = viewMode
                             Column(Modifier.weight(1f)) {
                                 Text(schedule.name, style = MaterialTheme.typography.titleMedium)
                                 Text(
-                                    state.channels.firstOrNull { it.id == schedule.channelId }?.let { "@${it.acct}" } ?: "—",
+                                    state.channels.firstOrNull { it.id == schedule.channelId }?.label ?: "—",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -241,10 +241,10 @@ private fun ScheduleEditor(
                 )
                 Box {
                     TextButton(onClick = { channelMenu = true }) {
-                        Text(stringResource(R.string.draft_channel, channels.firstOrNull { it.id == channelId }?.let { "@${it.acct}" } ?: "—"))
+                        Text(stringResource(R.string.draft_channel, channels.firstOrNull { it.id == channelId }?.label ?: "—"))
                     }
                     DropdownMenu(expanded = channelMenu, onDismissRequest = { channelMenu = false }) {
-                        channels.forEach { c -> DropdownMenuItem(text = { Text("${c.name} · @${c.acct}") }, onClick = { channelId = c.id; channelMenu = false }) }
+                        channels.forEach { c -> DropdownMenuItem(text = { Text(c.title) }, onClick = { channelId = c.id; channelMenu = false }) }
                     }
                 }
                 slots.forEachIndexed { index, slot ->

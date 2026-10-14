@@ -325,7 +325,7 @@ private fun ReviewRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    listOfNotNull(channel?.let { "@${it.acct}" }, folder).joinToString(" · "),
+                    listOfNotNull(channel?.label, folder).joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

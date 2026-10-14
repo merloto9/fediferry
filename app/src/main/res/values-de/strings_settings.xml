@@ -2,7 +2,6 @@
 <resources>
     <!-- Pages and their groups -->
     <string name="settings_title">Einstellungen</string>
-    <string name="settings_page_account">Mastodon-Konto</string>
     <string name="settings_page_templates">Vorlagen</string>
     <string name="settings_page_hashtags">Hashtags</string>
     <string name="settings_page_placeholders">Platzhalter &amp; Quellen</string>
@@ -11,7 +10,6 @@
     <string name="settings_page_alt_text">Bildbeschreibung</string>
     <string name="settings_page_appearance">Darstellung</string>
     <string name="settings_page_diagnostics">Diagnose</string>
-    <string name="settings_group_account">Konto</string>
     <string name="settings_group_posts">Beiträge</string>
     <string name="settings_group_pictures">Bilder</string>
     <string name="settings_group_app">App</string>
@@ -138,7 +136,7 @@
     <string name="settings_instruction">Anweisung</string>
 
     <!-- Alt text -->
-    <string name="settings_vision_intro">Schreibt Bildbeschreibungen für Vorlagen, die auf „Generiert“ stehen. Jeder OpenAI-kompatible Chat-Completions-Endpunkt, dessen Modell Bilder ansehen kann, funktioniert. Das Bild wird dorthin geschickt, wähl also einen Dienst, dem du es anvertraust. Ein Fehler hält nie einen Beitrag auf; er geht dann eben ohne Beschreibung raus.</string>
+    <string name="settings_vision_intro">Schreibt Bildbeschreibungen für Kanäle, die auf „Generiert“ stehen. Jeder OpenAI-kompatible Chat-Completions-Endpunkt, dessen Modell Bilder ansehen kann, funktioniert. Das Bild wird dorthin geschickt, wähl also einen Dienst, dem du es anvertraust. Ein Fehler hält nie einen Beitrag auf; er geht dann eben ohne Beschreibung raus.</string>
     <string name="settings_prompt">Prompt</string>
 
     <!-- Diagnostics -->

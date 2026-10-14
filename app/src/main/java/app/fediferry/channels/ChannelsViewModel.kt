@@ -21,17 +21,14 @@ package app.fediferry.channels
 
 import android.app.Application
 import android.content.Context
-import android.content.Intent
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.edit
-import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.fediferry.api.ChannelDto
-import app.fediferry.api.ChannelPatch
+import app.fediferry.api.ChannelInput
+import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
-import app.fediferry.mastodon.AuthManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -48,12 +45,12 @@ data class ChannelsState(
 )
 
 /**
- * The project's channels, managed on the server. Signing in to a new account
- * goes through the server: it registers with the instance and receives the
- * token, so the token never sits on a phone.
+ * The project's channels: where its posts go. Each is set up on its own page
+ * ([ChannelSettingsViewModel]); this lists them and starts new ones.
  */
 class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
 
+    private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
     private val connections = ServiceLocator.serverConnections(app)
     private val db = ServiceLocator.database(app)
     private val tokens = ServiceLocator.tokens(app)
@@ -69,25 +66,22 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refresh() = viewModelScope.launch {
-        val client = connections.current()?.let(connections::client) ?: return@launch
-        runCatching { client.channels() }
+        val api = backend ?: return@launch
+        runCatching { api.channels() }
             .onSuccess { list ->
-                val local = db.accounts().all().count { a -> list.none { it.id == a.id } && tokens.get(a.id) != null }
+                val taken = list.mapNotNull { it.account?.let { a -> "${a.instance}/${a.acct}" } }.toSet() + list.map { it.id }
+                // Only a server's project can take this phone's accounts over; the phone's own are its channels.
+                val local = if (connections.current() == null) 0 else db.accounts().all().count { a -> a.id !in taken && tokens.get(a.id) != null }
                 _state.update { ChannelsState(channels = list, loading = false, localAccounts = local) }
             }
             .onFailure { e -> _state.update { it.copy(loading = false, error = code(e)) } }
     }
 
-    /** Opens the instance's sign-in page; [app.fediferry.mastodon.OAuthRedirectActivity] finishes it. */
-    fun signIn(instance: String) = viewModelScope.launch {
-        val app = getApplication<Application>()
-        val client = connections.current()?.let(connections::client) ?: return@launch
-        runCatching { client.authorizeMastodon(instance, AuthManager.REDIRECT_URI) }
-            .onSuccess { auth ->
-                PendingChannelSignIn.remember(app, auth.state)
-                CustomTabsIntent.Builder().build().apply { intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-                    .launchUrl(app, auth.url.toUri())
-            }
+    /** A new channel named [name], with no account yet; [onCreated] gets its id to open it. */
+    fun create(name: String, onCreated: (String) -> Unit) = viewModelScope.launch {
+        val api = backend ?: return@launch
+        runCatching { api.createChannel(ChannelInput(name.trim())) }
+            .onSuccess { refresh(); onCreated(it.id) }
             .onFailure { _messages.tryEmit(code(it)) }
     }
 
@@ -101,20 +95,6 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             runCatching { client.importMastodon(account.instance, token, account.id) }
                 .onFailure { _messages.tryEmit(code(it)) }
         }
-        refresh()
-    }
-
-    fun makeDefault(channel: ChannelDto) = act { it.patchChannel(channel.id, ChannelPatch(isDefault = true)) }
-
-    fun rename(channel: ChannelDto, name: String) = act { it.patchChannel(channel.id, ChannelPatch(name = name)) }
-
-    fun refreshCapabilities(channel: ChannelDto) = act { it.refreshCapabilities(channel.id) }
-
-    fun remove(channel: ChannelDto) = act { it.deleteChannel(channel.id) }
-
-    private fun act(block: suspend (app.fediferry.client.ServerClient) -> Unit) = viewModelScope.launch {
-        val client = connections.current()?.let(connections::client) ?: return@launch
-        runCatching { block(client) }.onFailure { _messages.tryEmit(code(it)) }
         refresh()
     }
 

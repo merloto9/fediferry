@@ -37,4 +37,5 @@
     <string name="ready_unknown_placeholder">%1$s isn\'t a placeholder anything fills in, so it would be posted as written.</string>
     <string name="ready_no_alt">Picture %1$s has no alt text.</string>
     <string name="ready_link_may_identify">The link may name whoever shared it.</string>
+    <string name="ready_no_account">Connect an account to this channel in Settings → Channels.</string>
 </resources>

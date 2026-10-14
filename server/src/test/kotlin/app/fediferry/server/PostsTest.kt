@@ -20,6 +20,9 @@
 package app.fediferry.server
 
 import app.fediferry.api.ApiErrorBody
+import app.fediferry.api.ChannelDto
+import app.fediferry.api.ChannelInput
+import app.fediferry.api.PostSettings
 import app.fediferry.api.CropRect
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.DeviceRegistration
@@ -91,15 +94,15 @@ class PostsTest {
                 bearerAuth(token); contentType(ContentType.Application.Json); setBody(DeviceRegistration(id, name, "android", "1"))
             }
         }
-        // The project's template and {caption}, as a phone's sync would put them there.
-        client.put("/api/v1/settings/template/t1") {
+        // Two channels with their own way of starting a post, and {caption}.
+        meme = client.post("/api/v1/channels") {
             bearerAuth(token); contentType(ContentType.Application.Json)
-            setBody(Json.decodeFromString<JsonObject>("""{"id":"t1","name":"Meme","body":"{caption}\n\n{tags}\n\nvia {link}","tags":"#meme","isDefault":true}"""))
-        }
-        client.put("/api/v1/settings/template/t2") {
+            setBody(ChannelInput("Meme", PostSettings(body = "{caption}\n\n{tags}\n\nvia {link}", tags = "#meme")))
+        }.body()
+        plain = client.post("/api/v1/channels") {
             bearerAuth(token); contentType(ContentType.Application.Json)
-            setBody(Json.decodeFromString<JsonObject>("""{"id":"t2","name":"Plain","body":"Found at {link}","tags":""}"""))
-        }
+            setBody(ChannelInput("Plain", PostSettings(body = "Found at {link}", tags = "", visibility = "UNLISTED")))
+        }.body()
         client.put("/api/v1/settings/placeholder_key/caption") {
             bearerAuth(token); contentType(ContentType.Application.Json)
             setBody(Json.decodeFromString<JsonObject>("""{"id":"caption","name":"caption","mappings":{"PINTEREST":"{title}"}}"""))
@@ -108,6 +111,8 @@ class PostsTest {
     }
 
     private var shares = 0
+    private lateinit var meme: ChannelDto
+    private lateinit var plain: ChannelDto
 
     /** A draft from a shared screenshot, with [link] alongside; each one a different picture. */
     private suspend fun HttpClient.draft(token: String, link: String? = null): PostDto = submitFormWithBinaryData(
@@ -133,7 +138,7 @@ class PostsTest {
     fun `a draft is written with the project's template`() = test { client, token ->
         val post = client.draft(token, link = "https://www.pinterest.com/pin/1/")
         assertEquals("DRAFT", post.stage)
-        assertEquals("t1", post.templateId)
+        assertEquals("the default channel, the first one", meme.id, post.channelId)
         assertEquals("{tags}\n\nvia https://www.pinterest.com/pin/1/", post.body)
         assertEquals(listOf("#meme"), post.hashtags)
         assertEquals(1, post.media.size)
@@ -179,12 +184,25 @@ class PostsTest {
     }
 
     @Test
-    fun `switching template writes the text again`() = test { client, token ->
+    fun `moving a draft to another channel writes its text from that channel`() = test { client, token ->
         val post = client.draft(token, link = "https://example.org/x")
         client.lock(token, post.id, "pixel")
-        val switched = client.edit(token, post.id, "pixel", post.version, PostPatch(templateId = "t2", rerender = true)).body<PostDto>()
-        assertEquals("Found at https://example.org/x", switched.body)
-        assertTrue(switched.hashtags.isEmpty())
+        val moved = client.edit(token, post.id, "pixel", post.version, PostPatch(channelId = plain.id)).body<PostDto>()
+        assertEquals("Found at https://example.org/x", moved.body)
+        assertTrue(moved.hashtags.isEmpty())
+        assertEquals("UNLISTED", moved.visibility)
+    }
+
+    @Test
+    fun `moving a draft keeps text written by hand`() = test { client, token ->
+        val post = client.draft(token, link = "https://example.org/x")
+        client.lock(token, post.id, "pixel")
+        val edited = client.edit(token, post.id, "pixel", post.version, PostPatch(body = "My own words")).body<PostDto>()
+        val moved = client.edit(token, post.id, "pixel", edited.version, PostPatch(channelId = plain.id)).body<PostDto>()
+        assertEquals("My own words", moved.body)
+        // Asked for, it is written again.
+        val rewritten = client.edit(token, post.id, "pixel", moved.version, PostPatch(rerender = true)).body<PostDto>()
+        assertEquals("Found at https://example.org/x", rewritten.body)
     }
 
     @Test

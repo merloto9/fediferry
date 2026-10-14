@@ -37,7 +37,7 @@ import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
-import app.fediferry.data.model.Template
+import app.fediferry.template.TemplateSpec
 import app.fediferry.di.ServiceLocator
 import app.fediferry.template.TemplateEngine
 import kotlinx.coroutines.CoroutineScope
@@ -76,7 +76,6 @@ data class DraftEditorState(
     /** Edits not on the server yet. */
     val unsaved: Boolean = false,
     val channels: List<ChannelDto> = emptyList(),
-    val templates: List<Template> = emptyList(),
     val placeholderKeys: List<PlaceholderKey> = emptyList(),
     val hashtagList: List<String> = emptyList(),
     val hashtagUses: Map<String, Int> = emptyMap(),
@@ -95,7 +94,8 @@ data class DraftEditorState(
 ) {
     val editable: Boolean get() = lock == EditLock.Held
     val channel: ChannelDto? get() = channels.firstOrNull { it.id == post?.channelId }
-    val template: Template? get() = templates.firstOrNull { it.id == post?.templateId }
+    /** How posts on the draft's channel start: its text, hashtags and the rest. */
+    val template: TemplateSpec? get() = channel?.post
 
     /** What the channel would refuse, and what the person should know, as of the text on screen. */
     val issues: List<Violation>
@@ -130,7 +130,6 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _state.update {
                 it.copy(
-                    templates = ServiceLocator.items(getApplication()).templates(),
                     placeholderKeys = db.placeholderKeys().all(),
                     hashtagList = db.hashtags().all().map { h -> h.tag },
                     hashtagUses = db.hashtagUsage().all().associate { u -> u.key to u.uses },
@@ -289,15 +288,8 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    /** Writes the text again from [template]; edits to the text are replaced. */
-    fun applyTemplate(template: Template) = change(
-        PostPatch(
-            templateId = template.id,
-            rerender = true,
-            visibility = template.visibility.name,
-            contentWarning = template.contentWarning.orEmpty(),
-        ),
-    )
+    /** Writes the text, hashtags, visibility and content warning again from the channel's settings; edits to them are replaced. */
+    fun rewriteFromChannel() = change(PostPatch(rerender = true))
 
     fun removePicture(position: Int) = change(PostPatch(media = listOf(PostMediaPatch(position, remove = true))))
 

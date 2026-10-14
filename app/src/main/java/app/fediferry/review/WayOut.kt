@@ -58,6 +58,7 @@ import app.fediferry.api.PostDto
 import app.fediferry.api.PostStages
 import app.fediferry.api.ScheduleDto
 import app.fediferry.drafts.ServerMessages
+import app.fediferry.ui.PlannedMark
 import app.fediferry.ui.SchedulePicker
 import app.fediferry.work.ScheduleWords
 
@@ -117,7 +118,14 @@ internal fun WayOut(post: PostDto, state: ReviewPostState, onPlan: () -> Unit, o
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PlanSheet(post: PostDto, schedules: List<ScheduleDto>, onPlan: (PlanRequest) -> Unit, onDismiss: () -> Unit) {
+internal fun PlanSheet(
+    post: PostDto,
+    schedules: List<ScheduleDto>,
+    /** What is in the queue already, marked in the calendar of "Pick a time". */
+    planned: List<PlannedMark>,
+    onPlan: (PlanRequest) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val resources = LocalResources.current
     var picking by remember { mutableStateOf(false) }
     var confirmingNow by remember { mutableStateOf(false) }
@@ -130,6 +138,7 @@ internal fun PlanSheet(post: PostDto, schedules: List<ScheduleDto>, onPlan: (Pla
             onPick = { picking = false; onPlan(PlanRequest(PlanModes.AT, at = it)) },
             onDismiss = { picking = false },
             byServer = true,
+            planned = planned,
         )
         return
     }

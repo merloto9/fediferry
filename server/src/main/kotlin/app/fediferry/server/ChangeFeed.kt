@@ -58,9 +58,12 @@ class ChangeFeed(private val storage: Storage, private val clock: () -> Long = S
         }
 
     fun since(projectId: String, since: Long, limit: Long = 500): Changes {
+        // The revision is read before the rows: read after, a change committed
+        // in between would be counted as seen without ever being sent.
+        val before = currentRev(projectId)
         val rows = db.changeLogQueries.since(projectId, since, limit).executeAsList()
         // With more than [limit] changes waiting, the client continues from the last one it got.
-        val rev = rows.lastOrNull()?.rev ?: currentRev(projectId)
+        val rev = rows.lastOrNull()?.rev ?: before
         return Changes(rev, rows.map { Change(it.rev, it.type, it.entity_id, it.deleted != 0L) })
     }
 

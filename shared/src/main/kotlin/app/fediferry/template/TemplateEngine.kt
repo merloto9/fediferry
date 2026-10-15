@@ -76,10 +76,11 @@ object TemplateEngine {
      * The text that is actually posted: [body] with `{tags}` replaced by
      * [hashtags]. Nothing else is touched — every other placeholder was filled
      * when the draft was written, and whatever the user typed since is theirs.
-     * A line that held only `{tags}` disappears when there are none.
+     * A line that held only `{tags}` disappears when there are none; a line
+     * with words of the user's beside it stays.
      */
     fun finish(body: String, hashtags: List<String>): String =
-        renderText(body, mapOf(PlaceholderSpec.TAGS to Hashtags.format(hashtags)))
+        renderText(body, mapOf(PlaceholderSpec.TAGS to Hashtags.format(hashtags)), keepWritten = true)
 
     /**
      * The hashtags a post starts with: the template's picks, then — when
@@ -119,15 +120,18 @@ object TemplateEngine {
     fun unknownIn(text: String, known: Collection<String>): List<String> =
         PLACEHOLDER.findAll(text).map { it.groupValues[1] }.filter { it !in known }.distinct().toList()
 
-    private fun renderText(text: String, values: Map<String, String>): String =
+    private fun renderText(text: String, values: Map<String, String>, keepWritten: Boolean = false): String =
         text.lines()
-            .mapNotNull { line -> renderLine(line, values) }
+            .mapNotNull { line -> renderLine(line, values, keepWritten) }
             .joinToString("\n")
             .replace(BLANK_RUN, "\n\n")
             .trim()
 
-    /** Returns null when the line existed only to carry placeholders that are empty. */
-    private fun renderLine(line: String, values: Map<String, String>): String? {
+    /**
+     * Returns null when the line existed only to carry placeholders that are
+     * empty. With [keepWritten], only when nothing but blanks is left of it.
+     */
+    private fun renderLine(line: String, values: Map<String, String>, keepWritten: Boolean = false): String? {
         var known = 0
         var filled = 0
 
@@ -138,7 +142,8 @@ object TemplateEngine {
             value
         }
 
-        return if (known > 0 && filled == 0) null else substituted.trimEnd()
+        val empty = known > 0 && filled == 0 && (!keepWritten || substituted.isBlank())
+        return if (empty) null else substituted.trimEnd()
     }
 
     // Both braces are escaped. Android's java.util.regex is ICU-backed and

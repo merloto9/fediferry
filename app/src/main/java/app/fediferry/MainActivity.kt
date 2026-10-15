@@ -52,7 +52,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        editPostId.value = intent.draftTarget()
+        // Only on a real start: after a rotation the back stack is restored
+        // with the editor on it already, and opening it again stacks a copy.
+        if (savedInstanceState == null) editPostId.value = intent.draftTarget()
         requestNotificationPermission()
 
         setContent {

@@ -25,7 +25,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import app.fediferry.data.model.Item
-import app.fediferry.data.model.Status
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -62,9 +61,13 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE mediaHash = :hash AND status = 'DRAFT' LIMIT 1")
     suspend fun draftByMediaHash(hash: String): Item?
 
-    /** Any item at all referencing these bytes, so media is not deleted early. */
-    @Query("SELECT * FROM items WHERE mediaHash = :hash LIMIT 1")
-    suspend fun anyByMediaHash(hash: String): Item?
+    /**
+     * Any item whose picture or untouched original is this file. Files are
+     * named by content, so an item's original can be another item's picture
+     * though their hashes differ.
+     */
+    @Query("SELECT COUNT(*) > 0 FROM items WHERE mediaPath = :path OR originalMediaPath = :path")
+    suspend fun anyUsingPath(path: String): Boolean
 
     /**
      * The newest draft that carries a permalink but no image yet — an Instagram
@@ -91,18 +94,8 @@ interface ItemDao {
     )
     suspend fun latestAwaitingLink(since: Long): Item?
 
-    @Query("UPDATE items SET status = :status WHERE id = :id")
-    suspend fun setStatus(id: String, status: Status)
-
     @Query("DELETE FROM items WHERE id = :id")
     suspend fun delete(id: String)
-
-    /**
-     * Re-arms items the process died on. POSTING is only ever a transient state
-     * held by a running worker, so any survivor of a crash is stale.
-     */
-    @Query("UPDATE items SET status = 'QUEUED' WHERE status = 'POSTING'")
-    suspend fun requeueStalePosting()
 
     /** Everything not posted yet, for copying to a server as drafts. */
     @Query("SELECT * FROM items WHERE status != 'POSTED' ORDER BY createdAt")

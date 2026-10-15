@@ -33,8 +33,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import app.fediferry.R
 import app.fediferry.alt.AltTextProvider
-import app.fediferry.alt.NoAltTextProvider
-import app.fediferry.alt.StaticAltTextProvider
 import app.fediferry.alt.VisionAltTextProvider
 import app.fediferry.data.AiModels
 import app.fediferry.data.ItemRepository
@@ -44,8 +42,6 @@ import app.fediferry.data.TokenStore
 import app.fediferry.data.db.AppDatabase
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
-import app.fediferry.data.model.AltTextMode
-import app.fediferry.data.model.Template
 import app.fediferry.link.LinkResolver
 import app.fediferry.link.OkHttpMediaFetcher
 import app.fediferry.mastodon.AuthManager
@@ -115,6 +111,7 @@ object ServiceLocator {
                 fetcher = OkHttpMediaFetcher(linkHttp()),
                 placeholderKeys = database.placeholderKeys(),
                 context = context.applicationContext,
+                phoneUses = { path -> database.phone().anyAssetAt(path) },
             )
         }.also { repo = it }
     }
@@ -258,17 +255,6 @@ object ServiceLocator {
             settings = settings(context),
         ).also { aiModelStore = it }
     }
-
-    /**
-     * Resolves the provider a template asks for. The posting path only ever sees
-     * the interface — no vision vendor is named anywhere downstream of here.
-     */
-    suspend fun altTextProvider(context: Context, template: Template, modelId: String? = null): AltTextProvider =
-        when (template.altTextMode) {
-            AltTextMode.NONE -> NoAltTextProvider
-            AltTextMode.STATIC -> StaticAltTextProvider(template.staticAltText.orEmpty())
-            AltTextMode.VISION -> visionProvider(context, modelId)
-        }
 
     /**
      * The alt-text model [modelId] names, or the default. With none set up,

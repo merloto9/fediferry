@@ -85,9 +85,12 @@ WHERE project_id = ? AND created_by = ? AND created_at >= ? AND stage = 'DRAFT' 
 ORDER BY created_at DESC LIMIT 1;
 
 -- The post that already carries this picture, if any: the same picture shared again.
+-- The post with this picture, or with an edit made straight from it (trimmed
+-- or cleaned on intake), so the same screenshot shared again is found.
 byAsset:
 SELECT post.* FROM post JOIN post_media m ON m.project_id = post.project_id AND m.post_id = post.id
-WHERE post.project_id = ? AND m.asset_id = ?
+LEFT JOIN media_asset a ON a.project_id = m.project_id AND a.id = m.asset_id
+WHERE post.project_id = :project AND (m.asset_id = :asset OR a.parent_asset_id = :asset)
 ORDER BY post.created_at LIMIT 1;
 
 -- A link joining a draft that had only its picture.

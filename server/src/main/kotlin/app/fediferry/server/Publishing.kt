@@ -242,8 +242,11 @@ class Publishing(
                 db.publicationQueries.byPost(due.project_id, due.post_id).executeAsOneOrNull()?.state == PublicationStates.PUBLISHING
             }
             if (!claimed) continue
-            feed.change(due.project_id, "post", due.post_id) { db.postQueries.setStage(PostStages.PUBLISHING, clock(), due.project_id, due.post_id) }
-            send(db.publicationQueries.byPost(due.project_id, due.post_id).executeAsOne())
+            // One post failing here must not stop the round, nor leave this one claimed until a restart.
+            runCatching {
+                feed.change(due.project_id, "post", due.post_id) { db.postQueries.setStage(PostStages.PUBLISHING, clock(), due.project_id, due.post_id) }
+                send(db.publicationQueries.byPost(due.project_id, due.post_id).executeAsOne())
+            }.onFailure { log.warn("Sending a post failed outside the publisher: {}", it.javaClass.simpleName) }
         }
     }
 
@@ -254,14 +257,19 @@ class Publishing(
             // Out: Mastodon keeps it from here, and the server lets go of the
             // post and every file no other post uses.
             runCatching { countHashtags(p.project_id, p.post_id) }
-            posts.purge(p.project_id, p.post_id)
+            // Out already: a failing clean-up must not put it back in the queue to be sent again.
+            runCatching { posts.purge(p.project_id, p.post_id) }.onFailure {
+                log.warn("Letting go of a published post failed: {}", it.javaClass.simpleName)
+                runCatching { db.publicationQueries.delete(p.project_id, p.post_id) }
+            }
             log.info("Published a post")
         }.onFailure { e ->
             val code = (e as? MastodonException)?.message ?: (e as? ApiException)?.code ?: "publish.error"
             val retryable = (e as? MastodonException)?.retryable == true
             val attempts = p.attempts.toInt()
             feed.change(p.project_id, "post", p.post_id) {
-                if (retryable && attempts < BACKOFF_MS.size) {
+                // attempts counts this try; every wait in BACKOFF_MS is used before giving up.
+                if (retryable && attempts <= BACKOFF_MS.size) {
                     db.publicationQueries.retryLater(now + BACKOFF_MS[attempts - 1], code, now, p.project_id, p.post_id)
                     db.postQueries.setStage(PostStages.SCHEDULED, now, p.project_id, p.post_id)
                 } else {

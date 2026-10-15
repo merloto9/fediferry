@@ -10,6 +10,23 @@ Obtainium installs.
 
 ## [Unreleased]
 
+### Added
+
+- **Clean up is back in the editor.** *Clean up* opens on the picture: draw
+  over what should go and choose fill, crop away, blur, pixelate or *Erase
+  with AI*. An erase comes with its own instruction for this picture and a
+  choice of image model; tick *Remember* to keep the areas as a profile, so
+  the next screenshot from the same app is cleaned without drawing. Works with
+  a FediFerry server too, which now erases with the project's image model.
+- **Pick the alt-text model per post.** With more than one alt-text model,
+  *Model: … ▾* under the alt text chooses which one describes the pictures;
+  Settings still sets the default.
+- **Trimming suggests again.** The trim dialog starts on the trim the
+  screenshot detector found, and *Suggested* puts it back.
+- **Screenshots are trimmed and cleaned with a server too.** Shares sent to a
+  FediFerry server are trimmed (when *Trim screenshots* is on) and cleaned with
+  the default profile, as on the phone; *Undo edit* restores the original.
+
 ### Changed
 
 - **One app, two places a project can live.** The phone works on its own

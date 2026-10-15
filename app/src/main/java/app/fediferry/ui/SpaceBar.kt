@@ -19,18 +19,12 @@
  */
 package app.fediferry.ui
 
-import app.fediferry.di.ServiceLocator
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar

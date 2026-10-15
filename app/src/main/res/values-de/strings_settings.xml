@@ -2,7 +2,6 @@
 <resources>
     <!-- Pages and their groups -->
     <string name="settings_title">Einstellungen</string>
-    <string name="settings_page_templates">Vorlagen</string>
     <string name="settings_page_hashtags">Hashtags</string>
     <string name="settings_page_placeholders">Platzhalter &amp; Quellen</string>
     <string name="settings_page_sharing">Teilen &amp; Posten</string>
@@ -16,17 +15,6 @@
 
     <!-- Overview summaries -->
     <string name="settings_summary_separator">%1$s · %2$s</string>
-    <string name="settings_summary_not_connected">Nicht verbunden – noch kann nichts gepostet werden</string>
-    <string name="settings_summary_account">\@%1$s auf %2$s</string>
-    <plurals name="settings_summary_account_more">
-        <item quantity="one">\@%1$s auf %2$s und %3$d weiteres</item>
-        <item quantity="other">\@%1$s auf %2$s und %3$d weitere</item>
-    </plurals>
-    <plurals name="settings_summary_templates">
-        <item quantity="one">%d Vorlage</item>
-        <item quantity="other">%d Vorlagen</item>
-    </plurals>
-    <string name="settings_summary_default">%1$s · Standard: %2$s</string>
     <plurals name="settings_summary_hashtags">
         <item quantity="one">%d Hashtag</item>
         <item quantity="other">%d Hashtags</item>
@@ -68,25 +56,9 @@
     <string name="settings_back_to_settings">Zurück zu den Einstellungen</string>
     <string name="settings_default">Standard</string>
     <string name="settings_make_default">Als Standard</string>
-    <string name="settings_save">Speichern</string>
-    <string name="settings_delete">Löschen</string>
     <string name="settings_what_to_ask">Was gefragt wird</string>
 
-    <!-- Account -->
-    <string name="settings_disconnect">Trennen</string>
-    <string name="settings_instance">Server</string>
-    <string name="settings_connect">Verbinden</string>
-    <string name="settings_contacting">Verbinde mit %1$s</string>
-    <string name="settings_your_instance">deinem Server</string>
-    <string name="settings_contacting_detail">FediFerry wird beim Server registriert. Seine Anmeldeseite öffnet sich im Browser, sobald er antwortet.</string>
-    <string name="settings_enter_instance">Gib einen Server an, z. B. mastodon.social</string>
-    <string name="settings_could_not_reach">%1$s ist nicht erreichbar: %2$s</string>
-
     <!-- Templates -->
-    <string name="settings_new_template">Neue Vorlage</string>
-    <string name="settings_templates_intro">Eine Vorlage ist ein Thema: welche Hashtags sie ankreuzt und wie ihre Beiträge geschrieben sind. Der Text kann {tags}, {link}, {date} und die Platzhalter aus „Platzhalter &amp; Quellen“ enthalten.</string>
-    <string name="settings_what_can_i_use">Was kann ich nutzen?</string>
-    <string name="settings_template_name">Name</string>
     <string name="settings_template_body">Text</string>
     <plurals name="settings_template_unknown">
         <item quantity="one">%1$s ist nicht definiert und würde genau so gepostet, wie es dasteht.</item>

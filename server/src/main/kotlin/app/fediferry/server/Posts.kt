@@ -20,7 +20,6 @@
 package app.fediferry.server
 
 import app.fediferry.alt.VisionAltTextProvider
-import app.fediferry.api.AiModelData
 import app.fediferry.api.AltSuggestion
 import app.fediferry.api.LockDto
 import app.fediferry.api.PlaceholderKeyData
@@ -33,6 +32,7 @@ import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.channel.PostValidator
+import app.fediferry.api.ErrorCodes
 import app.fediferry.api.SettingsKinds
 import app.fediferry.api.PostSettings
 import app.fediferry.data.model.ContentSource
@@ -43,7 +43,6 @@ import app.fediferry.template.TemplateEngine
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import okhttp3.OkHttpClient
 import java.util.UUID
 
@@ -206,7 +205,7 @@ class Posts(
 
     /** Takes or renews the lock for [deviceId]; another device's live lock is taken only when [force]d. */
     fun lock(projectId: String, postId: String, deviceId: String?, force: Boolean): LockDto {
-        val device = deviceId ?: throw ApiException(HttpStatusCode.BadRequest, "device.required")
+        val device = deviceId ?: throw ApiException(HttpStatusCode.BadRequest, ErrorCodes.DEVICE_REQUIRED)
         val post = row(projectId, postId)
         if (post.stage != PostStages.DRAFT) throw ApiException(HttpStatusCode.Conflict, "post.not_draft", mapOf("stage" to post.stage))
         val held = db.postLockQueries.byPost(projectId, postId).executeAsOneOrNull()
@@ -413,15 +412,12 @@ class Posts(
     // --- alt text -----------------------------------------------------------------
 
     /** Asks the project's alt-text model to describe one picture; the client decides whether to keep it. */
-    suspend fun suggestAlt(projectId: String, postId: String, position: Int): AltSuggestion {
+    suspend fun suggestAlt(projectId: String, postId: String, position: Int, modelId: String? = null): AltSuggestion {
         val m = db.postMediaQueries.forPost(projectId, postId).executeAsList().firstOrNull { it.position == position.toLong() }
             ?: throw ApiException.notFound("post_media")
         val asset = media.byId(projectId, m.asset_id) ?: throw ApiException.notFound("media")
-        val model = settings.list(projectId, SettingsKinds.AI_MODEL)
-            .mapNotNull { runCatching { json.decodeFromJsonElement(AiModelData.serializer(), it.data) }.getOrNull() }
-            .filter { it.kind == "ALT_TEXT" }
-            .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() }
-            ?: throw ApiException(HttpStatusCode.Conflict, "alt.no_model")
+        // The model picked for this post, else the project's default.
+        val model = pickModel(settings, projectId, "ALT_TEXT", modelId) ?: throw ApiException(HttpStatusCode.Conflict, "alt.no_model")
         val key = secrets.get(projectId, "ai-model:${model.id}").orEmpty()
         val bytes = media.file(projectId, asset.sha256).readBytes()
         val text = VisionAltTextProvider(http, model.endpoint, model.model, key, VISION_PROMPT).describe(bytes, asset.mime)

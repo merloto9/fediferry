@@ -23,6 +23,7 @@ import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.ChannelDto
 import app.fediferry.api.ChannelInput
 import app.fediferry.api.PostSettings
+import app.fediferry.api.CleanupArea
 import app.fediferry.api.CropRect
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.DeviceRegistration
@@ -220,6 +221,18 @@ class PostsTest {
         val updated = client.edit(token, post.id, "pixel", post.version, PostPatch(media = listOf(PostMediaPatch(0, altText = "Red", assetId = cropped.id)))).body<PostDto>()
         assertEquals(cropped.id, updated.media.single().asset.id)
         assertEquals("Red", updated.media.single().altText)
+    }
+
+    @Test
+    fun `areas drawn for one picture are cleaned, and an erase without a model is filled and said so`() = test { client, token ->
+        val original = client.draft(token).media.single().asset
+        val cleaned = client.post("/api/v1/media/${original.id}/derive") {
+            bearerAuth(token); contentType(ContentType.Application.Json)
+            setBody(DeriveRequest(areas = listOf(CleanupArea(0.1f, 0.1f, 0.4f, 0.4f, "AI_ERASE")), instruction = "Remove the badge"))
+        }.body<MediaAssetDto>()
+        assertEquals(original.id, cleaned.parentId)
+        assertEquals(100, cleaned.width)
+        assertTrue(cleaned.aiFailure.orEmpty().contains("no image model"))
     }
 
     @Test

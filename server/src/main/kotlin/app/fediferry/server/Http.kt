@@ -85,7 +85,7 @@ class Services(
     val settings = SettingsStore(storage, feed, clock)
     val channels = Channels(storage, secrets, crypto, feed, mastodon, detector, clock)
     val posts = Posts(storage, feed, settings, secrets, media, outboundHttp, clock)
-    val intake = Intake(storage, media, posts, resolvers, fetcher, clock)
+    val intake = Intake(storage, media, posts, resolvers, fetcher, clock) { projectId, picture, trim -> readyScreenshot(projectId, picture, trim) }
     val publishing = Publishing(storage, feed, posts, channels, media, settings, publisher, clock)
 
     /** Sweeps every project's unused files now and then every [intervalMs]. */

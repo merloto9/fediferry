@@ -41,12 +41,6 @@ interface StackDao {
     @Query("SELECT COUNT(*) FROM stacks")
     suspend fun count(): Int
 
-    @Query("UPDATE stacks SET collapsed = :collapsed WHERE id = :id")
-    suspend fun setCollapsed(id: String, collapsed: Boolean)
-
-    @Query("UPDATE stacks SET name = :name WHERE id = :id")
-    suspend fun rename(id: String, name: String)
-
     @Query("DELETE FROM stacks WHERE id = :id")
     suspend fun deleteRow(id: String)
 

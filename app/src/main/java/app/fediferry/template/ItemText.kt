@@ -23,6 +23,3 @@ import app.fediferry.data.model.Item
 
 /** Everything an existing item can tell the engine about itself. */
 fun TemplateEngine.inputsOf(item: Item) = TemplateEngine.Inputs(link = item.sourceUrl, source = item.origin, fields = item.sourceFields)
-
-/** What [item] will actually post. */
-fun TemplateEngine.postTextOf(item: Item): String = finish(item.bodyText, item.hashtagList)

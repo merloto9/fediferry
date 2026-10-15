@@ -52,20 +52,12 @@
     <string name="notify_posting_title">Posting to Mastodon</string>
     <string name="notify_sending_in">Sending in %1$ds</string>
     <string name="notify_undo">Undo</string>
-    <string name="notify_undone">Post cancelled — kept as a draft</string>
 
     <!-- Posting -->
-    <string name="post_posted">Posted</string>
-    <string name="post_sent">Sent to Mastodon</string>
     <string name="post_failed_title">Post failed</string>
-    <string name="post_failed_reason">Posting failed</string>
-    <string name="post_no_account">No Mastodon account is connected</string>
-    <string name="post_no_token">No access token — reconnect @%1$s</string>
-    <string name="post_nothing_to_post">Nothing to post — no text and no image</string>
     <string name="post_no_alt_model">no alt-text model set up — add one in Settings → Alt text</string>
 
     <!-- Item store -->
-    <string name="repo_download_failed">Couldn\'t download the picture: %1$s</string>
     <string name="repo_no_image_to_crop">This item has no image to crop</string>
     <string name="repo_no_image_to_clean">This item has no image to clean up</string>
     <string name="repo_unreadable_image">Could not read the image</string>

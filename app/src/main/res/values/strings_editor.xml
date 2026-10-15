@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Editor screen -->
-    <string name="editor_title">Edit post</string>
     <string name="editor_save_and_back">Save and go back</string>
-    <string name="editor_discard">Discard</string>
-    <string name="editor_item_gone">That item is gone</string>
     <string name="editor_trim">Trim</string>
     <string name="editor_clean_up">Clean up</string>
-    <string name="editor_undo_edits">Undo edits</string>
     <string name="editor_adjust_hashtags">Adjust Hashtags</string>
     <string name="editor_close">Close</string>
     <string name="editor_open">Open</string>
@@ -18,25 +14,9 @@
     <string name="editor_alt_text_failed">Automatic description failed — the post will go out without one.</string>
     <string name="editor_alt_text_hint">For people who cannot see the picture. Say what it shows, including any text in it. Screen readers read this aloud.</string>
     <string name="editor_regenerate_alt_text">Regenerate alt text</string>
-    <string name="editor_save_draft">Save draft</string>
-    <string name="editor_post">Post</string>
-    <string name="editor_tags_empty">{tags} is empty — no hashtags are picked, so its line is left out.</string>
-    <string name="editor_tags_becomes">{tags} becomes %1$s when the post is sent.</string>
-    <string name="editor_tags_missing">The text has no {tags}, so the hashtags you picked are not posted.</string>
-    <string name="editor_no_account">No account connected — add one in Settings → Channels before posting.</string>
-    <string name="editor_account">Account: @%1$s</string>
     <string name="editor_link_warning_title">This link may show who shared it</string>
     <string name="editor_link_warning_body">It was shared with details about the sender, and a clean link that still leads to the same post couldn\'t be confirmed, so it is posted as shared.</string>
     <string name="editor_remove_link">Take the link out of the post</string>
-    <string name="editor_stack">Stack: %1$s</string>
-    <string name="editor_stack_new">New</string>
-    <string name="editor_change_stack">Change stack</string>
-    <string name="editor_stack_none">New — on no stack</string>
-    <!-- Editor messages -->
-    <string name="editor_no_image">No image to describe</string>
-    <string name="editor_alt_text_error">Alt text failed: %1$s</string>
-    <string name="editor_original_restored">Original screenshot restored</string>
-    <string name="editor_connect_account">Connect a Mastodon account first</string>
 
     <!-- Hashtag panel -->
     <string name="hashtags_title">Hashtags</string>
@@ -82,10 +62,7 @@
     <string name="loading_slow">Still working — the server is taking its time.</string>
 
     <!-- Bottom navigation -->
-    <string name="nav_inbox">Inbox</string>
-    <string name="nav_queue">Queue</string>
     <string name="nav_sources">Sources</string>
-    <string name="editor_template">Template: %1$s</string>
     <string name="draft_rewrite">Rewrite</string>
     <string name="draft_rewrite_title">Rewrite the text?</string>
     <string name="draft_rewrite_text">The text, hashtags, visibility and content warning are written again from the settings of %1$s. What you changed in them is replaced.</string>

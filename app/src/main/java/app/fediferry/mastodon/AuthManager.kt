@@ -20,9 +20,8 @@
 package app.fediferry.mastodon
 
 import android.content.Context
+import androidx.core.content.edit
 import app.fediferry.api.AuthorizeResponse
-import androidx.core.net.toUri
-import androidx.browser.customtabs.CustomTabsIntent
 import app.fediferry.BuildConfig
 import app.fediferry.R
 import app.fediferry.data.TokenStore
@@ -45,20 +44,31 @@ class AuthManager(
     private val tokens: TokenStore,
 ) {
 
-    /** Survives only for the duration of one authorisation; not persisted. */
+    /** One authorisation under way. No secret in it, so it is kept in plain preferences. */
     private data class Pending(val instance: String, val state: String, val channelId: String? = null)
 
     /** A finished sign-in: the account, its id on the instance, and the channel it was for. */
     data class Connected(val account: Account, val remoteAccountId: String, val channelId: String?)
 
-    @Volatile private var pending: Pending? = null
+    /**
+     * Kept on disk: Android may end the app while the browser is in front
+     * (a password manager, a 2FA app), and the redirect then starts a new process.
+     */
+    private val prefs = context.getSharedPreferences("auth_pending", Context.MODE_PRIVATE)
 
-    suspend fun beginAuthorization(rawInstance: String) {
-        val auth = authorize(rawInstance, channelId = null)
-        CustomTabsIntent.Builder().build().apply {
-            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        }.launchUrl(context, auth.url.toUri())
-    }
+    private var pending: Pending?
+        get() {
+            val instance = prefs.getString(KEY_INSTANCE, null) ?: return null
+            val state = prefs.getString(KEY_STATE, null) ?: return null
+            return Pending(instance, state, prefs.getString(KEY_CHANNEL, null))
+        }
+        set(value) {
+            // Written at once: the browser opens next, and Android may end the app behind it.
+            prefs.edit(commit = true) {
+                if (value == null) clear()
+                else putString(KEY_INSTANCE, value.instance).putString(KEY_STATE, value.state).putString(KEY_CHANNEL, value.channelId)
+            }
+        }
 
     /**
      * Registers with [rawInstance] if need be and returns where to sign in, for
@@ -160,6 +170,10 @@ class AuthManager(
         const val SCOPES = "write:statuses write:media read:accounts read:statuses"
         const val CLIENT_NAME = "FediFerry"
         const val WEBSITE = "https://github.com/merloto9/fediferry"
+        private const val KEY_INSTANCE = "instance"
+        private const val KEY_STATE = "state"
+        private const val KEY_CHANNEL = "channel"
+
         val REDIRECT_URI: String get() = "${BuildConfig.OAUTH_SCHEME}://oauth"
     }
 }

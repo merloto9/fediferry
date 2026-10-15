@@ -46,6 +46,12 @@ class Intake(
     private val resolvers: List<LinkResolver>,
     private val fetcher: MediaFetcher,
     private val clock: () -> Long = System::currentTimeMillis,
+    /**
+     * Readies a shared screenshot as the phone does: trimmed when [Boolean]
+     * says the phone trims, then cleaned with the default profile. Returns
+     * the picture to use, which names the shared one as its original.
+     */
+    private val prepare: suspend (projectId: String, picture: Media_asset, trim: Boolean) -> Media_asset = { _, picture, _ -> picture },
 ) {
     private val db get() = storage.db
     private val log = LoggerFactory.getLogger("intake")
@@ -63,6 +69,7 @@ class Intake(
         text: String?,
         upload: Upload?,
         capturedAt: Long?,
+        autoCrop: Boolean = false,
     ): IngestResult {
         db.ingestRecordQueries.byShare(projectId, clientShareId).executeAsOneOrNull()?.let { postId ->
             return IngestResult(runCatching { posts.get(projectId, postId) }.getOrNull(), replayed = true)
@@ -98,14 +105,23 @@ class Intake(
             }
         }
         val source = Posts.Source(url, resolver?.source?.name, fields, mayIdentify)
-        val picture = asset
+        // The link took a while: a post that had the same picture may have gone
+        // out meanwhile and taken the file with it. Stored again, it is back.
+        val picture = if (upload != null && resolver != null) media.store(projectId, upload.bytes, upload.mime) else asset
+        // Only a screenshot is trimmed and cleaned; a picture fetched from a link arrives as it is meant.
+        var readied: Media_asset? = null
+        suspend fun edited(p: Media_asset): Media_asset =
+            if (upload == null || resolved) p
+            else readied ?: runCatching { prepare(projectId, p, autoCrop) }
+                .onFailure { log.info("Readying a screenshot failed: {}", it.javaClass.simpleName) }
+                .getOrDefault(p).also { readied = it }
 
         // Pairing: one half of a link-and-screenshot pair completes the other's draft.
         if (deviceId != null && !resolved) {
             val since = now - PAIRING_WINDOW_MS
             if (picture != null && url == null) {
                 db.postQueries.waitingForPicture(projectId, deviceId, since).executeAsOneOrNull()?.let { draft ->
-                    return IngestResult(posts.attachPicture(projectId, draft.id, clientShareId, picture), paired = true)
+                    return IngestResult(posts.attachPicture(projectId, draft.id, clientShareId, edited(picture)), paired = true)
                 }
             }
             if (url != null && picture == null) {
@@ -131,7 +147,7 @@ class Intake(
         if (picture == null && url == null && text.isNullOrBlank()) throw ApiException.badRequest("empty share")
         // A text that only carried the link says nothing more.
         val ownText = text?.trim()?.takeIf { it.isNotEmpty() && it != sharedLink }
-        val draft = posts.createDraft(projectId, deviceId, clientShareId, source, picture, fields["alt"], ownText, capturedAt ?: now)
+        val draft = posts.createDraft(projectId, deviceId, clientShareId, source, picture?.let { edited(it) }, fields["alt"], ownText, capturedAt ?: now)
         return IngestResult(draft, resolved = resolved)
     }
 

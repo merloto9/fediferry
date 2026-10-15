@@ -68,8 +68,6 @@ object DebugLog {
         if (value && !was) write("log", "Logging on — FediFerry $version, Android ${android.os.Build.VERSION.RELEASE}")
     }
 
-    fun isEnabled(): Boolean = enabled
-
     fun d(tag: String, message: String) = write(tag, message)
 
     fun w(tag: String, message: String, error: Throwable? = null) =

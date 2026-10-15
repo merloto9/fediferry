@@ -33,6 +33,7 @@ import app.fediferry.phone.LegacyInbox
 import app.fediferry.log.DebugLog
 import app.fediferry.share.ShortcutPublisher
 import app.fediferry.work.Notifications
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,7 +48,14 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
         super.attachBaseContext(AppLocale.wrap(base))
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // A failure in start-up housekeeping is logged, not a crash on every launch.
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO +
+            CoroutineExceptionHandler { _, e -> DebugLog.w("app", "Start-up work failed: ${e.javaClass.simpleName}") },
+    )
+
+    /** When this process started; shares from after it are the share screen's. */
+    private val startedAt = System.currentTimeMillis()
 
     /**
      * Two things Coil does not do on its own.
@@ -94,7 +102,7 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
             // older version kept, pictures included.
             repo.purgePosted()
             // What an older version kept in its inbox moves into the phone's project, once.
-            LegacyInbox.bringOver(this@FediFerryApp)
+            LegacyInbox.bringOver(this@FediFerryApp, startedAt)
             // A post the app was killed while sending goes back in the queue.
             ServiceLocator.phone(this@FediFerryApp).recover()
         }

@@ -21,11 +21,12 @@ package app.fediferry.phone
 
 import android.content.Context
 import app.fediferry.api.PostSettings
-import app.fediferry.data.model.Status
 import app.fediferry.data.model.Template
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
+import androidx.room.withTransaction
 import androidx.work.WorkManager
+import java.io.File
 
 /**
  * Brings what the app kept before it had a project of its own into the
@@ -44,12 +45,18 @@ object LegacyInbox {
 
     private const val LOG = "legacy"
 
-    suspend fun bringOver(context: Context) {
+    /**
+     * Only items from before [startedAt] are taken: a share arriving as the
+     * app starts sits in the same table while it is cleaned and fetched, and
+     * is the share screen's to place.
+     */
+    suspend fun bringOver(context: Context, startedAt: Long) {
         val db = ServiceLocator.database(context)
         val phone = ServiceLocator.phone(context)
         val dao = db.phone()
 
-        if (dao.channels().isEmpty()) {
+        // All channels or none, so a death halfway does not leave accounts without one.
+        if (dao.channels().isEmpty()) db.withTransaction {
             val templates = db.templates().all()
             val fallback = templates.firstOrNull { it.isDefault } ?: templates.firstOrNull() ?: Template.seed()
             val accounts = db.accounts().all()
@@ -83,11 +90,20 @@ object LegacyInbox {
         val stacks = db.stacks().all()
         stacks.forEach { dao.upsertReviewFolder(PhoneReviewFolder(it.id, it.name, it.sortOrder)) }
 
-        val items = db.items().unposted()
+        // Stacks are gone after the first run; their folders keep the ids.
+        val folders = dao.reviewFolders().map { it.id }.toSet()
+        val items = db.items().unposted().filter { it.createdAt < startedAt }
         items.forEach { item ->
             // Whatever was on its way out under the old pipeline waits in review instead.
             WorkManager.getInstance(context).cancelUniqueWork("post-${item.id}")
-            phone.adopt(item, ready = true, reviewFolderId = item.stackId?.takeIf { id -> stacks.any { it.id == id } })
+            // A picture whose file is gone moves over without it rather than stopping the rest.
+            val usable = item.copy(
+                mediaPath = item.mediaPath?.takeIf { File(it).exists() },
+                originalMediaPath = item.originalMediaPath?.takeIf { File(it).exists() },
+            )
+            // Channels took their accounts' ids, so a post keeps the account it was set to.
+            runCatching { phone.adopt(usable, ready = true, reviewFolderId = item.stackId?.takeIf { it in folders }, channelId = item.accountId) }
+                .onFailure { DebugLog.w(LOG, "Could not move inbox post ${item.id}: ${it.javaClass.simpleName}") }
         }
         stacks.forEach { db.stacks().delete(it.id) }
         if (items.isNotEmpty() || stacks.isNotEmpty()) DebugLog.d(LOG, "Moved ${items.size} inbox post(s) and ${stacks.size} stack(s) to review")

@@ -17,14 +17,8 @@
         <item quantity="other">Pick a time at least %1$d minutes from now. Mastodon needs five, and the picture has to upload first.</item>
     </plurals>
     <string name="schedule_hint">Mastodon keeps the post and publishes it %1$s. FediFerry doesn\'t need to be open then.</string>
-    <string name="schedule_title">Schedule post</string>
-    <string name="schedule_confirm">Schedule</string>
-    <string name="schedule_handing_over">Handing it to Mastodon to post %1$s. It\'ll show in Queue.</string>
 
-    <!-- After the upload -->
-    <string name="schedule_notification_title">Scheduled</string>
-    <string name="schedule_notification_text">Mastodon posts it %1$s</string>
-    <string name="schedule_too_soon_failure">The time picked is less than 5 minutes away, which Mastodon does not accept. Schedule it again.</string>
+    <!-- The calendar -->
     <string name="calendar_previous_month">Previous month</string>
     <string name="calendar_next_month">Next month</string>
     <string name="calendar_nothing_planned">Nothing planned on this day yet.</string>

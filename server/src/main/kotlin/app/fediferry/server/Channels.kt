@@ -81,10 +81,6 @@ class Channels(
     fun get(projectId: String, id: String): ChannelDto =
         db.channelQueries.byId(projectId, id).executeAsOneOrNull()?.let(::dto) ?: throw ApiException.notFound("channel")
 
-    /** How posts on [channelId] start; a project's posts without a channel start as a new channel's would. */
-    fun postSettings(projectId: String, channelId: String?): PostSettings =
-        channelId?.let { db.channelQueries.byId(projectId, it).executeAsOneOrNull() }?.let(::postOf) ?: PostSettings()
-
     /** A channel with no account yet, to set up before signing in. */
     fun create(projectId: String, input: ChannelInput): ChannelDto {
         val name = input.name.trim().ifEmpty { throw ApiException.badRequest("name") }
@@ -261,7 +257,8 @@ class Channels(
     private suspend fun registration(instance: String, redirectUri: String): Pair<String, String> {
         db.instanceAppQueries.byKey(instance, redirectUri).executeAsOneOrNull()
             ?.takeIf { it.scopes == SCOPES }
-            ?.let { return it.client_id to crypto.open(it.client_secret_ciphertext, it.client_secret_nonce) }
+            // Sealed under a master key that is gone: register again rather than fail every sign-in.
+            ?.let { app -> runCatching { crypto.open(app.client_secret_ciphertext, app.client_secret_nonce) }.getOrNull()?.let { return app.client_id to it } }
         val registration = remote { mastodon.registerApp(instance, CLIENT_NAME, redirectUri, SCOPES, WEBSITE) }
         val sealed = crypto.seal(registration.client_secret)
         db.instanceAppQueries.upsert(instance, redirectUri, registration.client_id, sealed.ciphertext, sealed.nonce, SCOPES, clock())

@@ -19,6 +19,8 @@
  */
 package app.fediferry.server
 
+import app.fediferry.api.AltSuggestionRequest
+import app.fediferry.api.CleanupArea
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PlanRequest
@@ -27,9 +29,6 @@ import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.ProfileRuleData
 import app.fediferry.api.SettingsKinds
-import app.fediferry.media.cleanup.CleanupRule
-import app.fediferry.media.cleanup.ImageCleaner
-import app.fediferry.media.cleanup.Region
 import app.fediferry.media.cleanup.TreatmentKind
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -42,11 +41,6 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
-import javax.imageio.IIOImage
-import javax.imageio.ImageIO
-import javax.imageio.ImageWriteParam
 
 fun Route.postRoutes(services: Services) {
     val posts = services.posts
@@ -104,77 +98,28 @@ fun Route.postRoutes(services: Services) {
     }
     post("/posts/{id}/media/{position}/alt-suggestion") {
         val position = call.parameters["position"]?.toIntOrNull() ?: throw ApiException.badRequest("position")
-        call.respond(posts.suggestAlt(call.projectId(), call.parameters["id"].orEmpty(), position))
+        // An older app sends an empty object: the project's default model.
+        val request = runCatching { call.receive<AltSuggestionRequest>() }.getOrDefault(AltSuggestionRequest())
+        call.respond(posts.suggestAlt(call.projectId(), call.parameters["id"].orEmpty(), position, request.modelId))
     }
 
-    /** A new picture made from a stored one: cropped, and/or cleaned with a profile's rules. */
+    /** A new picture made from a stored one: cropped, and/or cleaned with a profile's areas or its own. */
     post("/media/{id}/derive") {
         val projectId = call.projectId()
         val source = services.media.byId(projectId, call.parameters["id"].orEmpty()) ?: throw ApiException.notFound("media")
         val request = call.receive<DeriveRequest>()
-        val rules = request.profileId?.let { profile ->
+        val areas = request.areas ?: request.profileId?.let { profile ->
             services.settings.list(projectId, SettingsKinds.CLEANUP_RULE)
                 .mapNotNull { runCatching { Json { ignoreUnknownKeys = true }.decodeFromJsonElement(ProfileRuleData.serializer(), it.data) }.getOrNull() }
                 .filter { it.profileId == profile && it.enabled }
                 .sortedBy { it.sortOrder }
+                .map { CleanupArea(it.left, it.top, it.right, it.bottom, it.treatment) }
         }.orEmpty()
-        val derived = derive(services.media.file(projectId, source.sha256).readBytes(), source.mime, request, rules)
+        val model = if (areas.any { it.treatment == TreatmentKind.AI_ERASE.name }) imageModel(services, projectId, request.modelId, outboundHttp) else null
+        val derived = derive(services.media.file(projectId, source.sha256).readBytes(), source.mime, request, areas, model)
             ?: throw ApiException(HttpStatusCode.UnprocessableEntity, "media.not_editable")
-        val asset = services.media.store(projectId, derived.first, derived.second, parentId = source.id, recipe = Json.encodeToString(request))
-        call.respond(MediaStore.assetDto(asset))
+        val asset = services.media.store(projectId, derived.bytes, derived.mime, parentId = source.id, recipe = Json.encodeToString(request))
+        call.respond(MediaStore.assetDto(asset).copy(aiFailure = derived.aiFailure))
     }
 }
 
-/**
- * Applies [request] to a picture: the crop first, then the clean-up rules on
- * what is left. AI erasing needs the image model, which runs elsewhere; here
- * it falls back to filling from the surroundings, as on the phone without one.
- */
-internal fun derive(bytes: ByteArray, mime: String, request: DeriveRequest, rules: List<ProfileRuleData>): Pair<ByteArray, String>? {
-    if (!mime.startsWith("image/") || mime == "image/gif") return null
-    var image = ImageIO.read(bytes.inputStream()) ?: return null
-    request.crop?.let { c ->
-        val x = (c.left.coerceIn(0f, 1f) * image.width).toInt()
-        val y = (c.top.coerceIn(0f, 1f) * image.height).toInt()
-        val w = ((c.right.coerceIn(0f, 1f) - c.left.coerceIn(0f, 1f)) * image.width).toInt().coerceAtMost(image.width - x)
-        val h = ((c.bottom.coerceIn(0f, 1f) - c.top.coerceIn(0f, 1f)) * image.height).toInt().coerceAtMost(image.height - y)
-        if (w < 8 || h < 8) return null
-        image = image.getSubimage(x, y, w, h)
-    }
-    if (rules.isNotEmpty()) {
-        val pixels = image.getRGB(0, 0, image.width, image.height, null, 0, image.width)
-        val cleaned = ImageCleaner.apply(
-            pixels, image.width, image.height,
-            rules.map { r ->
-                val kind = runCatching { TreatmentKind.valueOf(r.treatment) }.getOrDefault(TreatmentKind.FILL)
-                CleanupRule(Region(r.left, r.top, r.right, r.bottom), if (kind == TreatmentKind.AI_ERASE) TreatmentKind.FILL else kind)
-            },
-        )
-        image = BufferedImage(cleaned.width, cleaned.height, BufferedImage.TYPE_INT_ARGB).apply {
-            setRGB(0, 0, cleaned.width, cleaned.height, cleaned.pixels, 0, cleaned.width)
-        }
-    }
-    return encode(image, jpeg = mime == "image/jpeg")
-}
-
-/** JPEG stays JPEG (at high quality); everything else becomes PNG, which loses nothing. */
-private fun encode(image: BufferedImage, jpeg: Boolean): Pair<ByteArray, String> {
-    val out = ByteArrayOutputStream()
-    if (jpeg) {
-        val rgb = BufferedImage(image.width, image.height, BufferedImage.TYPE_INT_RGB)
-        rgb.createGraphics().apply { drawImage(image, 0, 0, null); dispose() }
-        val writer = ImageIO.getImageWritersByFormatName("jpg").next()
-        val params = writer.defaultWriteParam.apply {
-            compressionMode = ImageWriteParam.MODE_EXPLICIT
-            compressionQuality = 0.92f
-        }
-        ImageIO.createImageOutputStream(out).use { stream ->
-            writer.output = stream
-            writer.write(null, IIOImage(rgb, null, null), params)
-        }
-        writer.dispose()
-        return out.toByteArray() to "image/jpeg"
-    }
-    ImageIO.write(image, "png", out)
-    return out.toByteArray() to "image/png"
-}

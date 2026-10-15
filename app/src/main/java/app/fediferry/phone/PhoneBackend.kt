@@ -66,6 +66,11 @@ import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.Item
 import app.fediferry.data.model.Visibility
 import app.fediferry.di.ServiceLocator
+import app.fediferry.media.cleanup.TreatmentKind
+import app.fediferry.media.cleanup.Region
+import app.fediferry.media.cleanup.CleanupRule
+import app.fediferry.mastodon.MastodonException
+import androidx.room.withTransaction
 import app.fediferry.log.DebugLog
 import app.fediferry.mastodon.MastodonAccounts
 import app.fediferry.mastodon.MastodonText
@@ -219,22 +224,25 @@ class PhoneBackend(private val context: Context) : PostBackend {
             bitmap = Bitmap.createBitmap(bitmap, x, y, w, h)
         }
         val made = storeBitmap(bitmap, source.mime, parent = source)
-        val profileId = request.profileId ?: return assetDto(made)
-        val rules = db.cleanup().enabledRules(profileId).map { it.toCleanupRule() }
+        // Areas drawn for this picture, else the profile's.
+        val rules = request.areas?.map { a ->
+            CleanupRule(Region(a.left, a.top, a.right, a.bottom), runCatching { TreatmentKind.valueOf(a.treatment) }.getOrDefault(TreatmentKind.FILL))
+        } ?: request.profileId?.let { id -> db.cleanup().enabledRules(id).map { it.toCleanupRule() } }.orEmpty()
         if (rules.isEmpty()) return assetDto(made)
         val outcome = app.fediferry.media.cleanup.BitmapCleaner.clean(
-            made.path, rules, ServiceLocator.imageEditProvider(context), ServiceLocator.maskPolarity(context),
-            ServiceLocator.settings(context).current().imageInstruction,
+            made.path, rules,
+            ServiceLocator.imageEditProvider(context, request.modelId), ServiceLocator.maskPolarity(context, request.modelId),
+            request.instruction?.takeIf { it.isNotBlank() } ?: ServiceLocator.settings(context).current().imageInstruction,
         ) ?: throw ServerException(422, "media.not_editable")
-        return assetDto(storeBitmap(outcome.bitmap, source.mime, parent = source))
+        return assetDto(storeBitmap(outcome.bitmap, source.mime, parent = source)).copy(aiFailure = outcome.aiFailure)
     }
 
-    override suspend fun suggestAlt(postId: String, position: Int): AltSuggestion {
+    override suspend fun suggestAlt(postId: String, position: Int, modelId: String?): AltSuggestion {
         val post = row(postId)
         val asset = mediaOf(post).firstOrNull { it.position == position }?.let { dao.asset(it.assetId) } ?: throw ServerException(404, "not_found")
-        if (ServiceLocator.aiModels(context).pick(app.fediferry.data.model.AiKind.ALT_TEXT) == null) throw ServerException(409, "alt.no_model")
+        if (ServiceLocator.aiModels(context).pick(app.fediferry.data.model.AiKind.ALT_TEXT, modelId) == null) throw ServerException(409, "alt.no_model")
         val bytes = withContext(Dispatchers.IO) { File(asset.path).readBytes() }
-        val text = ServiceLocator.visionProvider(context).describe(bytes, asset.mime)
+        val text = ServiceLocator.visionProvider(context, modelId).describe(bytes, asset.mime)
             .getOrElse { throw ServerException(502, "alt.failed", mapOf("reason" to (it.message ?: it.javaClass.simpleName))) }
         return AltSuggestion(text)
     }
@@ -353,10 +361,10 @@ class PhoneBackend(private val context: Context) : PostBackend {
         if (post.stage != PostStages.SCHEDULED && post.stage != PostStages.FAILED) {
             throw ServerException(409, "post.not_plannable", mapOf("stage" to post.stage))
         }
+        // Only while the worker has not started sending; then it is too late.
+        if (dao.takeBack(id) == 0) throw ServerException(409, "post.publishing")
         PhonePublishWorker.cancel(context, id)
-        val back = post.copy(stage = PostStages.READY, publicationJson = null, version = post.version + 1, updatedAt = System.currentTimeMillis())
-        dao.upsertPost(back)
-        return dto(back)
+        return dto(row(id))
     }
 
     override suspend fun schedules(): List<ScheduleDto> {
@@ -445,9 +453,9 @@ class PhoneBackend(private val context: Context) : PostBackend {
         dao.releaseChannel(id)
         dao.deleteSchedulesOf(id)
         dao.deleteChannel(id)
+        if (channel.isDefault) dao.channels().firstOrNull()?.let { dao.setDefaultChannel(it.id) }
         val accountId = channel.accountId ?: return
         if (dao.channels().none { it.accountId == accountId }) ServiceLocator.auth(context).disconnect(accountId)
-        if (channel.isDefault) dao.channels().firstOrNull()?.let { dao.setDefaultChannel(it.id) }
     }
 
     override suspend fun refreshLimits(id: String): ChannelDto {
@@ -514,12 +522,18 @@ class PhoneBackend(private val context: Context) : PostBackend {
      * that has its picture already. With [ready] (the inbox of an older
      * version) the post goes to review as it was written, into [reviewFolderId].
      */
-    suspend fun adopt(item: Item, ready: Boolean = false, reviewFolderId: String? = null): Adopted {
-        val now = System.currentTimeMillis()
+    suspend fun adopt(item: Item, ready: Boolean = false, reviewFolderId: String? = null, channelId: String? = null): Adopted {
         val original = item.originalMediaPath?.takeIf { it != item.mediaPath }?.let { assetFor(it, item.mimeType, parent = null) }
         val picture = item.mediaPath?.let { assetFor(it, item.mimeType, parent = original) }
-        db.items().delete(item.id)
+        // The item goes only together with the post it became: a death in
+        // between neither loses it nor leaves it to be adopted twice.
+        return db.withTransaction {
+            place(item, ready, reviewFolderId, channelId, picture).also { db.items().delete(item.id) }
+        }
+    }
 
+    private suspend fun place(item: Item, ready: Boolean, reviewFolderId: String?, channelId: String?, picture: PhoneAsset?): Adopted {
+        val now = System.currentTimeMillis()
         if (!ready) {
             // The same picture again: the draft that has it.
             picture?.let { p -> dao.allPosts().firstOrNull { post -> mediaOf(post).any { m -> sameAs(m.assetId, p) } } }
@@ -539,7 +553,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
             }
         }
 
-        val channel = dao.channels().let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() }
+        val channel = dao.channels().let { list -> list.firstOrNull { it.id == channelId } ?: list.firstOrNull { it.isDefault } ?: list.firstOrNull() }
         val settings = channel?.let(::postOf) ?: PostSettings()
         val keys = db.placeholderKeys().all()
         val inputs = TemplateEngine.Inputs(link = item.sourceUrl, source = item.origin, fields = item.sourceFields)
@@ -608,9 +622,11 @@ class PhoneBackend(private val context: Context) : PostBackend {
         val pictures: List<Pair<PhoneAsset, PhoneMedia>>,
     )
 
-    internal suspend fun markSending(id: String) {
-        val post = dao.post(id) ?: return
-        val publication = publicationOf(post) ?: return
+    /** Claims the post for sending; false when it was taken back (or is gone) in the meantime. */
+    internal suspend fun markSending(id: String): Boolean {
+        if (dao.moveStage(id, listOf(PostStages.SCHEDULED), PostStages.PUBLISHING) == 0) return false
+        val post = dao.post(id) ?: return false
+        val publication = publicationOf(post) ?: return true
         dao.upsertPost(
             post.copy(
                 stage = PostStages.PUBLISHING,
@@ -618,6 +634,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
                 updatedAt = System.currentTimeMillis(),
             ),
         )
+        return true
     }
 
     /** Out — or held by Mastodon: the post leaves the phone, with every picture no other post uses. */
@@ -638,8 +655,11 @@ class PhoneBackend(private val context: Context) : PostBackend {
     /** After the app was killed while sending: such posts go back in the queue. */
     suspend fun recover() {
         dao.posts(listOf(PostStages.PUBLISHING)).forEach { post ->
-            dao.upsertPost(post.copy(stage = PostStages.SCHEDULED))
-            PhonePublishWorker.enqueue(context, post.id, 0)
+            // WorkManager may have started this process for that very worker; it is not stale then.
+            if (PhonePublishWorker.isRunning(context, post.id)) return@forEach
+            if (dao.moveStage(post.id, listOf(PostStages.PUBLISHING), PostStages.SCHEDULED) > 0) {
+                PhonePublishWorker.enqueue(context, post.id, 0, keep = true)
+            }
         }
     }
 
@@ -681,6 +701,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
     private suspend fun reviewFromMastodon(channelId: String, statusId: String): PostDto {
         val (account, token) = dao.channel(channelId)?.let { accountOf(it) } ?: throw ServerException(404, "not_found")
         val status = runCatching { mastodon.scheduledStatus(account.instance, token, statusId) }.getOrElse { throw ServerException(404, "not_found") }
+        // The pictures are fetched before Mastodon lets go of the post, so a failure there loses nothing.
         val vault = ServiceLocator.mediaVault(context)
         val media = status.media.mapIndexed { i, attachment ->
             val url = attachment.url ?: attachment.previewUrl ?: throw ServerException(502, "mastodon.media")
@@ -697,9 +718,14 @@ class PhoneBackend(private val context: Context) : PostBackend {
             visibility = app.fediferry.data.ScheduledDraft.visibilityOf(status.params.visibility)?.name ?: Visibility.PUBLIC.name,
             finalText = text, readyAt = now, mediaJson = json.encodeToString(MEDIA, media),
         )
+        // Only once Mastodon will no longer post it is there a copy here; otherwise it would go out twice.
+        runCatching { mastodon.cancelScheduled(account.instance, token, statusId) }.onFailure {
+            DebugLog.w(LOG, "Cancelling at Mastodon failed, so the post stays there: ${it.javaClass.simpleName}")
+            // Gone from Mastodon's queue: posted already, or deleted there.
+            if ((it as? MastodonException)?.code == 404) throw ServerException(404, "not_found")
+            throw ServerException(502, it.message ?: "mastodon.error")
+        }
         dao.upsertPost(post)
-        runCatching { mastodon.cancelScheduled(account.instance, token, statusId) }
-            .onFailure { DebugLog.w(LOG, "Cancelling at Mastodon failed after taking a post back: ${it.javaClass.simpleName}") }
         return dto(post)
     }
 
@@ -835,7 +861,8 @@ class PhoneBackend(private val context: Context) : PostBackend {
         (mine - used).forEach { id ->
             val asset = dao.asset(id) ?: return@forEach
             dao.deleteAsset(id)
-            withContext(Dispatchers.IO) { File(asset.path).delete() }
+            // A share still on its way in can hold the same file (they are named by content).
+            if (!db.items().anyUsingPath(asset.path)) withContext(Dispatchers.IO) { File(asset.path).delete() }
             paths.remove(id)
         }
     }

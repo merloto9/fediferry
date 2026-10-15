@@ -26,6 +26,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
@@ -40,6 +41,7 @@ import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
 import app.fediferry.mastodon.MastodonException
 import app.fediferry.work.Notifications
+import kotlinx.coroutines.delay
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -61,7 +63,13 @@ class PhonePublishWorker(context: Context, params: WorkerParameters) : Coroutine
             phone.markFailed(id, "channel.no_account", final = true)
             return Result.failure()
         }
-        phone.markSending(id)
+        // Mastodon takes a time only five minutes ahead. A send that started
+        // late (offline, Doze, retries) goes from here at that time instead.
+        val held = out.publication.scheduledAt
+        val scheduledAt = held?.takeIf { it - System.currentTimeMillis() >= MASTODON_MIN_LEAD_MS }
+        if (held != null && scheduledAt == null) delay((held - System.currentTimeMillis()).coerceAtLeast(0))
+        // Undone just now: the post is back in review and must not go out.
+        if (!phone.markSending(id)) return Result.success()
         return try {
             val client = ServiceLocator.mastodon(app)
             val mediaIds = out.pictures.map { (asset, media) ->
@@ -70,7 +78,6 @@ class PhonePublishWorker(context: Context, params: WorkerParameters) : Coroutine
                 client.uploadMedia(account.instance, token, bytes, asset.mime, asset.sha256 + extensionFor(asset.mime), alt).id
             }
             val text = out.post.finalText.orEmpty()
-            val scheduledAt = out.publication.scheduledAt
             client.postStatus(
                 instance = account.instance,
                 token = token,
@@ -79,7 +86,7 @@ class PhonePublishWorker(context: Context, params: WorkerParameters) : Coroutine
                 visibility = runCatching { Visibility.valueOf(out.post.visibility) }.getOrDefault(Visibility.PUBLIC),
                 contentWarning = out.post.contentWarning,
                 // The same post sent twice — a retry after an unclear failure — is one post.
-                idempotencyKey = if (scheduledAt == null) id else "$id@$scheduledAt",
+                idempotencyKey = if (held == null) id else "$id@$held",
                 scheduledAtIso = scheduledAt?.let { Instant.ofEpochMilli(it).toString() },
             )
             phone.markSent(id)
@@ -136,16 +143,24 @@ class PhonePublishWorker(context: Context, params: WorkerParameters) : Coroutine
         /** Mastodon's five minutes ahead, and a little for the upload itself. */
         const val MIN_MASTODON_LEAD_MS = 5 * 60_000L + 30_000L
 
+        /** Mastodon's own minimum, and a little for the uploads before the post. */
+        private const val MASTODON_MIN_LEAD_MS = 5 * 60_000L + 15_000L
+
         private fun name(postId: String) = "phone-post-$postId"
 
-        fun enqueue(context: Context, postId: String, delayMillis: Long) {
+        /** Whether the worker for this post is running right now. */
+        fun isRunning(context: Context, postId: String): Boolean =
+            runCatching { WorkManager.getInstance(context).getWorkInfosForUniqueWork(name(postId)).get() }
+                .getOrDefault(emptyList()).any { it.state == WorkInfo.State.RUNNING }
+
+        fun enqueue(context: Context, postId: String, delayMillis: Long, keep: Boolean = false) {
             val request = OneTimeWorkRequestBuilder<PhonePublishWorker>()
                 .setInputData(workDataOf(KEY_POST_ID to postId))
                 .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                 .build()
-            WorkManager.getInstance(context).enqueueUniqueWork(name(postId), ExistingWorkPolicy.REPLACE, request)
+            WorkManager.getInstance(context).enqueueUniqueWork(name(postId), if (keep) ExistingWorkPolicy.KEEP else ExistingWorkPolicy.REPLACE, request)
         }
 
         fun cancel(context: Context, postId: String) {

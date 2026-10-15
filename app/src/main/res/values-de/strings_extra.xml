@@ -64,8 +64,4 @@
     <string name="extra_cw_group_substances">Substanzen &amp; Essen</string>
     <string name="extra_cw_group_triggers">Reize &amp; Phobien</string>
     <string name="extra_cw_group_context">Tiere, Ton &amp; Kontext</string>
-
-    <!-- Zuschneiden -->
-    <string name="extra_crop_no_size">Die Bildgröße ließ sich nicht lesen</string>
-    <string name="extra_crop_failed">Zuschneiden fehlgeschlagen: %1$s</string>
 </resources>

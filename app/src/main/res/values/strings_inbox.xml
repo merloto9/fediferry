@@ -1,44 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Inbox -->
-    <string name="inbox_title">Inbox</string>
-    <plurals name="inbox_selected">
-        <item quantity="one">%1$d selected</item>
-        <item quantity="other">%1$d selected</item>
-    </plurals>
-    <string name="inbox_clear_selection">Clear selection</string>
-    <string name="inbox_schedule_post">Schedule post</string>
-    <string name="inbox_move_to_stack">Move to stack</string>
-    <string name="inbox_delete_selected">Delete selected</string>
-    <string name="inbox_new_stack">New stack</string>
-    <string name="inbox_rename_stack">Rename stack</string>
-    <string name="inbox_settings">Settings</string>
-    <string name="inbox_section_new">New</string>
-    <string name="inbox_new_empty">Nothing new. Shared posts land here.</string>
-    <string name="inbox_stack_empty">Empty. Select posts with a long press, then move them here.</string>
-    <string name="inbox_shared_image">Shared image</string>
-    <string name="inbox_text_only">Text only</string>
-    <string name="inbox_no_text">(no text)</string>
-    <string name="inbox_status_draft">Draft</string>
-    <string name="inbox_status_queued">Queued</string>
-    <string name="inbox_status_sending">Sending</string>
-    <string name="inbox_status_posted">Posted</string>
-    <string name="inbox_status_failed">Failed</string>
-    <string name="inbox_empty_title">Nothing saved yet</string>
-    <string name="inbox_empty_body">Screenshot a meme, share it here, and pick %1$s, %2$s, or %3$s.</string>
-    <string name="inbox_section_open">Open %1$s</string>
-    <string name="inbox_section_fold">Fold %1$s</string>
-    <string name="inbox_stack_actions">Stack actions for %1$s</string>
-    <string name="inbox_rename">Rename</string>
-    <string name="inbox_delete_stack">Delete stack — posts go back to New</string>
-    <string name="inbox_move_to">Move to</string>
-    <string name="inbox_no_stack">On no stack</string>
-    <string name="inbox_new_stack_more">New stack…</string>
-    <string name="inbox_stack_name">Name</string>
-    <string name="inbox_stack_name_hint">Ready to post</string>
-    <string name="inbox_create">Create</string>
-    <string name="inbox_cancel">Cancel</string>
-
     <!-- Cleaning the links of posts shared before 0.17.1 -->
     <string name="oldlinks_none_title">Links in the inbox</string>
     <string name="oldlinks_none_body">No post in the inbox has a Pinterest or Reddit link to check.</string>
@@ -107,19 +68,13 @@
 
     <!-- Trimming a screenshot -->
     <string name="crop_title">Trim the screenshot</string>
-    <string name="crop_skip">Skip</string>
-    <string name="crop_no_image">No image to trim</string>
-    <string name="crop_hint_suggested">Drag the corners if this missed. The original is kept, so this can be undone.</string>
-    <string name="crop_hint_none">Nothing obvious to trim — drag the corners to crop by hand.</string>
     <string name="crop_suggested">Suggested</string>
     <string name="crop_whole_image">Whole image</string>
-    <string name="crop_trimming">Trimming…</string>
     <string name="crop_use_this">Use this</string>
     <string name="crop_image_description">Screenshot being trimmed</string>
 
     <!-- Image clean-up -->
     <string name="cleanup_title">Clean up</string>
-    <string name="cleanup_skip">Skip</string>
     <string name="cleanup_no_image">No image to clean up</string>
     <string name="cleanup_hint">Drag over anything that should go. The treatment applies to the next box you draw, so different things can be handled differently.</string>
     <string name="cleanup_clear">Clear</string>
@@ -127,10 +82,7 @@
         <item quantity="one">%1$d area</item>
         <item quantity="other">%1$d areas</item>
     </plurals>
-    <string name="cleanup_applying">Applying…</string>
     <string name="cleanup_use_this">Use this</string>
-    <string name="cleanup_ai_title">Erasing with the image model</string>
-    <string name="cleanup_ai_detail">The picture and the areas you marked have been sent to your image model. Waiting for it to send back the cleaned-up version.</string>
     <string name="cleanup_treatment_fill">Fill in</string>
     <string name="cleanup_treatment_crop_away">Crop away</string>
     <string name="cleanup_treatment_blur">Blur</string>
@@ -149,5 +101,4 @@
     <string name="cleanup_cancel">Cancel</string>
     <string name="cleanup_image_description">Image being cleaned up</string>
     <string name="cleanup_filled_locally">Filled in locally instead — %1$s</string>
-    <string name="cleanup_failed">Could not clean up: %1$s</string>
 </resources>

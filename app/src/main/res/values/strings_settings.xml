@@ -2,7 +2,6 @@
 <resources>
     <!-- Pages and their groups -->
     <string name="settings_title">Settings</string>
-    <string name="settings_page_templates">Templates</string>
     <string name="settings_page_hashtags">Hashtags</string>
     <string name="settings_page_placeholders">Placeholders &amp; sources</string>
     <string name="settings_page_sharing">Sharing &amp; posting</string>
@@ -16,17 +15,6 @@
 
     <!-- Overview summaries -->
     <string name="settings_summary_separator">%1$s · %2$s</string>
-    <string name="settings_summary_not_connected">Not connected — nothing can be posted yet</string>
-    <string name="settings_summary_account">\@%1$s on %2$s</string>
-    <plurals name="settings_summary_account_more">
-        <item quantity="one">\@%1$s on %2$s, and %3$d more</item>
-        <item quantity="other">\@%1$s on %2$s, and %3$d more</item>
-    </plurals>
-    <plurals name="settings_summary_templates">
-        <item quantity="one">%d template</item>
-        <item quantity="other">%d templates</item>
-    </plurals>
-    <string name="settings_summary_default">%1$s · default: %2$s</string>
     <plurals name="settings_summary_hashtags">
         <item quantity="one">%d hashtag</item>
         <item quantity="other">%d hashtags</item>
@@ -68,25 +56,9 @@
     <string name="settings_back_to_settings">Back to Settings</string>
     <string name="settings_default">Default</string>
     <string name="settings_make_default">Make default</string>
-    <string name="settings_save">Save</string>
-    <string name="settings_delete">Delete</string>
     <string name="settings_what_to_ask">What to ask for</string>
 
-    <!-- Account -->
-    <string name="settings_disconnect">Disconnect</string>
-    <string name="settings_instance">Instance</string>
-    <string name="settings_connect">Connect</string>
-    <string name="settings_contacting">Contacting %1$s</string>
-    <string name="settings_your_instance">your instance</string>
-    <string name="settings_contacting_detail">Registering FediFerry with the server. Its sign-in page opens in the browser as soon as it answers.</string>
-    <string name="settings_enter_instance">Enter an instance host, e.g. mastodon.social</string>
-    <string name="settings_could_not_reach">Could not reach %1$s: %2$s</string>
-
     <!-- Templates -->
-    <string name="settings_new_template">New template</string>
-    <string name="settings_templates_intro">A template is a topic: which hashtags it ticks, and how its posts are written. Bodies can use {tags}, {link}, {date} and the placeholders from Placeholders &amp; sources.</string>
-    <string name="settings_what_can_i_use">What can I use?</string>
-    <string name="settings_template_name">Name</string>
     <string name="settings_template_body">Body</string>
     <plurals name="settings_template_unknown">
         <item quantity="one">%1$s is not defined, and would be posted exactly as typed.</item>

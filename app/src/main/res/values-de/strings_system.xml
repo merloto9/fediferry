@@ -48,20 +48,12 @@
     <string name="notify_posting_title">Wird auf Mastodon gepostet</string>
     <string name="notify_sending_in">Wird in %1$d s gesendet</string>
     <string name="notify_undo">Rückgängig</string>
-    <string name="notify_undone">Beitrag abgebrochen – als Entwurf behalten</string>
 
     <!-- Posting -->
-    <string name="post_posted">Gepostet</string>
-    <string name="post_sent">An Mastodon gesendet</string>
     <string name="post_failed_title">Posten fehlgeschlagen</string>
-    <string name="post_failed_reason">Posten fehlgeschlagen</string>
-    <string name="post_no_account">Kein Mastodon-Konto verbunden</string>
-    <string name="post_no_token">Kein Zugangsschlüssel – verbinde @%1$s neu</string>
-    <string name="post_nothing_to_post">Nichts zu posten – weder Text noch Bild</string>
     <string name="post_no_alt_model">kein Modell für Bildbeschreibungen eingerichtet – füge eines unter Einstellungen → Bildbeschreibung hinzu</string>
 
     <!-- Item store -->
-    <string name="repo_download_failed">Das Bild konnte nicht heruntergeladen werden: %1$s</string>
     <string name="repo_no_image_to_crop">Hier gibt es kein Bild zum Zuschneiden</string>
     <string name="repo_no_image_to_clean">Hier gibt es kein Bild zum Bereinigen</string>
     <string name="repo_unreadable_image">Das Bild konnte nicht gelesen werden</string>

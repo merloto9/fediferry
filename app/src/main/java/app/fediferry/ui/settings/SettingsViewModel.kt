@@ -26,17 +26,14 @@ import app.fediferry.R
 import app.fediferry.ai.ModelTestReport
 import app.fediferry.ai.ModelTester
 import app.fediferry.data.Settings
-import app.fediferry.data.model.Account
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
-import app.fediferry.data.model.AltTextMode
 import app.fediferry.data.model.CleanupProfile
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtag
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.ProfileRule
-import app.fediferry.data.model.Template
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
 import app.fediferry.ui.theme.ColorSource
@@ -52,14 +49,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SettingsState(
-    val accounts: List<Account> = emptyList(),
-    val templates: List<Template> = emptyList(),
     val placeholderKeys: List<PlaceholderKey> = emptyList(),
     val hashtags: List<String> = emptyList(),
     val cleanupProfiles: List<CleanupProfile> = emptyList(),
     val cleanupRules: List<ProfileRule> = emptyList(),
     val settings: Settings = Settings(),
-    val connecting: Boolean = false,
     val message: String? = null,
     /** Bytes the log currently holds; drives the diagnostics readout. */
     val logSizeBytes: Long = 0,
@@ -77,7 +71,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     private val db = ServiceLocator.database(app)
     private val settingsStore = ServiceLocator.settings(app)
-    private val auth = ServiceLocator.auth(app)
     private val cleanupDao = ServiceLocator.database(app).cleanup()
 
     private val _state = MutableStateFlow(SettingsState())
@@ -119,21 +112,8 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
                 }
         }
         viewModelScope.launch {
-            combine(
-                db.accounts().observeAll(),
-                db.templates().observeAll(),
-                settingsStore.settings,
-            ) { accounts, templates, settings ->
-                Triple(accounts, templates, settings)
-            }.collect { (accounts, templates, settings) ->
-                _state.update {
-                    it.copy(
-                        accounts = accounts,
-                        templates = templates,
-                        settings = settings,
-                        logSizeBytes = DebugLog.sizeBytes(),
-                    )
-                }
+            settingsStore.settings.collect { settings ->
+                _state.update { it.copy(settings = settings, logSizeBytes = DebugLog.sizeBytes()) }
             }
         }
     }
@@ -165,41 +145,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refreshLogSize() = _state.update { it.copy(logSizeBytes = DebugLog.sizeBytes()) }
-
-    fun connect(instance: String) = viewModelScope.launch {
-        if (instance.isBlank()) {
-            _state.update { it.copy(message = text(R.string.settings_enter_instance)) }
-            return@launch
-        }
-        _state.update { it.copy(connecting = true, message = null) }
-        runCatching { auth.beginAuthorization(instance) }
-            .onFailure { e ->
-                _state.update { it.copy(message = text(R.string.settings_could_not_reach, instance, e.message.orEmpty())) }
-            }
-        _state.update { it.copy(connecting = false) }
-    }
-
-    fun disconnect(accountId: String) = viewModelScope.launch { auth.disconnect(accountId) }
-
-    fun makeDefaultAccount(accountId: String) =
-        viewModelScope.launch { db.accounts().setDefault(accountId) }
-
-    fun saveTemplate(template: Template) =
-        viewModelScope.launch { db.templates().upsert(template) }
-
-    fun newTemplate() = viewModelScope.launch {
-        db.templates().upsert(
-            Template(
-                id = UUID.randomUUID().toString(),
-                name = text(R.string.settings_new_template),
-                body = "{tags}\n\nvia {link}",
-                altTextMode = AltTextMode.NONE,
-                sortOrder = _state.value.templates.size,
-            ),
-        )
-    }
-
-    fun deleteTemplate(id: String) = viewModelScope.launch { db.templates().delete(id) }
 
     // --- placeholders ----------------------------------------------------
 
@@ -257,9 +202,6 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun deletePlaceholderKey(id: String) = viewModelScope.launch {
         if (id != PlaceholderKey.TAGS_ID) db.placeholderKeys().delete(id)
     }
-
-    fun makeDefaultTemplate(id: String) =
-        viewModelScope.launch { db.templates().setDefault(id) }
 
     fun setUndoDelay(seconds: Int) = persist { settingsStore.setUndoDelay(seconds) }
     // --- AI models ---------------------------------------------------------

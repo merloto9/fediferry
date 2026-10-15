@@ -28,6 +28,7 @@ import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import org.slf4j.LoggerFactory
 
 /**
  * Encrypts what must not sit in the database in the clear — AI keys, account
@@ -80,13 +81,20 @@ class Crypto(private val key: ByteArray) {
 /** A project's secrets, sealed by [Crypto]. */
 class Secrets(private val db: ServerDatabase, private val crypto: Crypto, private val clock: () -> Long) {
 
+    private val log = LoggerFactory.getLogger(Secrets::class.java)
+
     fun put(projectId: String, id: String, value: String) {
         val sealed = crypto.seal(value)
         db.secretQueries.upsert(projectId, id, sealed.ciphertext, sealed.nonce, clock())
     }
 
+    /** Null too when the secret was sealed under another master key: it has to be entered again. */
     fun get(projectId: String, id: String): String? =
-        db.secretQueries.byId(projectId, id).executeAsOneOrNull()?.let { crypto.open(it.ciphertext, it.nonce) }
+        db.secretQueries.byId(projectId, id).executeAsOneOrNull()?.let { row ->
+            runCatching { crypto.open(row.ciphertext, row.nonce) }
+                .onFailure { log.warn("Secret {} cannot be opened with this master key", id) }
+                .getOrNull()
+        }
 
     fun ids(projectId: String): List<String> = db.secretQueries.ids(projectId).executeAsList()
 

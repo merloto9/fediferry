@@ -98,9 +98,28 @@ data class PostPatch(
 @Serializable
 data class PostMediaPatch(val position: Int, val altText: String? = null, val assetId: String? = null, val remove: Boolean = false)
 
-/** `POST /media/{id}/derive`: a new picture made from this one. */
+/**
+ * `POST /media/{id}/derive`: a new picture made from this one. The crop goes
+ * first; then a profile's areas, or [areas] drawn for this picture alone.
+ * [instruction] and [modelId] are for the areas erased by the image model;
+ * without them the project's default instruction and model are used.
+ */
 @Serializable
-data class DeriveRequest(val crop: CropRect? = null, val profileId: String? = null)
+data class DeriveRequest(
+    val crop: CropRect? = null,
+    val profileId: String? = null,
+    val areas: List<CleanupArea>? = null,
+    val instruction: String? = null,
+    val modelId: String? = null,
+)
+
+/** An area to clean, in fractions of the picture, and what happens to it (a `TreatmentKind` name). */
+@Serializable
+data class CleanupArea(val left: Float, val top: Float, val right: Float, val bottom: Float, val treatment: String)
+
+/** `POST /posts/{id}/media/{position}/alt-suggestion`: which alt-text model to ask; null for the default. */
+@Serializable
+data class AltSuggestionRequest(val modelId: String? = null)
 
 /** A rectangle in fractions of the picture: 0,0 is top left, 1,1 bottom right. */
 @Serializable

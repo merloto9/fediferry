@@ -93,6 +93,7 @@ fun Route.intakeRoutes(services: Services) {
             text = form["text"],
             upload = received.upload,
             capturedAt = form["capturedAt"]?.toLongOrNull(),
+            autoCrop = form["autoCrop"] == "true",
         )
         call.respond(if (result.replayed) HttpStatusCode.OK else HttpStatusCode.Created, result)
     }

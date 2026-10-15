@@ -11,7 +11,6 @@
 
     <string name="draft_title">Entwurf</string>
     <string name="draft_saving">Wird gespeichert…</string>
-    <string name="draft_saved">Auf dem Server gespeichert</string>
     <string name="draft_gone">Diesen Entwurf gibt es nicht mehr. Vielleicht wurde er auf einem anderen Gerät gelöscht.</string>
     <string name="draft_done">Fertig</string>
     <string name="draft_lock_asking">Der Server wird gefragt, ob du bearbeiten kannst…</string>

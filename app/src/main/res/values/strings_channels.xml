@@ -8,14 +8,9 @@
         <item quantity="other">This phone is signed in to %1$d accounts the project does not have yet.</item>
     </plurals>
     <string name="channels_take_over">Move them to the project</string>
-    <string name="channels_add_title">Add a Mastodon account</string>
     <string name="channels_instance">Instance</string>
     <string name="channels_sign_in">Connect</string>
-    <string name="channels_limits">Characters: %1$d · Pictures: %2$d · Alt text: %3$d</string>
     <string name="channels_default">Default channel</string>
-    <string name="channels_actions">Actions for %1$s</string>
-    <string name="channels_make_default">Make default</string>
-    <string name="channels_rename">Rename</string>
     <string name="channels_refresh">Read limits again</string>
     <string name="channels_remove">Remove</string>
     <string name="channels_remove_title">Remove %1$s?</string>

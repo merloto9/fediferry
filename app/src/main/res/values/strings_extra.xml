@@ -64,8 +64,4 @@
     <string name="extra_cw_group_substances">Substances &amp; food</string>
     <string name="extra_cw_group_triggers">Sensory triggers &amp; phobias</string>
     <string name="extra_cw_group_context">Animals, tone &amp; context</string>
-
-    <!-- Crop -->
-    <string name="extra_crop_no_size">Could not read the image size</string>
-    <string name="extra_crop_failed">Could not crop: %1$s</string>
 </resources>

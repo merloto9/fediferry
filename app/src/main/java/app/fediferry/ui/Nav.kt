@@ -19,9 +19,6 @@
  */
 package app.fediferry.ui
 
-import app.fediferry.di.ServiceLocator
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import app.fediferry.drafts.DraftEditorScreen
 import app.fediferry.drafts.DraftsScreen
 import app.fediferry.review.ReviewPostScreen
@@ -71,9 +68,8 @@ fun FediFerryNavHost(
     editPostId: String? = null,
     onEditConsumed: () -> Unit,
 ) {
-    // A Compose-mode share lands here: jump straight to the editor for the item
-    // the share receiver already persisted — or to the trim step first, when the
-    // share brought an image that still looks like a full screenshot.
+    // A Compose-mode share lands here: jump straight to the editor for the post
+    // the share receiver already persisted.
     LaunchedEffect(editPostId) {
         val draft = editPostId ?: return@LaunchedEffect
         navController.navigate(Routes.draft(draft))

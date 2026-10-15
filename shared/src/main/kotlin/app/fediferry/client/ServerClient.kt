@@ -21,6 +21,7 @@ package app.fediferry.client
 
 import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.AltSuggestion
+import app.fediferry.api.AltSuggestionRequest
 import app.fediferry.api.LabelDto
 import app.fediferry.api.PlanRequest
 import app.fediferry.api.PublishedPage
@@ -102,8 +103,6 @@ class ServerClient(
 
     suspend fun registerDevice(device: DeviceRegistration): DeviceInfo = post("devices", json.encodeToString(device))
 
-    suspend fun devices(): List<DeviceInfo> = get("devices")
-
     suspend fun changes(since: Long, waitSeconds: Int = LONG_POLL_SECONDS): Changes =
         get("changes", auth = true, query = mapOf("since" to since.toString(), "wait" to waitSeconds.toString()))
 
@@ -122,9 +121,12 @@ class ServerClient(
         file: ByteArray?,
         mime: String?,
         capturedAt: Long,
+        autoCrop: Boolean = false,
     ): IngestResult {
         val body = MultipartBody.Builder().setType(MultipartBody.FORM).apply {
             addFormDataPart("mode", mode)
+            // The phone's "trim screenshots" setting; the server trims the picture on intake.
+            if (autoCrop) addFormDataPart("autoCrop", "true")
             addFormDataPart("capturedAt", capturedAt.toString())
             link?.let { addFormDataPart("link", it) }
             text?.let { addFormDataPart("text", it) }
@@ -195,7 +197,8 @@ class ServerClient(
     /** The latest posts that went out, read live from the channels' instances. */
     suspend fun published(limit: Int = 20): PublishedPage = get("published", query = mapOf("limit" to limit.toString()))
 
-    suspend fun suggestAlt(postId: String, position: Int): AltSuggestion = post("posts/$postId/media/$position/alt-suggestion", "{}")
+    suspend fun suggestAlt(postId: String, position: Int, modelId: String? = null): AltSuggestion =
+        post("posts/$postId/media/$position/alt-suggestion", json.encodeToString(AltSuggestionRequest(modelId)))
 
     /** A new picture made from [assetId]: cropped and/or cleaned. The original stays as it is. */
     suspend fun derive(assetId: String, request: DeriveRequest): MediaAssetDto = post("media/$assetId/derive", json.encodeToString(request))
@@ -233,13 +236,8 @@ class ServerClient(
 
     suspend fun deleteSetting(kind: String, id: String) = sendNoContent("settings/$kind/${encode(id)}", "DELETE")
 
-    /** Names of the secrets the server holds; never their values. */
-    suspend fun secretIds(): List<String> = get("secrets")
-
     suspend fun putSecret(id: String, value: String) =
         sendNoContentWithBody("secrets/${encode(id)}", "PUT", json.encodeToString(SecretInput(value)))
-
-    suspend fun deleteSecret(id: String) = sendNoContent("secrets/${encode(id)}", "DELETE")
 
     /** An id as one path segment: hashtags and account ids may hold characters a path cannot. */
     private fun encode(id: String): String = java.net.URLEncoder.encode(id, "UTF-8").replace("+", "%20")
@@ -259,9 +257,6 @@ class ServerClient(
     fun mediaUrl(assetId: String): String = url("media/$assetId").toString()
 
     fun thumbnailUrl(assetId: String, width: Int = 400): String = url("media/$assetId/thumb", mapOf("w" to width.toString())).toString()
-
-    /** Whether [url] points at this server, so a shared HTTP client knows to send the token there. */
-    fun isServerUrl(url: HttpUrl): Boolean = url.host == base.host && url.port == base.port
 
     private suspend inline fun <reified T> send(path: String, method: String, body: String): T =
         call(request(path, auth = true).method(method, body.toRequestBody(JSON_TYPE)).build())

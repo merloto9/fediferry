@@ -93,7 +93,8 @@ interface PostBackend {
     /** A new picture made from [assetId]: cropped and/or cleaned. The original stays. */
     suspend fun derive(assetId: String, request: DeriveRequest): MediaAssetDto
 
-    suspend fun suggestAlt(postId: String, position: Int): AltSuggestion
+    /** Describes a picture with the alt-text model [modelId], or the default one when null. */
+    suspend fun suggestAlt(postId: String, position: Int, modelId: String? = null): AltSuggestion
 
     // --- review ---------------------------------------------------------------------------
 

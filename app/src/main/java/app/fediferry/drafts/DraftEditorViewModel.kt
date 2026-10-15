@@ -20,9 +20,12 @@
 package app.fediferry.drafts
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.fediferry.R
 import app.fediferry.api.ChannelDto
+import app.fediferry.api.CleanupArea
 import app.fediferry.api.CropRect
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.PostDto
@@ -33,7 +36,12 @@ import app.fediferry.api.Violation
 import app.fediferry.channel.PostValidator
 import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
+import app.fediferry.data.model.AiKind
+import app.fediferry.data.model.AiModel
 import app.fediferry.data.model.CleanupProfile
+import app.fediferry.data.model.ProfileRule
+import app.fediferry.media.cleanup.TreatmentKind
+import java.util.UUID
 import app.fediferry.data.model.ContentSource
 import app.fediferry.data.model.Hashtags
 import app.fediferry.data.model.PlaceholderKey
@@ -81,6 +89,13 @@ data class DraftEditorState(
     val hashtagUses: Map<String, Int> = emptyMap(),
     val rememberSentHashtags: Boolean = false,
     val profiles: List<CleanupProfile> = emptyList(),
+    /** Alt-text models, and the one picked for this post; null is the default from Settings. */
+    val altModels: List<AiModel> = emptyList(),
+    val altModelId: String? = null,
+    /** Image models for Clean up's "Erase with AI". */
+    val imageModels: List<AiModel> = emptyList(),
+    /** The instruction Clean up starts from: the one in Settings. */
+    val imageInstruction: String = "",
     /** Pictures, by position, waiting for a description from the server's model. */
     val altBusy: Set<Int> = emptySet(),
     /** A picture is being cropped or cleaned on the server. */
@@ -93,6 +108,7 @@ data class DraftEditorState(
     val message: Pair<String, Map<String, String>>? = null,
 ) {
     val editable: Boolean get() = lock == EditLock.Held
+    val altModel: AiModel? get() = AiModel.pick(altModels, altModelId)
     val channel: ChannelDto? get() = channels.firstOrNull { it.id == post?.channelId }
     /** How posts on the draft's channel start: its text, hashtags and the rest. */
     val template: TemplateSpec? get() = channel?.post
@@ -135,6 +151,9 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
                     hashtagUses = db.hashtagUsage().all().associate { u -> u.key to u.uses },
                     rememberSentHashtags = ServiceLocator.settings(getApplication()).current().rememberSentHashtags,
                     profiles = db.cleanup().profiles(),
+                    altModels = ServiceLocator.aiModels(getApplication()).ofKind(AiKind.ALT_TEXT),
+                    imageModels = ServiceLocator.aiModels(getApplication()).ofKind(AiKind.IMAGE_EDIT),
+                    imageInstruction = ServiceLocator.settings(getApplication()).current().imageInstruction,
                 )
             }
             val api = backend ?: return@launch
@@ -297,6 +316,52 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
 
     fun cleanUp(position: Int, profileId: String) = derive(position, DeriveRequest(profileId = profileId))
 
+    /**
+     * Cleans one picture with areas drawn for it: [instruction] and [modelId]
+     * go with the areas erased by the image model, for this picture only.
+     */
+    fun cleanUp(position: Int, areas: List<CleanupArea>, instruction: String, modelId: String?) =
+        derive(position, DeriveRequest(areas = areas, instruction = instruction.ifBlank { null }, modelId = modelId))
+
+    /** Keeps drawn areas as a profile's, so the next screenshot from the same app is cleaned without drawing. */
+    fun saveProfile(profileId: String, areas: List<CleanupArea>) = ServiceLocator.appScope.launch {
+        val dao = db.cleanup()
+        dao.deleteRulesOf(profileId)
+        dao.upsertRules(
+            areas.mapIndexed { i, a ->
+                ProfileRule(
+                    id = UUID.randomUUID().toString(), profileId = profileId,
+                    left = a.left, top = a.top, right = a.right, bottom = a.bottom,
+                    treatment = runCatching { TreatmentKind.valueOf(a.treatment) }.getOrDefault(TreatmentKind.FILL),
+                    sortOrder = i,
+                )
+            },
+        )
+        ServiceLocator.settings(getApplication()).setLastCleanupProfile(profileId)
+    }
+
+    /** A new, empty clean-up profile; the first one becomes the default. */
+    suspend fun createProfile(name: String): CleanupProfile? {
+        if (name.isBlank()) return null
+        val dao = db.cleanup()
+        val profile = CleanupProfile(UUID.randomUUID().toString(), name.trim(), isDefault = dao.profiles().isEmpty())
+        dao.upsertProfile(profile)
+        _state.update { it.copy(profiles = dao.profiles()) }
+        return profile
+    }
+
+    suspend fun profileAreas(profileId: String): List<CleanupArea> =
+        db.cleanup().enabledRules(profileId).map { CleanupArea(it.left, it.top, it.right, it.bottom, it.treatment.name) }
+
+    suspend fun lastProfileId(): String? {
+        val profiles = _state.value.profiles
+        val remembered = ServiceLocator.settings(getApplication()).current().lastCleanupProfileId
+        return profiles.firstOrNull { it.id == remembered }?.id ?: profiles.firstOrNull { it.isDefault }?.id ?: profiles.firstOrNull()?.id
+    }
+
+    /** Picks the alt-text model for this post; the default in Settings stays as it is. */
+    fun setAltModel(id: String) = _state.update { it.copy(altModelId = id) }
+
     /** Goes back one edit: the picture this one was made from. */
     fun undoEdit(position: Int) {
         val parent = _state.value.post?.media?.firstOrNull { it.position == position }?.asset?.parentId ?: return
@@ -308,7 +373,13 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
         val asset = _state.value.post?.media?.firstOrNull { it.position == position }?.asset ?: return@launch
         _state.update { it.copy(mediaBusy = true) }
         runCatching { api.derive(asset.id, request) }
-            .onSuccess { made -> send(PostPatch(media = listOf(PostMediaPatch(position, assetId = made.id)))) }
+            .onSuccess { made ->
+                // Say when the model was not used: a local fill without a word looks like nothing happened.
+                made.aiFailure?.let { why ->
+                    Toast.makeText(getApplication(), getApplication<Application>().getString(R.string.cleanup_filled_locally, why), Toast.LENGTH_LONG).show()
+                }
+                send(PostPatch(media = listOf(PostMediaPatch(position, assetId = made.id))))
+            }
             .onFailure { handle(it) }
         _state.update { it.copy(mediaBusy = false) }
     }
@@ -318,7 +389,7 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
         val api = backend ?: return@launch
         val id = postId ?: return@launch
         _state.update { it.copy(altBusy = it.altBusy + position) }
-        runCatching { api.suggestAlt(id, position) }
+        runCatching { api.suggestAlt(id, position, _state.value.altModelId) }
             .onSuccess { setAltText(position, it.text) }
             .onFailure { handle(it) }
         _state.update { it.copy(altBusy = it.altBusy - position) }
@@ -347,7 +418,11 @@ class DraftEditorViewModel(app: Application) : AndroidViewModel(app) {
         save()
     }
 
-    private suspend fun save() {
+    // A save once started is finished even when typing cancels its job: cut
+    // off after the patch landed, the next save would carry a stale version.
+    private suspend fun save(): Unit = withContext(NonCancellable) { saveNow() }
+
+    private suspend fun saveNow() {
         saving.withLock {
             val api = backend ?: return
             val from = base ?: return

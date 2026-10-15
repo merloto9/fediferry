@@ -46,17 +46,11 @@ interface CleanupDao {
     @Query("SELECT * FROM cleanup_profiles ORDER BY name")
     suspend fun profiles(): List<CleanupProfile>
 
-    @Query("SELECT * FROM cleanup_profiles WHERE id = :id")
-    suspend fun profile(id: String): CleanupProfile?
-
     @Query("SELECT * FROM cleanup_profiles WHERE isDefault = 1 LIMIT 1")
     suspend fun defaultProfile(): CleanupProfile?
 
     @Query("UPDATE cleanup_profiles SET isDefault = (id = :id)")
     suspend fun setDefaultProfile(id: String)
-
-    @Query("SELECT * FROM cleanup_rules WHERE profileId = :profileId ORDER BY sortOrder, id")
-    fun observeRules(profileId: String): Flow<List<ProfileRule>>
 
     @Query("SELECT * FROM cleanup_rules WHERE profileId = :profileId AND enabled = 1 ORDER BY sortOrder, id")
     suspend fun enabledRules(profileId: String): List<ProfileRule>

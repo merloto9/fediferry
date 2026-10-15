@@ -58,7 +58,16 @@ class Storage private constructor(val driver: JdbcSqliteDriver, val db: ServerDa
             ).value
             when {
                 current == 0L -> schema.create(driver)
-                current < schema.version -> schema.migrate(driver, current, schema.version)
+                // All steps or none: a step failing halfway would otherwise leave
+                // a file that fails on its first statement at every start.
+                current < schema.version -> {
+                    // The driver's own transaction, so every step runs on its one connection.
+                    ServerDatabase(driver).transaction {
+                        schema.migrate(driver, current, schema.version)
+                        driver.execute(null, "PRAGMA user_version = ${schema.version}", 0)
+                    }
+                    return
+                }
                 current > schema.version -> error("The data file is from a newer FediFerry (schema $current); update the server.")
                 else -> return
             }

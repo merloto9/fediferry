@@ -25,7 +25,6 @@ import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.Template
 import app.fediferry.template.TemplateEngine
 import app.fediferry.template.inputsOf
-import app.fediferry.template.postTextOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -269,6 +268,11 @@ class TemplateEngineTest {
     }
 
     @Test
+    fun `sending with no hashtags keeps words written beside {tags}`() {
+        assertEquals("so true", TemplateEngine.finish("so true {tags}", emptyList()))
+    }
+
+    @Test
     fun `sending touches nothing but {tags}`() {
         // Whatever the user typed in the editor since is theirs, braces and all.
         assertEquals("{caption} and {nope} #a", TemplateEngine.finish("{caption} and {nope} {tags}", listOf("#a")))
@@ -278,7 +282,7 @@ class TemplateEngineTest {
     fun `a {tags} typed by hand in the editor is filled too`() {
         val item = Item(id = "i", templateId = "t", bodyText = "Look {tags}", hashtags = "#meme #cats")
 
-        assertEquals("Look #meme #cats", TemplateEngine.postTextOf(item))
+        assertEquals("Look #meme #cats", TemplateEngine.finish(item.bodyText, item.hashtagList))
     }
 
     @Test
@@ -325,7 +329,7 @@ class TemplateEngineTest {
     fun `a draft from before per-post hashtags posts exactly its text`() {
         val legacy = Item(id = "i", templateId = "t", bodyText = "A joke\n\n#meme", hashtags = null)
 
-        assertEquals("A joke\n\n#meme", TemplateEngine.postTextOf(legacy))
+        assertEquals("A joke\n\n#meme", TemplateEngine.finish(legacy.bodyText, legacy.hashtagList))
     }
 
     @Test

@@ -82,7 +82,7 @@ class ServerBackend(
     override suspend fun unlockPost(id: String) = client.unlockPost(id)
     override suspend fun patchPost(id: String, version: Long, patch: PostPatch) = client.patchPost(id, version, patch)
     override suspend fun derive(assetId: String, request: DeriveRequest) = client.derive(assetId, request)
-    override suspend fun suggestAlt(postId: String, position: Int) = client.suggestAlt(postId, position)
+    override suspend fun suggestAlt(postId: String, position: Int, modelId: String?) = client.suggestAlt(postId, position, modelId)
 
     override suspend fun markReady(id: String, version: Long) = client.markReady(id, version)
     override suspend fun backToDraft(id: String) = client.backToDraft(id)

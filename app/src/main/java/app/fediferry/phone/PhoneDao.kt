@@ -58,6 +58,17 @@ interface PhoneDao {
     @Upsert
     suspend fun upsertPost(post: PhonePost)
 
+    /**
+     * Moves a post on only from the stage it is expected in; the number of
+     * rows changed says whether it was. Undo and the sending worker race for
+     * the same post, and only one of them may win.
+     */
+    @Query("UPDATE phone_posts SET stage = :to, updatedAt = :at WHERE id = :id AND stage IN (:from)")
+    suspend fun moveStage(id: String, from: List<String>, to: String, at: Long = System.currentTimeMillis()): Int
+
+    @Query("UPDATE phone_posts SET stage = 'READY', publicationJson = NULL, version = version + 1, updatedAt = :at WHERE id = :id AND stage IN ('SCHEDULED', 'FAILED')")
+    suspend fun takeBack(id: String, at: Long = System.currentTimeMillis()): Int
+
     @Query("DELETE FROM phone_posts WHERE id = :id")
     suspend fun deletePost(id: String)
 
@@ -75,8 +86,8 @@ interface PhoneDao {
     @Query("SELECT * FROM phone_assets WHERE sha256 = :sha LIMIT 1")
     suspend fun assetBySha(sha: String): PhoneAsset?
 
-    @Query("SELECT * FROM phone_assets")
-    suspend fun assets(): List<PhoneAsset>
+    @Query("SELECT COUNT(*) > 0 FROM phone_assets WHERE path = :path")
+    suspend fun anyAssetAt(path: String): Boolean
 
     @Upsert
     suspend fun upsertAsset(asset: PhoneAsset)

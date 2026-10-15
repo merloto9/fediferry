@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -63,7 +64,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
-import java.util.Locale
 
 /** A post already planned, as the calendar marks it. */
 data class PlannedMark(
@@ -87,7 +87,8 @@ fun PlannedCalendar(
     planned: List<PlannedMark>,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    val locale = Locale.getDefault()
+    // From the configuration, so a language change redraws the month in the new one.
+    val locale = LocalConfiguration.current.locales[0]
     val byDay = remember(planned, zone) { planned.groupBy { Instant.ofEpochMilli(it.at).atZone(zone).toLocalDate() } }
     var month by remember { mutableStateOf(YearMonth.from(selected)) }
     val firstDay = WeekFields.of(locale).firstDayOfWeek

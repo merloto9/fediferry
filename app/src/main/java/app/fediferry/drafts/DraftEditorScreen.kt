@@ -86,6 +86,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.R
+import app.fediferry.ui.ModelPicker
+import app.fediferry.api.CleanupArea
 import app.fediferry.api.CropRect
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostMediaDto
@@ -190,7 +192,8 @@ fun DraftEditorScreen(
                     onAltText = { viewModel.setAltText(media.position, it) },
                     onSuggestAlt = { viewModel.suggestAlt(media.position) },
                     onCrop = { viewModel.crop(media.position, it) },
-                    onCleanUp = { viewModel.cleanUp(media.position, it) },
+                    onCleanUp = { areas, instruction, modelId -> viewModel.cleanUp(media.position, areas, instruction, modelId) },
+                    viewModel = viewModel,
                     onUndo = { viewModel.undoEdit(media.position) },
                     onRemove = { viewModel.removePicture(media.position) },
                 )
@@ -368,16 +371,17 @@ private fun Picture(
     onAltText: (String) -> Unit,
     onSuggestAlt: () -> Unit,
     onCrop: (CropRect) -> Unit,
-    onCleanUp: (String) -> Unit,
+    onCleanUp: (areas: List<CleanupArea>, instruction: String, modelId: String?) -> Unit,
     onUndo: () -> Unit,
     onRemove: () -> Unit,
+    viewModel: DraftEditorViewModel,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val backend = remember { ServiceLocator.backend(context) }
     val url = remember(media.asset.id) { backend?.mediaUrl(media.asset.id) }
     var fullScreen by remember { mutableStateOf(false) }
     var cropping by remember { mutableStateOf(false) }
-    var profiles by remember { mutableStateOf(false) }
+    var cleaning by remember { mutableStateOf(false) }
     val editable = state.editable
     val still = media.asset.mime.startsWith("image/") && media.asset.mime != "image/gif"
 
@@ -386,8 +390,20 @@ private fun Picture(
         CropDialog(
             model = url,
             aspect = media.asset.width?.let { w -> media.asset.height?.takeIf { it > 0 }?.let { h -> w.toFloat() / h } } ?: 1f,
+            // An untouched screenshot starts on the suggested trim; an edited picture on its whole.
+            startOnSuggestion = media.asset.parentId == null,
             onApply = { cropping = false; onCrop(it) },
             onDismiss = { cropping = false },
+        )
+    }
+    if (cleaning && url != null) {
+        CleanupDialog(
+            model = url,
+            pictureKey = media.asset.id,
+            state = state,
+            viewModel = viewModel,
+            onApply = { areas, instruction, modelId -> cleaning = false; onCleanUp(areas, instruction, modelId) },
+            onDismiss = { cleaning = false },
         )
     }
 
@@ -402,16 +418,7 @@ private fun Picture(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (still) {
                 TextButton(onClick = { cropping = true }, enabled = !state.mediaBusy) { Text(stringResource(R.string.editor_trim)) }
-                if (state.profiles.isNotEmpty()) {
-                    Box {
-                        TextButton(onClick = { profiles = true }, enabled = !state.mediaBusy) { Text(stringResource(R.string.editor_clean_up)) }
-                        DropdownMenu(expanded = profiles, onDismissRequest = { profiles = false }) {
-                            state.profiles.forEach { p ->
-                                DropdownMenuItem(text = { Text(p.name) }, onClick = { profiles = false; onCleanUp(p.id) })
-                            }
-                        }
-                    }
-                }
+                TextButton(onClick = { cleaning = true }, enabled = !state.mediaBusy) { Text(stringResource(R.string.editor_clean_up)) }
             }
             if (media.asset.parentId != null) {
                 TextButton(onClick = onUndo, enabled = !state.mediaBusy) { Text(stringResource(R.string.draft_undo_edit)) }
@@ -445,12 +452,26 @@ private fun Picture(
         },
         modifier = Modifier.fillMaxWidth(),
     )
+    // Which model writes the description, for this post; the default is set in Settings.
+    if (editable && state.altModels.size > 1) {
+        ModelPicker(models = state.altModels, current = state.altModel, onPick = viewModel::setAltModel)
+    }
 }
 
-/** Crops on the phone's screen; the server makes the cropped picture from the rectangle. */
+/**
+ * Crops on the phone's screen; the backend makes the cropped picture from the
+ * rectangle. The trim the screenshot detector finds is offered as
+ * "Suggested", and set from the start when [startOnSuggestion].
+ */
 @Composable
-private fun CropDialog(model: Any, aspect: Float, onApply: (CropRect) -> Unit, onDismiss: () -> Unit) {
+private fun CropDialog(model: Any, aspect: Float, startOnSuggestion: Boolean, onApply: (CropRect) -> Unit, onDismiss: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var crop by remember { mutableStateOf(NormalisedCrop()) }
+    var suggestion by remember { mutableStateOf<NormalisedCrop?>(null) }
+    LaunchedEffect(model) {
+        suggestion = PictureTools.load(context, model)?.let { PictureTools.suggestedCrop(it) }
+        if (startOnSuggestion && crop.isWholeImage) suggestion?.let { crop = it }
+    }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxSize().padding(vertical = 16.dp)) {
@@ -469,6 +490,7 @@ private fun CropDialog(model: Any, aspect: Float, onApply: (CropRect) -> Unit, o
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TextButton(onClick = onDismiss) { Text(stringResource(R.string.delete_back)) }
                     TextButton(onClick = { crop = NormalisedCrop() }) { Text(stringResource(R.string.crop_whole_image)) }
+                    suggestion?.let { s -> TextButton(onClick = { crop = s }) { Text(stringResource(R.string.crop_suggested)) } }
                     Button(
                         onClick = { onApply(CropRect(crop.left, crop.top, crop.right, crop.bottom)) },
                         enabled = !crop.isWholeImage,
@@ -526,6 +548,8 @@ private fun ChannelPicker(state: DraftEditorState, enabled: Boolean, onPick: (St
         return
     }
     var open by remember { mutableStateOf(false) }
+    // The new channel writes the text again; a focused field would keep the old one.
+    val focus = LocalFocusManager.current
     Box {
         TextButton(onClick = { open = true }, enabled = enabled) {
             Text(stringResource(R.string.draft_channel, state.channel?.label ?: stringResource(R.string.draft_pick_channel)))
@@ -534,7 +558,7 @@ private fun ChannelPicker(state: DraftEditorState, enabled: Boolean, onPick: (St
             state.channels.forEach { channel ->
                 DropdownMenuItem(
                     text = { Text(channel.title) },
-                    onClick = { open = false; onPick(channel.id) },
+                    onClick = { open = false; focus.clearFocus(); onPick(channel.id) },
                 )
             }
         }
@@ -544,6 +568,8 @@ private fun ChannelPicker(state: DraftEditorState, enabled: Boolean, onPick: (St
 /** The link may name whoever shared it; a warning, so in the warning colours. */
 @Composable
 private fun LinkWarning(enabled: Boolean, onRemoveLink: () -> Unit) {
+    // A focused field would keep the link and put it back with the next keystroke.
+    val focus = LocalFocusManager.current
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -554,7 +580,7 @@ private fun LinkWarning(enabled: Boolean, onRemoveLink: () -> Unit) {
             Text(stringResource(R.string.editor_link_warning_title), style = MaterialTheme.typography.titleSmall)
             Text(stringResource(R.string.editor_link_warning_body), style = MaterialTheme.typography.bodySmall)
             TextButton(
-                onClick = onRemoveLink,
+                onClick = { focus.clearFocus(); onRemoveLink() },
                 enabled = enabled,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
             ) { Text(stringResource(R.string.editor_remove_link), fontWeight = FontWeight.Bold) }

@@ -23,8 +23,6 @@ import app.fediferry.template.inputsOf
 import android.content.Context
 import androidx.annotation.StringRes
 import app.fediferry.R
-import app.fediferry.mastodon.MastodonException
-import app.fediferry.mastodon.ScheduledStatus
 import app.fediferry.data.db.AccountDao
 import app.fediferry.data.db.CleanupDao
 import app.fediferry.data.db.ItemDao
@@ -71,6 +69,8 @@ class ItemRepository(
     private val placeholderKeys: PlaceholderKeyDao? = null,
     /** For the messages that reach the user, in the app's language. */
     private val context: Context? = null,
+    /** Whether the phone's project still has this file as one of its pictures. */
+    private val phoneUses: suspend (String) -> Boolean = { false },
 ) {
 
     /** A message for the user; without a [context] (tests) its resource id stands in. */
@@ -281,47 +281,6 @@ class ItemRepository(
             templateId = template.id,
             accountId = template.accountId ?: accounts.defaultAccount()?.id,
             status = status,
-        )
-        items.upsert(item)
-        item
-    }
-
-    /**
-     * A new draft in the inbox from a post Mastodon holds for later: its text,
-     * hashtags, content warning, visibility, account, and its picture with the
-     * alt text. Mastodon cannot change a scheduled post's text or picture, so
-     * this is how one gets edited. The scheduled post itself is not touched.
-     *
-     * The picture is downloaded from the server; if that fails, so does this,
-     * and the scheduled post is still there to try again. A draft with the
-     * same picture already in the inbox is returned instead of a second one.
-     */
-    suspend fun draftFromScheduled(accountId: String, status: ScheduledStatus): Result<Item> = runCatching {
-        val template = resolveTemplate(null)
-        val attachment = status.media.firstOrNull()
-        val stored = attachment?.url?.let { url ->
-            val bytes = fetcher.fetch(url).getOrElse { throw MastodonException(text(R.string.repo_download_failed, it.message.orEmpty())) }
-            media.store(bytes, ScheduledDraft.mimeTypeOf(attachment)).getOrThrow()
-        }
-        stored?.let { items.draftByMediaHash(it.sha256) }?.let { return@runCatching it }
-
-        // Its hashtags were written out when it was scheduled; they become the
-        // post's own again, ticked, with {tags} where they stood.
-        val (body, tags) = Hashtags.adoptFromText(status.params.text)
-        val item = Item(
-            id = UUID.randomUUID().toString(),
-            mediaPath = stored?.file?.absolutePath,
-            mediaHash = stored?.sha256,
-            mimeType = stored?.mimeType,
-            altText = attachment?.description?.takeIf { it.isNotBlank() },
-            bodyText = body,
-            hashtags = Hashtags.format(tags),
-            addSourceHashtags = false,
-            contentWarning = status.params.spoilerText?.takeIf { it.isNotBlank() },
-            visibility = ScheduledDraft.visibilityOf(status.params.visibility) ?: template.visibility,
-            templateId = template.id,
-            accountId = accountId,
-            status = Status.DRAFT,
         )
         items.upsert(item)
         item
@@ -607,32 +566,16 @@ class ItemRepository(
             .getOrDefault(item)
     }
 
-    /** Puts the untouched screenshot back, undoing every edit made to it. */
-    suspend fun revertEdits(item: Item): Item {
-        val original = item.originalMediaPath ?: return item
-        val restored = item.copy(mediaPath = original, originalMediaPath = null)
-        items.update(restored)
-        return restored
-    }
-
-    suspend fun markQueued(id: String) = items.setStatus(id, Status.QUEUED)
-
-    suspend fun markDraft(id: String) = items.setStatus(id, Status.DRAFT)
-
     /** Deletes a post and its pictures — the uncropped original too — unless another post still has them. */
     suspend fun delete(id: String) {
         val item = items.byId(id) ?: return
         items.delete(id)
-        val hash = item.mediaHash
-        val stillUsed = hash != null && items.anyByMediaHash(hash) != null
-        media.deleteIfUnreferenced(item.mediaPath, stillUsed)
-        item.originalMediaPath?.takeIf { it != item.mediaPath }?.let { media.deleteIfUnreferenced(it, stillUsed) }
+        // By path, not hash: files are named by content, so this item's
+        // original can be another item's picture under a different hash.
+        listOfNotNull(item.mediaPath, item.originalMediaPath).distinct().forEach { path ->
+            media.deleteIfUnreferenced(path, items.anyUsingPath(path) || phoneUses(path))
+        }
     }
-
-    suspend fun mediaBytes(item: Item): ByteArray? = item.mediaPath?.let { media.bytes(it) }
-
-    /** Re-arms anything the process died mid-post. Called once on app start. */
-    suspend fun recoverStalePosting() = items.requeueStalePosting()
 
     /** Deletes every post that went out, with its pictures. Returns how many. */
     suspend fun purgePosted(): Int {
@@ -662,7 +605,5 @@ class ItemRepository(
          */
         const val PAIRING_WINDOW_MS = 10 * 60 * 1000L
 
-        /** A share that carried neither media nor text is not worth persisting. */
-        fun isActionable(payload: SharePayload): Boolean = !payload.isEmpty
     }
 }

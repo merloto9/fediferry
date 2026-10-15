@@ -31,6 +31,8 @@ data class MediaAssetDto(
     val bytes: Long,
     /** The asset this one was made from by an edit, if any. */
     val parentId: String? = null,
+    /** Set on a clean-up whose model failed: why, and that its areas were filled locally instead. */
+    val aiFailure: String? = null,
 )
 
 /** How a share was made on the phone. On the server every share becomes a draft; the mode decides what the phone does next. */

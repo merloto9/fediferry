@@ -69,6 +69,7 @@
         <!-- OAuth 2 redirect back from the Custom Tab. -->
         <activity
             android:name=".mastodon.OAuthRedirectActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|locale|layoutDirection|fontScale"
             android:exported="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"

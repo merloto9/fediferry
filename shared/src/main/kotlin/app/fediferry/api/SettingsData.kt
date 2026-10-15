@@ -21,40 +21,12 @@ package app.fediferry.api
 
 import app.fediferry.data.model.ContentSource
 import app.fediferry.template.PlaceholderSpec
-import app.fediferry.template.TemplateSpec
-import app.fediferry.data.model.Hashtags
 import kotlinx.serialization.Serializable
 
 /**
  * The project settings as the server reads them from the JSON the app syncs.
  * Field names match the app's stored objects; anything unknown is ignored.
  */
-@Serializable
-data class TemplateData(
-    val id: String,
-    val name: String = "",
-    override val body: String = "",
-    val tags: String = "",
-    val visibility: String = "PUBLIC",
-    val contentWarning: String? = null,
-    /** NONE, STATIC or VISION. */
-    val altTextMode: String = "NONE",
-    val staticAltText: String? = null,
-    val accountId: String? = null,
-    val isDefault: Boolean = false,
-    val sortOrder: Int = 0,
-    val excludedSources: Set<ContentSource> = emptySet(),
-    override val addSourceHashtags: Boolean = true,
-) : TemplateSpec {
-    override val hashtagList: List<String> get() = Hashtags.parse(tags)
-    override fun usesSource(source: ContentSource): Boolean = source !in excludedSources
-
-    companion object {
-        /** What a project with no template of its own starts with. */
-        val FALLBACK = TemplateData(id = "fallback", name = "Meme", body = "{tags}\n\nvia {link}")
-    }
-}
-
 @Serializable
 data class PlaceholderKeyData(
     val id: String,
@@ -76,6 +48,9 @@ data class AiModelData(
     val model: String = "",
     val isDefault: Boolean = false,
     val sortOrder: Int = 0,
+    /** How an image model takes its request and mask; see `EditWireFormat` and `MaskPolarity`. */
+    val wireFormat: String = "MULTIPART",
+    val maskPolarity: String = "TRANSPARENT_HOLE",
 )
 
 @Serializable

@@ -87,13 +87,6 @@ object ScreenshotAnalyzer {
         )
     }
 
-    /** Decoded size of a stored image, without decoding it. */
-    suspend fun sizeOf(path: String): Pair<Int, Int>? = withContext(Dispatchers.IO) {
-        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(path, opts)
-        if (opts.outWidth > 0 && opts.outHeight > 0) opts.outWidth to opts.outHeight else null
-    }
-
     /** Applies [crop] to [path], returning the cropped bitmap for the caller to store. */
     suspend fun crop(path: String, crop: ScreenshotCropper.Crop): Bitmap? =
         withContext(Dispatchers.Default) {

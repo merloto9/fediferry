@@ -36,6 +36,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import app.fediferry.api.PostStages
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
@@ -64,6 +65,7 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                     if (postNow(client, draft, delaySeconds = 0) is PostNowOutcome.NotReady) {
                         Notifications.showResult(app, draft, app.getString(R.string.post_now_not_ready_title), app.getString(R.string.post_now_not_ready_text))
                     }
+                    pending.remove(share)
                 }
             } catch (e: ServerException) {
                 // No server, or a passing fault: try again later. Anything else
@@ -91,7 +93,9 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
          */
         suspend fun postNow(client: ServerClient, postId: String, delaySeconds: Int): PostNowOutcome {
             val draft = client.post(postId)
-            try {
+            // A try that got this far before is not repeated.
+            if (draft.stage != PostStages.DRAFT && draft.stage != PostStages.READY) return PostNowOutcome.Queued(postId, 0)
+            if (draft.stage == PostStages.DRAFT) try {
                 client.markReady(postId, draft.version)
             } catch (e: ServerException) {
                 if (e.code == "post.not_ready") return PostNowOutcome.NotReady(postId, e.violations)
@@ -109,14 +113,19 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
          * server makes it a draft, or adds it to the draft it completes; that
          * draft's id comes back. Null when the share had already gone, or its
          * draft has (published or deleted since).
+         *
+         * A "Post now" share is kept until [postNow] went through too, and the
+         * caller lets go of it then: otherwise a failure between the two left
+         * a draft that was never posted, with nothing to try again.
          */
         suspend fun send(context: Context, client: ServerClient, share: PendingShare): String? = sending.withLock {
             val pending = ServiceLocator.pendingShares(context)
             if (!pending.has(share.id)) return null
             try {
                 val file = pending.file(share).takeIf { share.hasFile && it.exists() }?.readBytes()
-                val result = client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt)
-                pending.remove(share)
+                val trim = ServiceLocator.settings(context).current().autoCrop
+                val result = client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt, autoCrop = trim)
+                if (share.mode != IngestModes.POST_NOW || result.post == null) pending.remove(share)
                 DebugLog.d(LOG, "Uploaded a share")
                 result.post?.id
             } catch (e: ServerException) {

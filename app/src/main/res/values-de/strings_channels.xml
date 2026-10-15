@@ -8,14 +8,9 @@
         <item quantity="other">Dieses Telefon ist bei %1$d Konten angemeldet, die dem Projekt noch fehlen.</item>
     </plurals>
     <string name="channels_take_over">Ins Projekt übernehmen</string>
-    <string name="channels_add_title">Mastodon-Konto hinzufügen</string>
     <string name="channels_instance">Instanz</string>
     <string name="channels_sign_in">Verbinden</string>
-    <string name="channels_limits">Zeichen: %1$d · Bilder: %2$d · Bildbeschreibung: %3$d</string>
     <string name="channels_default">Standardkanal</string>
-    <string name="channels_actions">Aktionen für %1$s</string>
-    <string name="channels_make_default">Als Standard</string>
-    <string name="channels_rename">Umbenennen</string>
     <string name="channels_refresh">Grenzen neu lesen</string>
     <string name="channels_remove">Entfernen</string>
     <string name="channels_remove_title">%1$s entfernen?</string>

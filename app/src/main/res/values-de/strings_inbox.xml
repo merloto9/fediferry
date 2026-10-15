@@ -1,44 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Eingang -->
-    <string name="inbox_title">Eingang</string>
-    <plurals name="inbox_selected">
-        <item quantity="one">%1$d ausgewählt</item>
-        <item quantity="other">%1$d ausgewählt</item>
-    </plurals>
-    <string name="inbox_clear_selection">Auswahl aufheben</string>
-    <string name="inbox_schedule_post">Beitrag planen</string>
-    <string name="inbox_move_to_stack">Auf Stapel legen</string>
-    <string name="inbox_delete_selected">Ausgewählte löschen</string>
-    <string name="inbox_new_stack">Neuer Stapel</string>
-    <string name="inbox_rename_stack">Stapel umbenennen</string>
-    <string name="inbox_settings">Einstellungen</string>
-    <string name="inbox_section_new">Neu</string>
-    <string name="inbox_new_empty">Nichts Neues. Geteilte Beiträge landen hier.</string>
-    <string name="inbox_stack_empty">Leer. Wähle Beiträge mit langem Drücken aus und lege sie dann hierher.</string>
-    <string name="inbox_shared_image">Geteiltes Bild</string>
-    <string name="inbox_text_only">Nur Text</string>
-    <string name="inbox_no_text">(kein Text)</string>
-    <string name="inbox_status_draft">Entwurf</string>
-    <string name="inbox_status_queued">Wartet</string>
-    <string name="inbox_status_sending">Wird gesendet</string>
-    <string name="inbox_status_posted">Gepostet</string>
-    <string name="inbox_status_failed">Fehlgeschlagen</string>
-    <string name="inbox_empty_title">Noch nichts gespeichert</string>
-    <string name="inbox_empty_body">Mach einen Screenshot von einem Meme, teile ihn hierher und wähle „%1$s“, „%2$s“ oder „%3$s“.</string>
-    <string name="inbox_section_open">%1$s aufklappen</string>
-    <string name="inbox_section_fold">%1$s einklappen</string>
-    <string name="inbox_stack_actions">Aktionen für Stapel %1$s</string>
-    <string name="inbox_rename">Umbenennen</string>
-    <string name="inbox_delete_stack">Stapel löschen – Beiträge gehen zurück zu Neu</string>
-    <string name="inbox_move_to">Verschieben nach</string>
-    <string name="inbox_no_stack">Auf keinem Stapel</string>
-    <string name="inbox_new_stack_more">Neuer Stapel…</string>
-    <string name="inbox_stack_name">Name</string>
-    <string name="inbox_stack_name_hint">Bereit zum Posten</string>
-    <string name="inbox_create">Erstellen</string>
-    <string name="inbox_cancel">Abbrechen</string>
-
     <!-- Links von Beiträgen aus der Zeit vor 0.17.1 bereinigen -->
     <string name="oldlinks_none_title">Links im Eingang</string>
     <string name="oldlinks_none_body">Kein Beitrag im Eingang hat einen Pinterest- oder Reddit-Link, der zu prüfen wäre.</string>
@@ -107,19 +68,13 @@
 
     <!-- Screenshot zuschneiden -->
     <string name="crop_title">Screenshot zuschneiden</string>
-    <string name="crop_skip">Überspringen</string>
-    <string name="crop_no_image">Kein Bild zum Zuschneiden</string>
-    <string name="crop_hint_suggested">Zieh an den Ecken, falls das danebenliegt. Das Original bleibt erhalten, du kannst es also rückgängig machen.</string>
-    <string name="crop_hint_none">Nichts Offensichtliches zum Zuschneiden – zieh an den Ecken, um von Hand zuzuschneiden.</string>
     <string name="crop_suggested">Vorschlag</string>
     <string name="crop_whole_image">Ganzes Bild</string>
-    <string name="crop_trimming">Wird zugeschnitten…</string>
     <string name="crop_use_this">Übernehmen</string>
     <string name="crop_image_description">Screenshot, der zugeschnitten wird</string>
 
     <!-- Bild bereinigen -->
     <string name="cleanup_title">Bereinigen</string>
-    <string name="cleanup_skip">Überspringen</string>
     <string name="cleanup_no_image">Kein Bild zum Bereinigen</string>
     <string name="cleanup_hint">Zieh über alles, was weg soll. Die Behandlung gilt für den nächsten Rahmen, den du ziehst, so lässt sich Verschiedenes unterschiedlich behandeln.</string>
     <string name="cleanup_clear">Zurücksetzen</string>
@@ -127,10 +82,7 @@
         <item quantity="one">%1$d Bereich</item>
         <item quantity="other">%1$d Bereiche</item>
     </plurals>
-    <string name="cleanup_applying">Wird angewendet…</string>
     <string name="cleanup_use_this">Übernehmen</string>
-    <string name="cleanup_ai_title">Bildmodell entfernt die Bereiche</string>
-    <string name="cleanup_ai_detail">Das Bild und die markierten Bereiche wurden an dein Bildmodell geschickt. Warte darauf, dass es die bereinigte Fassung zurückschickt.</string>
     <string name="cleanup_treatment_fill">Auffüllen</string>
     <string name="cleanup_treatment_crop_away">Wegschneiden</string>
     <string name="cleanup_treatment_blur">Weichzeichnen</string>
@@ -149,5 +101,4 @@
     <string name="cleanup_cancel">Abbrechen</string>
     <string name="cleanup_image_description">Bild, das bereinigt wird</string>
     <string name="cleanup_filled_locally">Stattdessen lokal aufgefüllt – %1$s</string>
-    <string name="cleanup_failed">Bereinigen fehlgeschlagen: %1$s</string>
 </resources>

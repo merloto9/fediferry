@@ -211,7 +211,11 @@ class ShareReceiverActivity : ComponentActivity() {
         val delay = ServiceLocator.settings(context).current().undoDelaySeconds
         val outcomes = runCatching {
             shares.mapNotNull { share ->
-                client?.let { api -> UploadWorker.send(context, api, share)?.let { UploadWorker.postNow(api, it, delay) } }
+                client?.let { api ->
+                    UploadWorker.send(context, api, share)?.let { id ->
+                        UploadWorker.postNow(api, id, delay).also { ServiceLocator.pendingShares(context).remove(share) }
+                    }
+                }
             }
         }.onFailure { DebugLog.w(LOG, "Posting now through the server failed: ${(it as? app.fediferry.client.ServerException)?.code}") }
             .getOrNull()
@@ -270,7 +274,7 @@ class ShareReceiverActivity : ComponentActivity() {
             return
         }
         when (mode) {
-            ShareMode.POST_NOW -> postNowOnPhone(adopted.postId)
+            ShareMode.POST_NOW -> postNowOnPhone(adopted.postId, adopted.duplicate)
             ShareMode.COMPOSE -> openDraft(adopted.postId)
             ShareMode.SAVE_FOR_LATER -> toast(
                 when {
@@ -287,9 +291,14 @@ class ShareReceiverActivity : ComponentActivity() {
     }
 
     /** Post now, on the phone: ready (checked like any other), then out after the undo window. */
-    private suspend fun postNowOnPhone(postId: String) {
+    private suspend fun postNowOnPhone(postId: String, duplicate: Boolean) {
         val phone = ServiceLocator.phone(this)
         val delay = ServiceLocator.settings(this).current().undoDelaySeconds
+        // The same picture again, and its post is past drafting already: it is on its way, or in review.
+        if (duplicate && runCatching { phone.post(postId).stage }.getOrNull() != app.fediferry.api.PostStages.DRAFT) {
+            toast(getString(R.string.receiver_duplicate))
+            return
+        }
         val outcome = runCatching {
             val draft = phone.post(postId)
             phone.markReady(postId, draft.version)

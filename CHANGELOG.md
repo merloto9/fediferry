@@ -8,15 +8,18 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
-## [0.2.1] — 2026-10-15 (NeoFerry)
+## [0.22.0] — 2026-10-15
 
-### Fixed
+The new FediFerry: one app for a project on this phone or on a FediFerry
+server, tried out as NeoFerry (0.0.1–0.2.1) and now replacing the original.
+It installs as an update. Everything carries over: each account becomes a
+channel with the template it used, the inbox moves to Review as it was
+written, and every stack becomes a review folder. Posts that were queued at
+the moment of the update wait in Review to be planned again.
 
-- **Pictures of posts Mastodon holds show with a server too.** In the
-  queue and when opened, such a post showed no picture: the app asked the
-  FediFerry server for a file that is on Mastodon.
-
-## [0.2.0] — 2026-10-15 (NeoFerry)
+From this release on, FediFerry is signed with its own key instead of the
+public debug key; the update takes the new key over in place (Android 9 and
+later).
 
 ### Added
 

@@ -98,7 +98,7 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          DEST="neoferry-${{ steps.version.outputs.name }}.apk"
+          DEST="fediferry-${{ steps.version.outputs.name }}.apk"
           scripts/sign-release.sh app/build/outputs/apk/release/app-release-unsigned.apk "$DEST" | tee signing.txt
           echo "path=$DEST" >> "$GITHUB_OUTPUT"
           echo "sha256=$(sha256sum "$DEST" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
@@ -160,7 +160,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
-          TITLE: NeoFerry ${{ steps.version.outputs.name }}
+          TITLE: FediFerry ${{ steps.version.outputs.name }}
           APK: ${{ steps.apk.outputs.path }}
           VERSION: ${{ steps.version.outputs.name }}
         run: |

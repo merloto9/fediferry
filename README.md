@@ -5,22 +5,19 @@
 Share a meme screenshot into Mastodon with one tap. See [SPEC.md](SPEC.md) for
 the design rationale and [CLAUDE.md](CLAUDE.md) for the constraints.
 
-This repository is the platform version: the Android app plus a
-[server](server/README.md) that takes a project's posts through drafts, review
-and publishing for several phones to work on together. A post is kept only
-until it is out.
+The app works on its own, or with a [server](server/README.md) that takes a
+project's posts through drafts, review and publishing for several phones to
+work on together. A post is kept only until it is out.
 
-> **For now the app ships as NeoFerry** (application ID `app.neoferry`, purple
-> icon), so test users can keep the original FediFerry app (`app.fediferry`)
-> installed next to it. It goes back to the FediFerry name and ID once it
-> replaces the original. The code package stays `app.fediferry` throughout.
+> **Updating from FediFerry 0.21 or earlier** keeps everything: accounts become
+> channels, the inbox moves to Review, and stacks become review folders.
 
 ## Install
 
 Add this repository in [Obtainium](https://github.com/ImranR98/Obtainium):
 
 ```
-https://github.com/merloto9/fediferry-platform
+https://github.com/merloto9/fediferry
 ```
 
 Obtainium reads the latest GitHub release, installs the attached `.apk`, and
@@ -397,14 +394,14 @@ export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 ### Build
 
 ```sh
-./gradlew assembleDebug            # app/build/outputs/apk/dev/neoferry-dev.apk
+./gradlew assembleDebug            # app/build/outputs/apk/dev/fediferry-dev.apk
 ./gradlew testDebugUnitTest
 ./gradlew lintDebug
 ./gradlew assembleRelease          # minified, unsigned (CI signs it, see Release signing)
 ```
 
-The debug build uses application ID `app.neoferry.debug` and OAuth scheme
-`neoferry-debug`, and shows as *NeoFerry Dev*, so it installs alongside a
+The debug build uses application ID `app.fediferry.debug` and OAuth scheme
+`fediferry-debug`, and shows as *FediFerry Dev*, so it installs alongside a
 release build.
 
 The server needs no Android SDK:
@@ -445,14 +442,14 @@ instead of disappearing.
 ## Releasing
 
 ```sh
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.22.0
+git push origin v0.22.0
 ```
 
 `.github/workflows/release.yml` runs the tests, builds a release APK with
 `versionName` taken from the tag and a `versionCode` derived from it
 (`major*10000 + minor*100 + patch`), prints the signing certificate, and
-publishes a GitHub release with `neoferry-<version>.apk` attached. Obtainium
+publishes a GitHub release with `fediferry-<version>.apk` attached. Obtainium
 picks it up from there. `workflow_dispatch` does the same with a hand-entered
 version.
 

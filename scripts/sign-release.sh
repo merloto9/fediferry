@@ -3,7 +3,7 @@
 # Signs an unsigned release APK with the release key, rotated from the pinned
 # debug key that signed every earlier release.
 #
-#     scripts/sign-release.sh app-release-unsigned.apk neoferry-1.2.3.apk
+#     scripts/sign-release.sh app-release-unsigned.apk fediferry-1.2.3.apk
 #
 # Every earlier release — and the original FediFerry app — was signed with
 # keystore/debug.keystore, which is public. Signing with the release key alone

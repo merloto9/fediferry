@@ -38,7 +38,19 @@ object Api {
 
 /** `GET /health` — no token needed, so a client can check the address first. */
 @Serializable
-data class Health(val service: String = "fediferry", val version: String, val api: Int = Api.VERSION)
+data class Health(
+    val service: String = "fediferry",
+    val version: String,
+    val api: Int = Api.VERSION,
+    /** What this server can do beyond its [api] version; an older one lists nothing. */
+    val features: List<String> = emptyList(),
+)
+
+/** Names in [Health.features]. */
+object Features {
+    /** `PUT /import/posts/{id}`: takes a phone's post over in the stage it is in. */
+    const val POST_IMPORT = "post_import"
+}
 
 /** `GET /project` — the project the token belongs to. */
 @Serializable

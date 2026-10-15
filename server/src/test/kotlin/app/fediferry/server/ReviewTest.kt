@@ -283,4 +283,45 @@ class ReviewTest {
         val missing = client.import(token, "import-3", PostImport(stage = PostStages.DRAFT, media = listOf(PostMediaImport("nope")), createdAt = 1))
         assertEquals(HttpStatusCode.NotFound, missing.status)
     }
+
+    @Test
+    fun `a copy in review takes the place of the bare draft an earlier copy made`() = test { client, token ->
+        // What 0.22.0 made of a phone's post: a draft through intake, under the post's old share id.
+        val picture = png(77)
+        val earlier = client.submitFormWithBinaryData(
+            url = "/api/v1/ingest/import-p1",
+            formData = formData {
+                append("file", picture, Headers.build {
+                    append(HttpHeaders.ContentType, "image/png"); append(HttpHeaders.ContentDisposition, "filename=\"x.png\"")
+                })
+            },
+        ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().post!!
+        val asset = earlier.media.single().asset
+
+        val copy = client.import(
+            token, "mirror-p1",
+            PostImport(stage = PostStages.READY, body = "Look", media = listOf(PostMediaImport(asset.id)), finalText = "Look", createdAt = 1, replaces = "import-p1"),
+        ).body<PostDto>()
+        assertEquals(PostStages.READY, copy.stage)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/posts/${earlier.id}") { bearerAuth(token) }.status)
+        assertTrue(client.get("/api/v1/posts?stage=DRAFT") { bearerAuth(token) }.body<List<PostDto>>().isEmpty())
+        // The picture both had is still there.
+        assertEquals(HttpStatusCode.OK, client.get("/api/v1/media/${asset.id}") { bearerAuth(token) }.status)
+
+        // A bare draft that went on to review in the meantime is kept, and is the copy.
+        val channel = client.channel(token)
+        val shared = client.submitFormWithBinaryData(
+            url = "/api/v1/ingest/import-p2",
+            formData = formData {
+                append("file", png(78), Headers.build {
+                    append(HttpHeaders.ContentType, "image/png"); append(HttpHeaders.ContentDisposition, "filename=\"x.png\"")
+                })
+            },
+        ) { method = HttpMethod.Put; bearerAuth(token); header("X-Device-Id", "pixel") }.body<IngestResult>().post!!
+        val onChannel = client.edit(token, shared, PostPatch(channelId = channel.id))
+        val reviewed = client.ready(token, onChannel).body<PostDto>()
+        val p2 = client.import(token, "mirror-p2", PostImport(stage = PostStages.READY, body = "x", createdAt = 1, replaces = "import-p2")).body<PostDto>()
+        assertEquals(reviewed.id, p2.id)
+        assertEquals(PostStages.READY, p2.stage)
+    }
 }

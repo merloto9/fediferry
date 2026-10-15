@@ -121,6 +121,12 @@ data class PostImport(
     val reviewFolderId: String? = null,
     val labels: List<String> = emptyList(),
     val createdAt: Long,
+    /**
+     * The share id an earlier copy of this post went up under, as a bare
+     * draft. While that draft is untouched by review it gives way to this
+     * post; once it moved on, it is the post and nothing new is made.
+     */
+    val replaces: String? = null,
 )
 
 @Serializable

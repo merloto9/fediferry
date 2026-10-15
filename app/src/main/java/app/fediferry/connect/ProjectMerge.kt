@@ -23,6 +23,8 @@ import android.content.Context
 import app.fediferry.api.ChannelDto
 import app.fediferry.api.ChannelInput
 import app.fediferry.api.ChannelPatch
+import app.fediferry.api.Features
+import app.fediferry.api.Health
 import app.fediferry.api.PostSettings
 import app.fediferry.api.PostStages
 import app.fediferry.api.ScheduleInput
@@ -87,6 +89,8 @@ data class JoinPlan(
     val conflicts: List<MergeConflict> = emptyList(),
     /** False for a phone with nothing of its own yet: it joins without a warning. */
     val phoneHasOwn: Boolean = false,
+    /** Whether the server takes posts over in the stage they are in; an older one does not, and they wait here. */
+    val serverKeepsStages: Boolean = true,
 )
 
 /**
@@ -106,7 +110,7 @@ class ProjectMerge(
 ) {
 
     /** What joining [client]'s project would bring over, and where the user has to choose. Changes nothing. */
-    suspend fun plan(client: ServerClient): JoinPlan {
+    suspend fun plan(client: ServerClient, health: Health): JoinPlan {
         val settings = sync.preview(client)
         val serverChannels = client.channels()
         val pairs = pairs(serverChannels)
@@ -128,6 +132,7 @@ class ProjectMerge(
             fromServer = settings.fromServer.values.sum() - (settings.fromServer[SettingsKinds.HASHTAG_USAGE] ?: 0),
             conflicts = conflicts,
             phoneHasOwn = posts.isNotEmpty() || pairs.isNotEmpty() || settings.phoneHasOwn,
+            serverKeepsStages = Features.POST_IMPORT in health.features,
         )
     }
 

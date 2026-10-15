@@ -86,4 +86,6 @@
     <string name="join_area_channel">Kanal</string>
     <string name="join_ai_alt_text">Alt-Text-Modell</string>
     <string name="join_ai_image_edit">Bildbearbeitungsmodell</string>
+    <string name="server_error_too_old">Der Server ist älter als diese App und kann Beiträge nicht in ihrer Phase übernehmen. Sie bleiben auf diesem Telefon: aktualisiere den Server und kopiere sie dann.</string>
+    <string name="join_server_too_old">Dieser Server ist älter als diese App. Beiträge lassen sich erst kopieren, wenn er aktualisiert ist; bis dahin bleiben sie auf diesem Telefon. Einstellungen und Kanäle werden jetzt kopiert.</string>
 </resources>

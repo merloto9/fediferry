@@ -8,6 +8,19 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.22.2] — 2026-10-15
+
+### Fixed
+
+- Posts copied into a server project keep their stage even when they had
+  been copied before as bare drafts (with "Copy them as drafts" in 0.22.0):
+  the old draft is replaced by the copy in review. A draft the project has
+  moved on since is kept instead of making a second post.
+- A server older than the app no longer turns the phone's posts into bare
+  drafts. Connecting says so, the posts wait on the phone, and "Copy them
+  over" brings them across in their stage once the server is updated. The
+  server now reports this ability in its health check.
+
 ## [0.22.1] — 2026-10-15
 
 ### Changed

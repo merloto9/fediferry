@@ -114,6 +114,9 @@ fun ServerSection(viewModel: ConnectViewModel = viewModel()) {
         state.justImported?.let {
             Text(pluralStringResource(R.plurals.server_imported, it, it), style = MaterialTheme.typography.bodySmall)
         }
+        state.error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
         OutlinedButton(onClick = viewModel::disconnect) { Text(stringResource(R.string.server_disconnect)) }
         return
     }
@@ -192,6 +195,9 @@ private fun JoinWarning(pending: PendingJoin, busy: Boolean, error: String?, vie
             if (lines.isNotEmpty()) {
                 Text(stringResource(R.string.join_copies), style = MaterialTheme.typography.titleSmall)
                 lines.forEach { (res, n) -> Text("• " + pluralStringResource(res, n, n), style = MaterialTheme.typography.bodySmall) }
+            }
+            if (!plan.serverKeepsStages && plan.drafts + plan.inReview + plan.planned > 0) {
+                Text(stringResource(R.string.join_server_too_old), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             if (plan.fromServer > 0) {
                 Text(pluralStringResource(R.plurals.join_from_server, plan.fromServer, plan.fromServer), style = MaterialTheme.typography.bodySmall)

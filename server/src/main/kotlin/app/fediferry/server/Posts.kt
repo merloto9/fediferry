@@ -194,6 +194,12 @@ class Posts(
      */
     fun importPost(projectId: String, deviceId: String?, importId: String, input: PostImport): PostDto {
         db.ingestRecordQueries.byShare(projectId, importId).executeAsOneOrNull()?.let { return get(projectId, it) }
+        val earlier = input.replaces?.let { db.ingestRecordQueries.byShare(projectId, it).executeAsOneOrNull() }
+            ?.let { db.postQueries.byId(projectId, it).executeAsOneOrNull() }
+        if (earlier != null && earlier.stage != PostStages.DRAFT) {
+            db.ingestRecordQueries.insert(projectId, importId, earlier.id, clock())
+            return get(projectId, earlier.id)
+        }
         val assets = input.media.map { m -> (media.byId(projectId, m.assetId) ?: throw ApiException.notFound("media")) to m }
         val channelId = input.channelId?.takeIf { db.channelQueries.byId(projectId, it).executeAsOneOrNull() != null }
         val folderId = input.reviewFolderId?.takeIf { db.reviewFolderQueries.byId(projectId, it).executeAsOneOrNull() != null }
@@ -223,6 +229,8 @@ class Posts(
             }
             db.ingestRecordQueries.insert(projectId, importId, id, now)
         }
+        // Gone only now, so a picture both share is still in use and stays.
+        earlier?.let { purge(projectId, it.id) }
         return get(projectId, id)
     }
 

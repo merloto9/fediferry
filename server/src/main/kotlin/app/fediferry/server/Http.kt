@@ -42,6 +42,7 @@ import app.fediferry.api.ApiErrorBody
 import app.fediferry.api.DeviceInfo
 import app.fediferry.api.DeviceRegistration
 import app.fediferry.api.ErrorCodes
+import app.fediferry.api.Features
 import app.fediferry.api.Health
 import app.fediferry.api.ProjectInfo
 import io.ktor.http.HttpStatusCode
@@ -176,7 +177,7 @@ fun Application.fediferry(services: Services) {
 
     routing {
         route(Api.PREFIX) {
-            get("/health") { call.respond(Health(version = services.version)) }
+            get("/health") { call.respond(Health(version = services.version, features = listOf(Features.POST_IMPORT))) }
 
             authenticate("project") {
                 get("/project") {

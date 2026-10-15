@@ -35,7 +35,6 @@ import app.fediferry.phone.PhoneBackend
 import app.fediferry.phone.PhonePost
 import app.fediferry.phone.PhonePublication
 import app.fediferry.upload.PendingShares
-import app.fediferry.upload.UploadWorker
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -71,13 +70,15 @@ class LocalImporter(
     /** Posts on this phone that are not in the project yet. */
     suspend fun waiting(projectId: String): Int {
         val done = imported(projectId)
-        return posts().count { importId(it.id) !in done && !pending.has(importId(it.id)) }
+        return posts().count { mirrorId(it.id) !in done }
     }
 
     /**
      * Copies every post not copied yet; returns how many arrived. [channels]
      * names, for each of the phone's channels, the project's channel it
-     * became. A post that fails is left for the next try.
+     * became. A post that fails is left for the next try. A server too old
+     * to take posts over as they are stops it with [SERVER_TOO_OLD]: the
+     * posts wait on the phone rather than arrive as bare drafts.
      */
     suspend fun importAll(client: ServerClient, projectId: String, channels: Map<String, String> = emptyMap()): Int {
         takeOutOfQueue(projectId)
@@ -85,31 +86,25 @@ class LocalImporter(
         val done = imported(projectId).toMutableSet()
         val folders = folderMap(client)
         var copied = 0
-        try {
-            for (post in posts()) {
-                val id = importId(post.id)
-                if (id in done || pending.has(id)) continue
-                val ok = try {
-                    copy(client, post, id, channels[post.channelId] ?: post.channelId, folders, planned[post.id])
-                } catch (e: ServerException) {
-                    // An older server without imports: the picture and link go up as a draft, as they used to.
-                    if (e.status == 404 && e.args["what"] == null) {
-                        fallback(post, id)
-                        true
-                    } else {
-                        DebugLog.w(LOG, "Copying a post failed: ${e.code}")
-                        if (e.unreachable) throw e
-                        false
-                    }
-                }
-                if (ok) {
-                    done += id
-                    copied++
-                    marker(projectId).apply { parentFile?.mkdirs() }.writeText(done.joinToString("\n"))
-                }
+        for (post in posts()) {
+            val id = mirrorId(post.id)
+            if (id in done) continue
+            // Copied before as a bare draft and still waiting to go up: this copy takes its place.
+            pending.all.value.firstOrNull { it.id == draftId(post.id) }?.let(pending::remove)
+            val ok = try {
+                copy(client, post, id, channels[post.channelId] ?: post.channelId, folders, planned[post.id])
+            } catch (e: ServerException) {
+                // No such call: a server older than this app.
+                if (e.status == 404 && e.args["what"] == null) throw ServerException(404, SERVER_TOO_OLD, cause = e)
+                DebugLog.w(LOG, "Copying a post failed: ${e.code}")
+                if (e.unreachable) throw e
+                false
             }
-        } finally {
-            if (pending.all.value.isNotEmpty()) UploadWorker.enqueue(context)
+            if (ok) {
+                done += id
+                copied++
+                marker(projectId).apply { parentFile?.mkdirs() }.writeText(done.joinToString("\n"))
+            }
         }
         return copied
     }
@@ -167,6 +162,7 @@ class LocalImporter(
                 reviewFolderId = post.reviewFolderId?.let(folders::get),
                 labels = runCatching { PhoneBackend.json.decodeFromString(LABELS, post.labelsJson) }.getOrDefault(emptyList()),
                 createdAt = post.createdAt,
+                replaces = draftId(post.id),
             ),
         )
         // Planned on the phone: planned on the server for the same time. Should
@@ -192,24 +188,23 @@ class LocalImporter(
         }.toMap()
     }
 
-    private suspend fun fallback(post: PhonePost, id: String) {
-        val picture = runCatching { PhoneBackend.json.decodeFromString(PhoneBackend.MEDIA, post.mediaJson) }.getOrNull()
-            ?.firstOrNull()?.let { db.phone().asset(it.assetId) }
-        val file = picture?.path?.let(::File)?.takeIf { it.exists() }
-        if (file == null && post.sourceUrl == null) return
-        pending.addFile(id, post.sourceUrl, file, picture?.mime, post.createdAt)
-    }
+    companion object {
+        /** The code [importAll] stops with on a server that cannot take posts over as they are. */
+        const val SERVER_TOO_OLD = "client.server_too_old"
 
-    private companion object {
-        const val LOG = "import"
-        val STAGES = listOf(PostStages.DRAFT, PostStages.READY, PostStages.FAILED, PostStages.SCHEDULED)
-        val LABELS = ListSerializer(String.serializer())
-        val FIELDS = MapSerializer(String.serializer(), String.serializer())
-        val PLANNED = MapSerializer(String.serializer(), Long.serializer())
+        private const val LOG = "import"
+        private val STAGES = listOf(PostStages.DRAFT, PostStages.READY, PostStages.FAILED, PostStages.SCHEDULED)
+        private val LABELS = ListSerializer(String.serializer())
+        private val FIELDS = MapSerializer(String.serializer(), String.serializer())
+        private val PLANNED = MapSerializer(String.serializer(), Long.serializer())
 
         /** A planned time that has passed by the time it arrives goes this long after. */
-        const val PLAN_LEAD_MS = 2 * 60 * 1000L
+        private const val PLAN_LEAD_MS = 2 * 60 * 1000L
 
-        fun importId(postId: String) = "import-$postId"
+        /** The id a post is copied over under, as it is. */
+        private fun mirrorId(postId: String) = "mirror-$postId"
+
+        /** The id earlier versions copied a post under, as a bare draft; the server swaps that draft for the copy. */
+        private fun draftId(postId: String) = "import-$postId"
     }
 }

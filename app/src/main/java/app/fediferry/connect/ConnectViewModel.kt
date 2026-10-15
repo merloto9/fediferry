@@ -90,11 +90,16 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
     /** Copies this phone's posts not in the project yet: a try again after an interrupted join. */
     fun importPosts() = appScope.launch {
         val connection = connections.current() ?: return@launch
-        _state.update { it.copy(joining = true) }
-        val copied = runCatching {
+        _state.update { it.copy(joining = true, error = null) }
+        val result = runCatching {
             merge.copyPostsAndSchedules(connections.client(connection), connection.projectId, merge.channels(connection.projectId))
-        }.getOrDefault(0)
-        _state.update { it.copy(joining = false, waitingToImport = importer.waiting(connection.projectId), justImported = copied) }
+        }
+        _state.update {
+            it.copy(
+                joining = false, waitingToImport = importer.waiting(connection.projectId),
+                justImported = result.getOrNull(), error = result.exceptionOrNull()?.let(::describe),
+            )
+        }
     }
 
     fun connect(address: String, token: String) = viewModelScope.launch {
@@ -105,10 +110,10 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
         val result = runCatching {
             if (cleanAddress == null) throw ServerException(0, "client.bad_address")
             val client = connections.client(cleanAddress, cleanToken)
-            client.health()
+            val health = client.health()
             val project = client.project()
             val connection = ServerConnection(cleanAddress, project.id, project.name, cleanToken, connections.deviceId)
-            connection to merge.plan(client)
+            connection to merge.plan(client, health)
         }
         result.onSuccess { (connection, plan) ->
             if (plan.phoneHasOwn) {
@@ -159,8 +164,8 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
         }
         result.onSuccess { channels ->
             if (channels != null) {
-                val copied = runCatching { merge.copyPostsAndSchedules(client, connection.projectId, channels) }.getOrDefault(0)
-                _state.update { it.copy(joining = false, justImported = copied) }
+                val copied = runCatching { merge.copyPostsAndSchedules(client, connection.projectId, channels) }
+                _state.update { it.copy(joining = false, justImported = copied.getOrNull(), error = copied.exceptionOrNull()?.let(::describe)) }
             }
             refreshImport()
         }.onFailure { e ->
@@ -179,6 +184,7 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
         val server = e as? ServerException ?: return app.getString(R.string.server_error_unknown, e.message.orEmpty())
         return when {
             server.code == "client.bad_address" -> app.getString(R.string.server_error_address)
+            server.code == LocalImporter.SERVER_TOO_OLD -> app.getString(R.string.server_error_too_old)
             server.unreachable && lastAddress?.let { LocalNetwork.isLocal(it) && LocalNetwork.exists(app) && !LocalNetwork.granted(app) } == true ->
                 app.getString(R.string.server_error_local_network)
             server.unreachable -> app.getString(R.string.server_error_unreachable, server.args["reason"].orEmpty())

@@ -86,4 +86,6 @@
     <string name="join_area_channel">Channel</string>
     <string name="join_ai_alt_text">alt-text model</string>
     <string name="join_ai_image_edit">image-edit model</string>
+    <string name="server_error_too_old">The server is older than this app and cannot take posts over in the stage they are in. They wait on this phone: update the server, then copy them over.</string>
+    <string name="join_server_too_old">This server is older than this app. Posts can only be copied once it is updated; until then they wait on this phone. Settings and channels are copied now.</string>
 </resources>

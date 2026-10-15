@@ -85,14 +85,22 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             .onFailure { _messages.tryEmit(code(it)) }
     }
 
-    /** Moves this phone's own Mastodon accounts into the project, tokens and all; no new sign-in. */
+    /**
+     * Moves this phone's own Mastodon accounts into the project, tokens and
+     * all; no new sign-in. The token then lives on the server alone: the
+     * phone forgets its copy, and hands over its app so the server can revoke
+     * the token when the channel goes.
+     */
     fun takeOverAccounts() = viewModelScope.launch {
         val client = connections.current()?.let(connections::client) ?: return@launch
+        val auth = ServiceLocator.auth(getApplication())
         val known = _state.value.channels.map { it.id }.toSet()
         for (account in db.accounts().all()) {
             if (account.id in known) continue
             val token = tokens.get(account.id) ?: continue
-            runCatching { client.importMastodon(account.instance, token, account.id) }
+            val app = auth.registration(account.instance)
+            runCatching { client.importMastodon(account.instance, token, account.id, app?.clientId, app?.clientSecret) }
+                .onSuccess { auth.forget(account.id) }
                 .onFailure { _messages.tryEmit(code(it)) }
         }
         refresh()

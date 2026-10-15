@@ -33,6 +33,7 @@ import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.channel.PostValidator
 import app.fediferry.api.ErrorCodes
+import app.fediferry.api.SecretIds
 import app.fediferry.api.SettingsKinds
 import app.fediferry.api.PostSettings
 import app.fediferry.data.model.ContentSource
@@ -418,7 +419,7 @@ class Posts(
         val asset = media.byId(projectId, m.asset_id) ?: throw ApiException.notFound("media")
         // The model picked for this post, else the project's default.
         val model = pickModel(settings, projectId, "ALT_TEXT", modelId) ?: throw ApiException(HttpStatusCode.Conflict, "alt.no_model")
-        val key = secrets.get(projectId, "ai-model:${model.id}").orEmpty()
+        val key = secrets.get(projectId, SecretIds.aiModel(model.id)).orEmpty()
         val bytes = media.file(projectId, asset.sha256).readBytes()
         val text = VisionAltTextProvider(http, model.endpoint, model.model, key, VISION_PROMPT).describe(bytes, asset.mime)
             .getOrElse { throw ApiException(HttpStatusCode.BadGateway, "alt.failed", mapOf("reason" to (it.message ?: it.javaClass.simpleName))) }

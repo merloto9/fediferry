@@ -67,44 +67,50 @@ jobs:
       - name: Unit tests
         run: ./gradlew testDebugUnitTest
 
-      # Only takes effect once the RELEASE_KEYSTORE_BASE64 secret exists.
-      # Without it the build falls back to the repo's pinned debug key, which is
-      # stable across runs and therefore still updatable in place.
-      - name: Decode release keystore
-        if: env.RELEASE_KEYSTORE_BASE64 != ''
+      # A release is never signed with the public debug key alone: anyone could
+      # sign an "update" with it. Without the release key there is no release.
+      - name: Require the release key
         run: |
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > keystore/release.jks
-          echo "RELEASE_KEYSTORE_PATH=keystore/release.jks" >> "$GITHUB_ENV"
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "::error::RELEASE_KEYSTORE_BASE64 is not set. See README, \"Release signing\"."
+            exit 1
+          fi
+
+      # RELEASE_KEYSTORE, not RELEASE_KEYSTORE_PATH: Gradle builds the APK
+      # unsigned, and sign-release.sh signs it with the key rotated from the
+      # debug key, which Gradle cannot do.
+      - name: Decode release keystore
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "RELEASE_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
       - name: Build release APK
-        env:
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           ./gradlew assembleRelease \
             -Pfediferry.versionName=${{ steps.version.outputs.name }} \
             -Pfediferry.versionCode=${{ steps.version.outputs.code }}
 
-      - name: Stage the APK
+      - name: Sign the APK
         id: apk
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          SRC=app/build/outputs/apk/release/app-release.apk
           DEST="neoferry-${{ steps.version.outputs.name }}.apk"
-          cp "$SRC" "$DEST"
+          scripts/sign-release.sh app/build/outputs/apk/release/app-release-unsigned.apk "$DEST" | tee signing.txt
           echo "path=$DEST" >> "$GITHUB_OUTPUT"
           echo "sha256=$(sha256sum "$DEST" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-      - name: Verify the signature is unchanged
+      # The debug key's v2 signature keeps Android 8 updating; the v3 one with
+      # the lineage is what makes Android 9+ move to the release key.
+      - name: Verify the rotation
         run: |
           set -euo pipefail
-          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          "$BUILD_TOOLS/apksigner" verify --print-certs \
-            "${{ steps.apk.outputs.path }}"
-          echo
-          echo "If this certificate differs from the previous release, Obtainium"
-          echo "cannot install the update in place — users must uninstall first."
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" signing.txt
+          grep -q "Verified using v3 scheme (APK Signature Scheme v3): true" signing.txt
+          rm -f "$RELEASE_KEYSTORE"
 
       - name: Changelog
         id: changelog

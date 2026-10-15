@@ -28,6 +28,7 @@ import app.fediferry.data.TokenStore
 import app.fediferry.data.db.AccountDao
 import app.fediferry.data.model.Account
 import app.fediferry.data.model.InstanceApp
+import app.fediferry.log.DebugLog
 import java.security.SecureRandom
 
 /**
@@ -133,10 +134,33 @@ class AuthManager(
         pending = null
     }
 
+    /**
+     * Signs [accountId] out: its token is revoked at the instance, so a copy
+     * of it elsewhere stops working too, then forgotten here. Revoking is best
+     * effort — an unreachable instance does not keep the account here.
+     */
     suspend fun disconnect(accountId: String) {
+        val account = accounts.byId(accountId)
+        val token = tokens.get(accountId)
+        val app = account?.let { accounts.appFor(it.instance) }
+        if (account != null && token != null && app != null) {
+            runCatching { client.revoke(account.instance, app.clientId, app.clientSecret, token) }
+                .onFailure { DebugLog.w(LOG, "Revoking a token failed: ${it.javaClass.simpleName}") }
+        }
+        forget(accountId)
+    }
+
+    /**
+     * Forgets [accountId] on this phone without revoking its token: for an
+     * account whose token now lives somewhere else, on the server.
+     */
+    suspend fun forget(accountId: String) {
         accounts.delete(accountId)
         tokens.remove(accountId)
     }
+
+    /** The app this phone registered with [instance], for handing on with a token so it can be revoked later. */
+    suspend fun registration(instance: String): InstanceApp? = accounts.appFor(normalise(instance))
 
     private suspend fun registerApp(instance: String): InstanceApp {
         val registration = client.registerApp(
@@ -170,6 +194,7 @@ class AuthManager(
         const val SCOPES = "write:statuses write:media read:accounts read:statuses"
         const val CLIENT_NAME = "FediFerry"
         const val WEBSITE = "https://github.com/merloto9/fediferry"
+        private const val LOG = "auth"
         private const val KEY_INSTANCE = "instance"
         private const val KEY_STATE = "state"
         private const val KEY_CHANNEL = "channel"

@@ -499,6 +499,10 @@ class PhoneBackend(private val context: Context) : PostBackend {
                 limitsJson = json.encodeToString(PlatformLimits.serializer(), limits),
             ),
         )
+        // The account this channel had before is signed out, unless another channel still posts as it.
+        target.accountId?.takeIf { it != account.id }?.let { previous ->
+            if (dao.channels().none { it.accountId == previous }) ServiceLocator.auth(context).disconnect(previous)
+        }
         return channelDto(dao.channel(target.id)!!)
     }
 

@@ -224,8 +224,14 @@ class ServerClient(
     suspend fun completeMastodon(code: String, state: String): ChannelDto =
         post("channels/mastodon/complete", json.encodeToString(CompleteRequest(code, state)))
 
-    suspend fun importMastodon(instance: String, accessToken: String, channelId: String?): ChannelDto =
-        post("channels/mastodon/import", json.encodeToString(ImportAccountRequest(instance, accessToken, channelId)))
+    suspend fun importMastodon(
+        instance: String,
+        accessToken: String,
+        channelId: String?,
+        clientId: String? = null,
+        clientSecret: String? = null,
+    ): ChannelDto =
+        post("channels/mastodon/import", json.encodeToString(ImportAccountRequest(instance, accessToken, channelId, clientId, clientSecret)))
 
     // --- project settings ------------------------------------------------------
 
@@ -238,6 +244,8 @@ class ServerClient(
 
     suspend fun putSecret(id: String, value: String) =
         sendNoContentWithBody("secrets/${encode(id)}", "PUT", json.encodeToString(SecretInput(value)))
+
+    suspend fun deleteSecret(id: String) = sendNoContent("secrets/${encode(id)}", "DELETE")
 
     /** An id as one path segment: hashtags and account ids may hold characters a path cannot. */
     private fun encode(id: String): String = java.net.URLEncoder.encode(id, "UTF-8").replace("+", "%20")

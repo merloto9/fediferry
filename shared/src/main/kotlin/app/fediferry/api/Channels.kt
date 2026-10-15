@@ -165,4 +165,11 @@ data class CompleteRequest(val code: String, val state: String)
 
 /** An account this phone signed in to before, moved over with its token, no new sign-in. */
 @Serializable
-data class ImportAccountRequest(val instance: String, val accessToken: String, val channelId: String? = null)
+data class ImportAccountRequest(
+    val instance: String,
+    val accessToken: String,
+    val channelId: String? = null,
+    /** The app the token was given to, so the server can revoke it when the channel goes. */
+    val clientId: String? = null,
+    val clientSecret: String? = null,
+)

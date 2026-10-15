@@ -36,6 +36,7 @@ import com.github.ajalt.clikt.parameters.types.int
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import java.io.File
+import kotlinx.coroutines.runBlocking
 import java.time.Instant
 
 /** The version the jar was built as; "dev" when run from the build. */
@@ -134,6 +135,8 @@ private class ProjectDelete : DataCommand("delete") {
             echo("Delete \"${project.name}\" with all its posts, media and channels? Type the name to confirm:")
             if (readlnOrNull()?.trim() != project.name) throw UsageError("Not deleted.")
         }
+        // Its channels' tokens stop working at their instances before they are forgotten here.
+        runBlocking { Services(storage, File(data)).channels.revokeAll(project.id) }
         projects.delete(project)
         MediaStore(storage, File(data)).deleteProject(project.id)
         echo("Deleted \"${project.name}\".")

@@ -59,9 +59,9 @@ android {
             keyPassword = "android"
         }
 
-        // Used only when a real release key is supplied (locally via
-        // ~/.gradle/gradle.properties, in CI via the RELEASE_KEYSTORE_* secrets).
-        // Until then releases are signed with the pinned debug key above.
+        // Used only when a release key is supplied locally (via
+        // ~/.gradle/gradle.properties). CI builds the release unsigned and signs
+        // it with scripts/sign-release.sh, which also rotates from the debug key.
         if (releaseKeystore != null) {
             create("release") {
                 storeFile = releaseKeystore
@@ -86,9 +86,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.getByName(
-                if (releaseKeystore != null) "release" else "debug",
-            )
+            // Never the public debug key: without a release key the APK stays
+            // unsigned. CI signs it with scripts/sign-release.sh, which rotates
+            // from the debug key so earlier installs update in place.
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 

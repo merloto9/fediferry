@@ -125,13 +125,15 @@ class Channels(
         db.oauthPendingQueries.delete(request.state)
         val (clientId, clientSecret) = registration(pending.instance, pending.redirect_uri)
         val token = remote { mastodon.exchangeCode(pending.instance, clientId, clientSecret, pending.redirect_uri, request.code, SCOPES) }
-        return connect(projectId, pending.instance, token, channelId = pending.channel_id, newId = null)
+        return connect(projectId, pending.instance, token, TokenClient(clientId, clientSecret), channelId = pending.channel_id, newId = null)
     }
 
     /** Takes over an account a phone was signed in to, with its token, after checking it works. */
     suspend fun import(projectId: String, request: ImportAccountRequest): ChannelDto {
         val instance = MastodonAccounts.normaliseInstance(request.instance)
-        return connect(projectId, instance, request.accessToken.trim(), channelId = null, newId = request.channelId)
+        // Without the phone's app the token cannot be revoked from here; it still works.
+        val client = request.clientId?.takeIf { it.isNotBlank() }?.let { id -> request.clientSecret?.takeIf { it.isNotBlank() }?.let { TokenClient(id, it) } }
+        return connect(projectId, instance, request.accessToken.trim(), client, channelId = null, newId = request.channelId)
     }
 
     /**
@@ -156,7 +158,7 @@ class Channels(
      * else the channel that has it already, else a new one — named [newId]
      * when a phone's account moves over, so its old id keeps working.
      */
-    private suspend fun connect(projectId: String, instance: String, token: String, channelId: String?, newId: String?): ChannelDto {
+    private suspend fun connect(projectId: String, instance: String, token: String, client: TokenClient?, channelId: String?, newId: String?): ChannelDto {
         val me = remote { mastodon.verifyCredentials(instance, token) }
         val now = clock()
         val limits = runCatching { mastodon.limits(instance, now) }
@@ -168,6 +170,7 @@ class Channels(
         }
         val id = channelId ?: holder?.id ?: newId?.takeIf { it.isNotBlank() } ?: "$instance/${me.acct}"
         val shown = me.displayName.ifBlank { me.acct }
+        val replaced = signedIn(projectId, id)
         feed.change(projectId, "channel", id) {
             if (db.channelQueries.byId(projectId, id).executeAsOneOrNull() == null) {
                 val count = db.channelQueries.count(projectId).executeAsOne()
@@ -179,7 +182,10 @@ class Channels(
                 db.channelQueries.setAccount(Platform.MASTODON.name, instance, me.id, me.acct, shown, me.avatar, json.encodeToString(limits), now, projectId, id)
             }
             secrets.put(projectId, tokenId(id), token)
+            if (client != null) secrets.put(projectId, clientId(id), json.encodeToString(client)) else secrets.delete(projectId, clientId(id))
         }
+        // The token this channel had before stops working, unless it is the same one again.
+        replaced?.takeIf { it.token != token }?.let { revokeQuietly(it) }
         return get(projectId, id)
     }
 
@@ -207,15 +213,47 @@ class Channels(
         return get(projectId, id)
     }
 
-    /** Removes a channel and forgets its token; the account itself is untouched. */
-    fun delete(projectId: String, id: String) {
+    /** Removes a channel and revokes its token at the instance; the account itself is untouched. */
+    suspend fun delete(projectId: String, id: String) {
         db.channelQueries.byId(projectId, id).executeAsOneOrNull() ?: throw ApiException.notFound("channel")
+        val signedIn = signedIn(projectId, id)
         feed.change(projectId, "channel", id, deleted = true) {
             db.channelQueries.delete(projectId, id)
             db.scheduleQueries.deleteForChannel(projectId, id)
             secrets.delete(projectId, tokenId(id))
+            secrets.delete(projectId, clientId(id))
         }
+        signedIn?.let { revokeQuietly(it) }
     }
+
+    /** Revokes every channel's token, for a project about to be deleted. */
+    suspend fun revokeAll(projectId: String) {
+        db.channelQueries.all(projectId).executeAsList().forEach { channel -> signedIn(projectId, channel.id)?.let { revokeQuietly(it) } }
+    }
+
+    /** A channel's token with what is needed to revoke it; null without a token. */
+    private fun signedIn(projectId: String, id: String): SignedIn? {
+        val channel = db.channelQueries.byId(projectId, id).executeAsOneOrNull() ?: return null
+        val token = token(projectId, id) ?: return null
+        val client = secrets.get(projectId, clientId(id))?.let { runCatching { json.decodeFromString<TokenClient>(it) }.getOrNull() }
+        return SignedIn(channel.instance, token, client)
+    }
+
+    /**
+     * Makes a token invalid at its instance, so no copy of it works any more.
+     * Best effort: an instance that cannot be reached, or a token whose app is
+     * unknown, never stops the channel from going.
+     */
+    private suspend fun revokeQuietly(signedIn: SignedIn) {
+        val client = signedIn.client ?: run {
+            log.info("A token was dropped without revoking: the app it was given to is unknown")
+            return
+        }
+        runCatching { mastodon.revoke(signedIn.instance, client.id, client.secret, signedIn.token) }
+            .onFailure { log.info("Revoking a token failed: {}", it.javaClass.simpleName) }
+    }
+
+    private class SignedIn(val instance: String, val token: String, val client: TokenClient?)
 
     // --- what went out ----------------------------------------------------------
 
@@ -282,6 +320,9 @@ class Channels(
 
         fun tokenId(channelId: String) = "channel-token:$channelId"
 
+        /** The app a channel's token was given to: needed to revoke the token. */
+        fun clientId(channelId: String) = "channel-client:$channelId"
+
         private val dtoJson = Json { ignoreUnknownKeys = true }
 
         fun dto(row: Channel) = ChannelDto(
@@ -298,6 +339,10 @@ class Channels(
         fun postOf(row: Channel): PostSettings = runCatching { dtoJson.decodeFromString<PostSettings>(row.post_json) }.getOrDefault(PostSettings())
     }
 }
+
+/** An app registered with an instance, as kept beside a token it was given. */
+@kotlinx.serialization.Serializable
+internal data class TokenClient(val id: String, val secret: String)
 
 fun Route.channelRoutes(services: Services) {
     val channels = services.channels

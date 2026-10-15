@@ -69,6 +69,8 @@ class ChannelsTest {
     private val storage = Storage.open(File(dir, "fediferry.db"))
     private var appRegistrations = 0
     private var statusesDown = false
+    /** Each revoke the fake instance received: client id, client secret and token. */
+    private val revoked = mutableListOf<Triple<String?, String?, String?>>()
     /** What the fake instance says it runs. */
     private var software = "mastodon"
 
@@ -80,6 +82,12 @@ class ChannelsTest {
             "/nodeinfo/2.0" -> 200 to """{"version":"2.0","software":{"name":"$software","version":"1"}}"""
             "/api/v1/apps" -> { appRegistrations++; 200 to """{"client_id":"cid","client_secret":"csecret"}""" }
             "/oauth/token" -> 200 to """{"access_token":"good-token","token_type":"Bearer"}"""
+            "/oauth/revoke" -> {
+                val form = request.body as okhttp3.FormBody
+                val field = { name: String -> (0 until form.size).firstOrNull { form.name(it) == name }?.let(form::value) }
+                revoked += Triple(field("client_id"), field("client_secret"), field("token"))
+                200 to "{}"
+            }
             "/api/v1/accounts/verify_credentials" ->
                 if (request.header("Authorization") == "Bearer good-token") 200 to """{"id":"77","acct":"memes","display_name":"Meme Account"}"""
                 else 401 to """{"error":"The access token is invalid"}"""
@@ -195,6 +203,24 @@ class ChannelsTest {
 
         assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/channels/${enc(first.id)}") { bearerAuth(token) }.status)
         assertNull(services.channels.token(services.projects.all().single().id, first.id))
+        // The token stops working at the instance too, revoked as the app it was given to.
+        assertEquals(listOf(Triple("cid", "csecret", "good-token")), revoked)
+    }
+
+    @Test
+    fun `a moved-over account is revoked with the phone's app, and only with one`() = test { client, token ->
+        val moved = client.postJson(
+            "/api/v1/channels/mastodon/import", token,
+            ImportAccountRequest("mastodon.social", "good-token", "mastodon.social/memes", clientId = "phone-cid", clientSecret = "phone-secret"),
+        ).body<ChannelDto>()
+        client.delete("/api/v1/channels/${enc(moved.id)}") { bearerAuth(token) }
+        assertEquals(listOf(Triple("phone-cid", "phone-secret", "good-token")), revoked)
+
+        // From an older phone, without its app: the channel still goes, nothing is revoked.
+        revoked.clear()
+        val bare = client.postJson("/api/v1/channels/mastodon/import", token, ImportAccountRequest("mastodon.social", "good-token")).body<ChannelDto>()
+        assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/channels/${enc(bare.id)}") { bearerAuth(token) }.status)
+        assertTrue(revoked.isEmpty())
     }
 
     @Test

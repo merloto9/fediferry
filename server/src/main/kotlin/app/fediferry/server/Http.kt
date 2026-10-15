@@ -82,16 +82,19 @@ class Services(
     val media = MediaStore(storage, dataDir, clock)
     val crypto = Crypto.load(dataDir)
     val secrets = Secrets(storage.db, crypto, clock)
-    val settings = SettingsStore(storage, feed, clock)
+    val settings = SettingsStore(storage, feed, clock, secrets)
     val channels = Channels(storage, secrets, crypto, feed, mastodon, detector, clock)
     val posts = Posts(storage, feed, settings, secrets, media, outboundHttp, clock)
     val intake = Intake(storage, media, posts, resolvers, fetcher, clock) { projectId, picture, trim -> readyScreenshot(projectId, picture, trim) }
     val publishing = Publishing(storage, feed, posts, channels, media, settings, publisher, clock)
 
-    /** Sweeps every project's unused files now and then every [intervalMs]. */
+    /** Sweeps every project's unused files and orphaned model keys now and then every [intervalMs]. */
     fun startSweeping(scope: CoroutineScope, intervalMs: Long = SWEEP_INTERVAL_MS): Job = scope.launch {
         while (isActive) {
-            projects.all().forEach { p -> runCatching { media.sweep(p.id) } }
+            projects.all().forEach { p ->
+                runCatching { media.sweep(p.id) }
+                runCatching { settings.dropOrphanedKeys(p.id) }
+            }
             delay(intervalMs)
         }
     }

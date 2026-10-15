@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What Android may copy off the phone. Nothing goes to a cloud backup. A
+    move to a new phone takes drafts and settings, but never the tokens: they
+    are encrypted with a key that stays in this phone's Keystore, so a copy
+    would only be unreadable there. On the new phone, accounts are signed in again.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="fediferry_tokens.xml" />
+    </device-transfer>
+</data-extraction-rules>

@@ -24,6 +24,8 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import app.fediferry.log.DebugLog
+import java.security.KeyStore
 
 /**
  * Access tokens, keyed by account id. Kept out of Room so a database export or
@@ -35,16 +37,31 @@ import androidx.security.crypto.MasterKey
  * the alternative is hand-rolling Keystore-backed encryption, which is a worse
  * trade for a single string per account. Revisit if it stops resolving.
  */
-class TokenStore(context: Context) {
+class TokenStore(private val context: Context) {
+
+    /**
+     * The encrypted store, or a fresh empty one when it cannot be opened: its
+     * Keystore key is gone (the app's data came over from another phone, or
+     * the key broke). Those tokens could never be read again; starting over
+     * means signing in again rather than the app failing on every start.
+     */
+    private val prefs: SharedPreferences by lazy {
+        runCatching { open() }.getOrElse { e ->
+            DebugLog.w("tokens", "The token store could not be opened (${e.javaClass.simpleName}); starting a new one")
+            context.deleteSharedPreferences(FILE)
+            runCatching { KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(MasterKey.DEFAULT_MASTER_KEY_ALIAS) }
+            open()
+        }
+    }
 
     @Suppress("DEPRECATION")
-    private val prefs: SharedPreferences by lazy {
+    private fun open(): SharedPreferences {
         val key = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
-            "fediferry_tokens",
+            FILE,
             key,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
@@ -55,9 +72,15 @@ class TokenStore(context: Context) {
         prefs.edit { putString(accountId, token) }
     }
 
-    fun get(accountId: String): String? = prefs.getString(accountId, null)
+    /** Null too when this one entry cannot be decrypted; it is as good as gone. */
+    fun get(accountId: String): String? = runCatching { prefs.getString(accountId, null) }.getOrNull()
 
     fun remove(accountId: String) {
         prefs.edit { remove(accountId) }
+    }
+
+    private companion object {
+        /** Named in `data_extraction_rules.xml`, which keeps it off other phones. */
+        const val FILE = "fediferry_tokens"
     }
 }

@@ -117,6 +117,16 @@ class MastodonClient(private val http: OkHttpClient, private val context: Contex
         decode(execute(request))
     }
 
+    /** Makes [token] invalid at the instance; [clientId] and [clientSecret] are the app's that was given it. */
+    suspend fun revoke(instance: String, clientId: String, clientSecret: String, token: String) = withContext(Dispatchers.IO) {
+        val form = FormBody.Builder()
+            .add("client_id", clientId)
+            .add("client_secret", clientSecret)
+            .add("token", token)
+            .build()
+        execute(Request.Builder().url(base(instance).addPathSegments("oauth/revoke").build()).post(form).build()).close()
+    }
+
     suspend fun verifyCredentials(instance: String, token: String): CredentialAccount =
         withContext(Dispatchers.IO) {
             val request = Request.Builder()

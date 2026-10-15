@@ -20,6 +20,7 @@
 package app.fediferry.server
 
 import app.fediferry.api.SecretInput
+import app.fediferry.api.SecretIds
 import app.fediferry.api.SettingsEntryDto
 import app.fediferry.api.SettingsKinds
 import io.ktor.http.HttpStatusCode
@@ -36,7 +37,12 @@ import kotlinx.serialization.json.JsonObject
  * A project's settings, one JSON object per entry, mirrored by every phone.
  * The last write wins: settings change rarely, and each object is small.
  */
-class SettingsStore(private val storage: Storage, private val feed: ChangeFeed, private val clock: () -> Long) {
+class SettingsStore(
+    private val storage: Storage,
+    private val feed: ChangeFeed,
+    private val clock: () -> Long,
+    private val secrets: Secrets? = null,
+) {
     private val db get() = storage.db
     private val json = Json
 
@@ -67,6 +73,20 @@ class SettingsStore(private val storage: Storage, private val feed: ChangeFeed, 
         feed.change(projectId, SettingsKinds.changeType(kind), id, deleted = true) {
             db.settingsEntryQueries.delete(projectId, kind, id)
         }
+        // A model's API key goes with it; nothing else would ever remove it.
+        if (kind == SettingsKinds.AI_MODEL) secrets?.delete(projectId, SecretIds.aiModel(id))
+    }
+
+    /**
+     * Deletes the API keys of models the project no longer has: those left
+     * behind before deleting a model took its key along. Returns how many.
+     */
+    fun dropOrphanedKeys(projectId: String): Int {
+        val secrets = secrets ?: return 0
+        val models = db.settingsEntryQueries.byKind(projectId, SettingsKinds.AI_MODEL).executeAsList().map { it.id }.toSet()
+        val orphaned = secrets.ids(projectId).filter { id -> SecretIds.aiModelOf(id)?.let { it !in models } == true }
+        orphaned.forEach { secrets.delete(projectId, it) }
+        return orphaned.size
     }
 
     private fun requireKind(kind: String): String =

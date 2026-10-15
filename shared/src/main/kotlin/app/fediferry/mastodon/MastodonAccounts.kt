@@ -79,6 +79,18 @@ class MastodonAccounts(private val http: OkHttpClient) {
             .add("scope", scopes)
             .build()).access_token
 
+    /**
+     * Makes [token] invalid at the instance. Only the app that was given the
+     * token can revoke it, so [clientId] and [clientSecret] must be that app's.
+     */
+    suspend fun revoke(instance: String, clientId: String, clientSecret: String, token: String) {
+        post<JsonObject>(instance, "oauth/revoke", FormBody.Builder()
+            .add("client_id", clientId)
+            .add("client_secret", clientSecret)
+            .add("token", token)
+            .build())
+    }
+
     suspend fun verifyCredentials(instance: String, token: String): CredentialAccount =
         get(instance, "api/v1/accounts/verify_credentials", token)
 

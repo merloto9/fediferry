@@ -27,6 +27,24 @@ Obtainium installs.
   FediFerry server are trimmed (when *Trim screenshots* is on) and cleaned with
   the default profile, as on the phone; *Undo edit* restores the original.
 
+### Security
+
+- **Releases are signed with a private key.** Until now every release was
+  signed with the repository's public debug key, so anyone could have built an
+  "update". The release key takes over through key rotation: on Android 9 and
+  later the update installs in place, and the debug key is no longer accepted
+  on its own.
+- **Signing out revokes the token.** Removing a channel, giving a channel
+  another account, or deleting a server project now revokes the account's
+  token at its instance, so no copy of it keeps working.
+- **Moving accounts to a server moves them.** The phone forgets its copy of a
+  token once the server has it, and hands over what the server needs to revoke
+  it later.
+- **Moving to a new phone no longer breaks the app.** Tokens are kept out of
+  backups and device transfers; if the token store cannot be opened, it starts
+  over and accounts are signed in again instead of the app failing at start.
+- **Deleting an AI model deletes its API key on the server.**
+
 ### Changed
 
 - **One app, two places a project can live.** The phone works on its own

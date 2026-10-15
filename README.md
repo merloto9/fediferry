@@ -26,12 +26,10 @@ https://github.com/merloto9/fediferry-platform
 Obtainium reads the latest GitHub release, installs the attached `.apk`, and
 offers each later release as an in-place update.
 
-> Releases are currently signed with the repository's **pinned debug key**
-> (`keystore/debug.keystore`). It is committed deliberately: AGP generates a
-> fresh debug key per machine, so without pinning it every CI run would produce
-> a differently-signed APK and Obtainium could not update in place. The key is
-> not a secret and offers no integrity guarantee — see *Switching to a real
-> release key* below.
+> Releases are signed with a private **release key**, rotated from the
+> repository's pinned debug key (`keystore/debug.keystore`) that signed every
+> earlier release. The debug key is public, so it vouches for the release key
+> once and is then no longer accepted on its own — see *Release signing* below.
 
 ### Server
 
@@ -467,10 +465,10 @@ pulling it.
 
 The version code must increase with every release, so keep tags monotonic.
 
-### Switching to a real release key
+### Release signing
 
-Generate a key, then add four repository secrets. The workflow uses them
-automatically and falls back to the pinned debug key when they are absent.
+The release workflow refuses to run without a release key. Generate one once,
+then add four repository secrets:
 
 ```sh
 keytool -genkeypair -v -keystore release.jks -alias fediferry \
@@ -485,10 +483,16 @@ base64 -i release.jks | pbcopy
 | `RELEASE_KEY_ALIAS`       | `fediferry`                 |
 | `RELEASE_KEY_PASSWORD`    | key password                |
 
-Changing the signing key breaks in-place updates: everyone already running a
-debug-signed build has to uninstall and reinstall once. Do it before you hand
-the link to anyone else, and keep the keystore backed up — losing it means the
-same forced reinstall again.
+Gradle builds the release APK unsigned; `scripts/sign-release.sh` signs it.
+Every earlier release — and the original FediFerry app — was signed with the
+public debug key, so the script uses key rotation (APK Signature Scheme v3):
+the debug key vouches for the release key, Android 9 and later update in place
+and from then on refuse an APK signed with the debug key alone. Android 8
+cannot rotate keys and keeps accepting the debug key's signature; that is the
+price of not forcing anyone there to reinstall.
+
+Keep the keystore backed up. Losing it means every user has to uninstall and
+reinstall, losing their drafts.
 
 ## License
 

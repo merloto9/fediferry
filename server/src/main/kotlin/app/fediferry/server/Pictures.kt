@@ -24,6 +24,7 @@ import app.fediferry.api.CleanupArea
 import app.fediferry.api.CropRect
 import app.fediferry.api.DeriveRequest
 import app.fediferry.api.ProfileRuleData
+import app.fediferry.api.SecretIds
 import app.fediferry.api.SettingsKinds
 import app.fediferry.media.ScreenshotCropper
 import app.fediferry.media.cleanup.CleanupRule
@@ -98,7 +99,7 @@ internal fun pickModel(settings: SettingsStore, projectId: String, kind: String,
 /** The project's image model, ready to erase; null when none is configured. */
 internal fun imageModel(services: Services, projectId: String, id: String?, http: OkHttpClient): ImageModel? {
     val model = pickModel(services.settings, projectId, "IMAGE_EDIT", id) ?: return null
-    val key = services.secrets.get(projectId, "ai-model:${model.id}").orEmpty()
+    val key = services.secrets.get(projectId, SecretIds.aiModel(model.id)).orEmpty()
     val format = runCatching { EditWireFormat.valueOf(model.wireFormat) }.getOrDefault(EditWireFormat.MULTIPART)
     val polarity = runCatching { MaskPolarity.valueOf(model.maskPolarity) }.getOrDefault(MaskPolarity.TRANSPARENT_HOLE)
     return ImageModel(HttpImageEditProvider(http, model.endpoint, model.model, key, format), polarity)

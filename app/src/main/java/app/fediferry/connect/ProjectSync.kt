@@ -21,6 +21,7 @@ package app.fediferry.connect
 
 import android.content.Context
 import androidx.room.InvalidationTracker
+import app.fediferry.api.SecretIds
 import app.fediferry.api.SettingsKinds
 import app.fediferry.client.ServerClient
 import app.fediferry.data.AiModels
@@ -168,14 +169,26 @@ class ProjectSync(
         runCatching {
             val state = readState(connection.projectId) ?: mutableMapOf()
             val sent = state.getOrPut(SECRETS) { mutableMapOf() }
-            for (model in db.aiModels().all()) {
-                val key = aiModels.apiKey(model).takeIf { it.isNotEmpty() } ?: continue
-                val id = "ai-model:${model.id}"
+            val models = db.aiModels().all()
+            for (model in models) {
+                val id = SecretIds.aiModel(model.id)
+                val key = aiModels.apiKey(model)
+                if (key.isEmpty()) {
+                    // The key was cleared here: the server's copy goes too.
+                    if (id in sent) {
+                        client.deleteSecret(id)
+                        sent.remove(id)
+                    }
+                    continue
+                }
                 val hash = MessageDigest.getInstance("SHA-256").digest(key.toByteArray()).joinToString("") { "%02x".format(it) }
                 if (sent[id] == hash) continue
                 client.putSecret(id, key)
                 sent[id] = hash
             }
+            // A deleted model's key went with its settings entry on the server.
+            val kept = models.map { SecretIds.aiModel(it.id) }.toSet()
+            sent.keys.retainAll { it in kept }
             writeState(connection.projectId, state)
         }.onFailure { DebugLog.w(LOG, "Sending AI keys failed: ${it.javaClass.simpleName}") }
     }

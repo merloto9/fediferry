@@ -26,6 +26,17 @@ import kotlinx.serialization.json.JsonObject
  * The kinds of project settings the server keeps for its phones. Each object
  * is stored as the JSON the app keeps it in; adding a kind needs no new table.
  */
+/** Names of the secrets a project keeps on the server; the phone stores its copies under the same names. */
+object SecretIds {
+    private const val AI_MODEL = "ai-model:"
+
+    /** The API key of the AI model [modelId]. */
+    fun aiModel(modelId: String) = AI_MODEL + modelId
+
+    /** The model whose key [secretId] is, or null for another kind of secret. */
+    fun aiModelOf(secretId: String): String? = secretId.takeIf { it.startsWith(AI_MODEL) }?.removePrefix(AI_MODEL)
+}
+
 object SettingsKinds {
     const val TEMPLATE = "template"
     const val PLACEHOLDER_KEY = "placeholder_key"

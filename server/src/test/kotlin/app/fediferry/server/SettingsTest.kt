@@ -129,6 +129,23 @@ class SettingsTest {
     }
 
     @Test
+    fun `deleting a model deletes its key, and keys left behind earlier are swept`() = test { client, token ->
+        val model = buildJsonObject { put("id", "m1"); put("kind", "ALT_TEXT") }
+        client.putSetting(token, "ai_model", "m1", model)
+        client.put("/api/v1/secrets/ai-model:m1") { bearerAuth(token); contentType(ContentType.Application.Json); setBody(SecretInput("sk-one")) }
+        val projectId = services.projects.all().single().id
+
+        assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/settings/ai_model/m1") { bearerAuth(token) }.status)
+        assertEquals(null, services.secrets.get(projectId, "ai-model:m1"))
+
+        // A key orphaned before deleting took it along; other secrets stay.
+        services.secrets.put(projectId, "ai-model:gone", "sk-two")
+        services.secrets.put(projectId, "other", "keep")
+        assertEquals(1, services.settings.dropOrphanedKeys(projectId))
+        assertEquals(listOf("other"), services.secrets.ids(projectId))
+    }
+
+    @Test
     fun `the master key is made once and kept`() {
         val a = Crypto.load(dir, env = null)
         val sealed = a.seal("hello")

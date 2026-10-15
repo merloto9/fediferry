@@ -19,6 +19,7 @@
  */
 package app.fediferry.data
 
+import app.fediferry.api.SecretIds
 import app.fediferry.data.db.AiModelDao
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
@@ -105,7 +106,7 @@ class AiModels(
     }
 
     companion object {
-        fun keyId(modelId: String) = "ai-model:$modelId"
+        fun keyId(modelId: String) = SecretIds.aiModel(modelId)
 
         /** The models the old single-model settings describe, with their keys. */
         fun legacyModels(s: Settings): List<Pair<AiModel, String>> = buildList {

@@ -400,7 +400,7 @@ export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 ./gradlew assembleDebug            # app/build/outputs/apk/dev/neoferry-dev.apk
 ./gradlew testDebugUnitTest
 ./gradlew lintDebug
-./gradlew assembleRelease          # minified, signed with the pinned key
+./gradlew assembleRelease          # minified, unsigned (CI signs it, see Release signing)
 ```
 
 The debug build uses application ID `app.neoferry.debug` and OAuth scheme

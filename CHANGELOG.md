@@ -8,7 +8,7 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
-## [Unreleased]
+## [0.2.0] — 2026-10-15 (NeoFerry)
 
 ### Added
 

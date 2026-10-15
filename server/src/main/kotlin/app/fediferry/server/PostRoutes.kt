@@ -29,6 +29,7 @@ import app.fediferry.api.ReviewFolderInput
 import app.fediferry.api.ReviewPatch
 import app.fediferry.api.ProfileRuleData
 import app.fediferry.api.SettingsKinds
+import app.fediferry.mastodon.ScheduledPosts
 import app.fediferry.media.cleanup.TreatmentKind
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -44,12 +45,20 @@ import kotlinx.serialization.json.Json
 
 fun Route.postRoutes(services: Services) {
     val posts = services.posts
+    val held = services.mastodonQueue
 
     get("/posts") {
         val stages = (call.request.queryParameters["stage"] ?: app.fediferry.api.PostStages.DRAFT).split(',').map { it.trim() }.filter { it.isNotEmpty() }
-        call.respond(posts.list(call.projectId(), stages))
+        val own = posts.list(call.projectId(), stages)
+        // What the channels' instances hold is on its way too.
+        val onInstances = if (app.fediferry.api.PostStages.SCHEDULED in stages) held.list(call.projectId()) else emptyList()
+        call.respond(own + onInstances)
     }
-    get("/posts/{id}") { call.respond(posts.get(call.projectId(), call.parameters["id"].orEmpty())) }
+    get("/posts/{id}") {
+        val id = call.parameters["id"].orEmpty()
+        val remote = ScheduledPosts.RemoteId.parse(id)
+        call.respond(if (remote != null) held.get(call.projectId(), remote.first, remote.second) else posts.get(call.projectId(), id))
+    }
     patch("/posts/{id}") {
         val version = call.request.headers[HttpHeaders.IfMatch]?.trim('"', ' ')?.toLongOrNull()
         call.respond(posts.patch(call.projectId(), call.parameters["id"].orEmpty(), call.deviceId(), version, call.receive<PostPatch>()))
@@ -78,9 +87,28 @@ fun Route.postRoutes(services: Services) {
     get("/labels") { call.respond(posts.labels(call.projectId())) }
 
     val publishing = services.publishing
-    post("/posts/{id}/plan") { call.respond(publishing.plan(call.projectId(), call.parameters["id"].orEmpty(), call.receive<PlanRequest>())) }
-    post("/posts/{id}/unplan") { call.respond(publishing.unplan(call.projectId(), call.parameters["id"].orEmpty())) }
-    get("/schedules") { call.respond(publishing.schedules(call.projectId())) }
+    post("/posts/{id}/plan") {
+        val id = call.parameters["id"].orEmpty()
+        val request = call.receive<PlanRequest>()
+        val remote = ScheduledPosts.RemoteId.parse(id)
+        if (remote != null) {
+            call.respond(held.plan(call.projectId(), remote.first, remote.second, request))
+        } else {
+            // A slot the instance holds a post for is not free; read what it holds first.
+            if (request.mode == app.fediferry.api.PlanModes.NEXT_SLOT) held.list(call.projectId())
+            call.respond(publishing.plan(call.projectId(), id, request))
+        }
+    }
+    post("/posts/{id}/unplan") {
+        val id = call.parameters["id"].orEmpty()
+        val remote = ScheduledPosts.RemoteId.parse(id)
+        call.respond(if (remote != null) held.takeBack(call.projectId(), remote.first, remote.second) else publishing.unplan(call.projectId(), id))
+    }
+    get("/schedules") {
+        // The free slots shown leave out the times the instances hold posts for.
+        held.list(call.projectId())
+        call.respond(publishing.schedules(call.projectId()))
+    }
     post("/schedules") { call.respond(HttpStatusCode.Created, publishing.createSchedule(call.projectId(), call.receive<ScheduleInput>())) }
     patch("/schedules/{id}") {
         call.respond(publishing.updateSchedule(call.projectId(), call.parameters["id"].orEmpty(), call.receive<ScheduleInput>()))

@@ -70,6 +70,7 @@ import app.fediferry.media.cleanup.TreatmentKind
 import app.fediferry.media.cleanup.Region
 import app.fediferry.media.cleanup.CleanupRule
 import app.fediferry.mastodon.MastodonException
+import app.fediferry.mastodon.ScheduledPosts
 import androidx.room.withTransaction
 import app.fediferry.log.DebugLog
 import app.fediferry.mastodon.MastodonAccounts
@@ -141,7 +142,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
     }
 
     override suspend fun post(id: String): PostDto {
-        RemoteId.parse(id)?.let { (channelId, statusId) -> return remotePost(channelId, statusId) }
+        ScheduledPosts.RemoteId.parse(id)?.let { (channelId, statusId) -> return remotePost(channelId, statusId) }
         return dto(row(id))
     }
 
@@ -323,7 +324,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
      * once — or, closer than Mastodon accepts, sent from the phone then.
      */
     override suspend fun plan(id: String, request: PlanRequest): PostDto {
-        RemoteId.parse(id)?.let { (channelId, statusId) -> return planRemote(channelId, statusId, request) }
+        ScheduledPosts.RemoteId.parse(id)?.let { (channelId, statusId) -> return planRemote(channelId, statusId, request) }
         val post = row(id)
         if (post.stage !in PLANNABLE) throw ServerException(409, "post.not_plannable", mapOf("stage" to post.stage))
         val channelId = post.channelId ?: throw ServerException(409, "post.no_channel")
@@ -354,7 +355,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
 
     /** Out of the queue and back to review: a post still waiting here, or one Mastodon holds. */
     override suspend fun unplan(id: String): PostDto {
-        RemoteId.parse(id)?.let { (channelId, statusId) -> return reviewFromMastodon(channelId, statusId) }
+        ScheduledPosts.RemoteId.parse(id)?.let { (channelId, statusId) -> return reviewFromMastodon(channelId, statusId) }
         val post = row(id)
         if (post.stage == PostStages.READY) return dto(post)
         if (post.stage == PostStages.PUBLISHING) throw ServerException(409, "post.publishing")
@@ -710,7 +711,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
         val media = status.media.mapIndexed { i, attachment ->
             val url = attachment.url ?: attachment.previewUrl ?: throw ServerException(502, "mastodon.media")
             val bytes = ServiceLocator.mediaFetcher().fetch(url).getOrElse { throw ServerException(502, "mastodon.media") }
-            val stored = vault.store(bytes, app.fediferry.data.ScheduledDraft.mimeTypeOf(attachment)).getOrElse { throw ServerException(500, "media.store") }
+            val stored = vault.store(bytes, ScheduledPosts.mimeTypeOf(attachment)).getOrElse { throw ServerException(500, "media.store") }
             val asset = assetFor(stored.file.absolutePath, stored.mimeType, parent = null)
             PhoneMedia(i, asset.id, attachment.description)
         }
@@ -719,7 +720,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
         val post = PhonePost(
             id = UUID.randomUUID().toString(), stage = PostStages.READY, channelId = channelId, body = text,
             contentWarning = status.params.spoilerText?.ifBlank { null },
-            visibility = app.fediferry.data.ScheduledDraft.visibilityOf(status.params.visibility)?.name ?: Visibility.PUBLIC.name,
+            visibility = ScheduledPosts.visibilityOf(status.params.visibility) ?: Visibility.PUBLIC.name,
             finalText = text, readyAt = now, mediaJson = json.encodeToString(MEDIA, media),
         )
         // Only once Mastodon will no longer post it is there a copy here; otherwise it would go out twice.
@@ -733,26 +734,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
         return dto(post)
     }
 
-    private fun remoteDto(channelId: String, status: ScheduledStatus): PostDto {
-        val at = runCatching { Instant.parse(status.scheduledAt).toEpochMilli() }.getOrDefault(0L)
-        return PostDto(
-            id = RemoteId.encode(channelId, status.id),
-            stage = PostStages.SCHEDULED,
-            version = 1,
-            channelId = channelId,
-            body = status.params.text,
-            contentWarning = status.params.spoilerText?.ifBlank { null },
-            visibility = (status.params.visibility ?: "public").uppercase(),
-            media = status.media.mapIndexed { i, m ->
-                val url = m.previewUrl ?: m.url.orEmpty()
-                PostMediaDto(i, MediaAssetDto(url, "", app.fediferry.data.ScheduledDraft.mimeTypeOf(m), bytes = 0), altText = m.description)
-            },
-            finalText = status.params.text,
-            createdAt = at,
-            updatedAt = at,
-            publication = PublicationDto(state = PublicationStates.QUEUED, channelId = channelId, publishAfter = at),
-        )
-    }
+    private fun remoteDto(channelId: String, status: ScheduledStatus): PostDto = ScheduledPosts.dto(channelId, status)
 
     // --- reading ------------------------------------------------------------------------------------
 
@@ -920,20 +902,6 @@ class PhoneBackend(private val context: Context) : PostBackend {
     private fun zoneOf(id: String): ZoneId = runCatching { ZoneId.of(id) }.getOrElse { throw ServerException(400, "bad_request") }
 
     /** A post Mastodon holds, as an id the screens can carry: its channel and Mastodon's own id. */
-    private object RemoteId {
-        private const val PREFIX = "mastodon-"
-        fun encode(channelId: String, statusId: String): String =
-            PREFIX + statusId + "-" + android.util.Base64.encodeToString(channelId.toByteArray(), android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING)
-
-        fun parse(id: String): Pair<String, String>? {
-            if (!id.startsWith(PREFIX)) return null
-            val rest = id.removePrefix(PREFIX)
-            val statusId = rest.substringBefore('-')
-            val channel = runCatching { String(android.util.Base64.decode(rest.substringAfter('-'), android.util.Base64.URL_SAFE)) }.getOrNull() ?: return null
-            return channel to statusId
-        }
-    }
-
     companion object {
         private const val LOG = "phone"
         private const val LOCK_MS = 60 * 60 * 1000L

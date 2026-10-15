@@ -77,6 +77,8 @@ class Publishing(
     private val settings: SettingsStore,
     private val publisher: ChannelPublisher,
     private val clock: () -> Long,
+    /** Times the channel's instance holds posts for, as last read; they take their slots too. */
+    private val heldByInstance: (projectId: String, channelId: String) -> Set<Instant> = { _, _ -> emptySet() },
 ) {
     private val db get() = storage.db
     private val json = Json { ignoreUnknownKeys = true }
@@ -139,7 +141,25 @@ class Publishing(
     }
 
     private fun taken(projectId: String, channelId: String): Set<Instant> =
-        db.publicationQueries.takenSlots(projectId, channelId).executeAsList().map(Instant::ofEpochMilli).toHashSet()
+        db.publicationQueries.takenSlots(projectId, channelId).executeAsList().map(Instant::ofEpochMilli).toHashSet() +
+            heldByInstance(projectId, channelId)
+
+    /**
+     * The next free slot on [channelId]: in [scheduleId] when given, else in
+     * whichever of the channel's schedules has the soonest. [freeing] is a
+     * time already the post's own, which it may keep.
+     */
+    fun nextSlot(projectId: String, channelId: String, scheduleId: String?, freeing: Instant? = null): Pair<String, Instant> {
+        val schedules = scheduleId
+            ?.let { listOfNotNull(db.scheduleQueries.byId(projectId, it).executeAsOneOrNull()) }
+            ?: db.scheduleQueries.forChannel(projectId, channelId).executeAsList()
+        if (schedules.isEmpty()) throw ApiException(HttpStatusCode.Conflict, "plan.no_schedule")
+        val taken = taken(projectId, channelId) - setOfNotNull(freeing)
+        val best = schedules.mapNotNull { s ->
+            SlotPlanner.nextFree(zoneOf(s.timezone), slotsOf(s).map(::toSlot), Instant.ofEpochMilli(clock()), taken)?.let { s to it }
+        }.minByOrNull { it.second } ?: throw ApiException(HttpStatusCode.Conflict, "plan.no_free_slot")
+        return best.first.id to best.second
+    }
 
     // --- planning ---------------------------------------------------------------------
 
@@ -163,17 +183,10 @@ class Publishing(
                 at
             }
             PlanModes.NEXT_SLOT -> {
-                val schedules = request.scheduleId
-                    ?.let { listOfNotNull(db.scheduleQueries.byId(projectId, it).executeAsOneOrNull()) }
-                    ?: db.scheduleQueries.forChannel(projectId, channelId).executeAsList()
-                if (schedules.isEmpty()) throw ApiException(HttpStatusCode.Conflict, "plan.no_schedule")
                 // Its own slot is free for it: moving within a schedule should not skip it.
-                val taken = taken(projectId, channelId) - (existing?.slot_at?.let(Instant::ofEpochMilli)).let { setOfNotNull(it) }
-                val best = schedules.mapNotNull { s ->
-                    SlotPlanner.nextFree(zoneOf(s.timezone), slotsOf(s).map(::toSlot), Instant.ofEpochMilli(now), taken)?.let { s to it }
-                }.minByOrNull { it.second } ?: throw ApiException(HttpStatusCode.Conflict, "plan.no_free_slot")
-                scheduleId = best.first.id
-                slotAt = best.second.toEpochMilli()
+                val (schedule, slot) = nextSlot(projectId, channelId, request.scheduleId, existing?.slot_at?.let(Instant::ofEpochMilli))
+                scheduleId = schedule
+                slotAt = slot.toEpochMilli()
                 slotAt
             }
             else -> throw ApiException.badRequest("mode")

@@ -70,6 +70,11 @@ data class PublicationDto(
     val attempts: Int = 0,
     /** Why the last try failed, as a code. */
     val failureCode: String? = null,
+    /**
+     * The instance holds it and publishes it itself, at [publishAfter]; the
+     * project does not. It can be moved there or taken back into review.
+     */
+    val heldByInstance: Boolean = false,
 )
 
 object PlanModes {

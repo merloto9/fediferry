@@ -116,6 +116,47 @@ class MastodonAccounts(private val http: OkHttpClient) {
         call(Request.Builder().url(url).header("Authorization", "Bearer $token").get().build())
     }
 
+    // --- posts the instance holds for later ----------------------------------------
+
+    /** Every post [token]'s account has scheduled, soonest first; Mastodon keeps at most 300. */
+    suspend fun scheduledStatuses(instance: String, token: String): List<ScheduledStatus> = withContext(Dispatchers.IO) {
+        val all = mutableListOf<ScheduledStatus>()
+        var maxId: String? = null
+        repeat(SCHEDULED_PAGES) {
+            val url = base(instance).addPathSegments("api/v1/scheduled_statuses")
+                .addQueryParameter("limit", SCHEDULED_PAGE.toString())
+                .apply { maxId?.let { addQueryParameter("max_id", it) } }
+                .build()
+            val page = call<List<ScheduledStatus>>(Request.Builder().url(url).header("Authorization", "Bearer $token").get().build())
+            all += page
+            if (page.size < SCHEDULED_PAGE) return@withContext all.sortedBy { it.scheduledAt }
+            maxId = page.last().id
+        }
+        all.sortedBy { it.scheduledAt }
+    }
+
+    suspend fun scheduledStatus(instance: String, token: String, id: String): ScheduledStatus = withContext(Dispatchers.IO) {
+        call(Request.Builder().url(scheduledUrl(instance, id)).header("Authorization", "Bearer $token").get().build())
+    }
+
+    /** A new time for it, at least five minutes away. */
+    suspend fun reschedule(instance: String, token: String, id: String, scheduledAtIso: String): ScheduledStatus = withContext(Dispatchers.IO) {
+        call(
+            Request.Builder().url(scheduledUrl(instance, id)).header("Authorization", "Bearer $token")
+                .put(FormBody.Builder().add("scheduled_at", scheduledAtIso).build()).build(),
+        )
+    }
+
+    /** It will not go out. */
+    suspend fun cancelScheduled(instance: String, token: String, id: String) {
+        withContext(Dispatchers.IO) {
+            call<JsonObject>(Request.Builder().url(scheduledUrl(instance, id)).header("Authorization", "Bearer $token").delete().build())
+        }
+    }
+
+    private fun scheduledUrl(instance: String, id: String) =
+        base(instance).addPathSegments("api/v1/scheduled_statuses").addPathSegment(id).build()
+
     /** What the instance accepts, from `/api/v2/instance`; Mastodon's defaults where it does not say. */
     suspend fun limits(instance: String, now: Long = System.currentTimeMillis()): PlatformLimits =
         parseLimits(get<JsonObject>(instance, "api/v2/instance", null), now)
@@ -161,6 +202,9 @@ class MastodonAccounts(private val http: OkHttpClient) {
     }
 
     companion object {
+        private const val SCHEDULED_PAGE = 40
+        private const val SCHEDULED_PAGES = 8
+
         /** "@me@mastodon.social", "https://mastodon.social/" → "mastodon.social". */
         fun normaliseInstance(raw: String): String = raw.trim()
             .removePrefix("https://").removePrefix("http://")

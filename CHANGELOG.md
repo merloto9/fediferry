@@ -26,6 +26,12 @@ Obtainium installs.
 - **Screenshots are trimmed and cleaned with a server too.** Shares sent to a
   FediFerry server are trimmed (when *Trim screenshots* is on) and cleaned with
   the default profile, as on the phone; *Undo edit* restores the original.
+- **The queue shows what Mastodon holds, with a server too.** Posts a
+  channel's instance has scheduled — from the phone, the original FediFerry
+  app or Mastodon itself — now show in the queue in server mode as well, and
+  can be moved there or taken back into review; taken back, the server
+  publishes them. Every post in the queue says who sends it: Mastodon, the
+  server or this phone. Their times count as taken when planning into a slot.
 
 ### Security
 

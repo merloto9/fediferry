@@ -49,6 +49,8 @@ data class PublishingState(
     val schedules: List<ScheduleDto> = emptyList(),
     val loadedOnce: Boolean = false,
     val error: String? = null,
+    /** The project is on a FediFerry server, which sends its own posts; else this phone does. */
+    val onServer: Boolean = false,
 )
 
 /**
@@ -111,6 +113,7 @@ class PublishingViewModel(app: Application) : AndroidViewModel(app) {
                     publishedUnreachable = if (l.published == null) l.channels.map { c -> c.id } else l.unreachable,
                     channels = l.channels,
                     schedules = l.schedules,
+                    onServer = ServiceLocator.serverConnections(getApplication()).current() != null,
                     loadedOnce = true,
                     error = null,
                 )

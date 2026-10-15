@@ -84,4 +84,7 @@
     <string name="receiver_post_not_ready">Nicht gepostet: %1$s Er ist als Entwurf geöffnet.</string>
     <string name="notify_undone_server">Rückgängig gemacht. Der Beitrag wartet im Review.</string>
     <string name="notify_undo_too_late">Zu spät für Rückgängig, oder keine Verbindung zum Server.</string>
+    <string name="publishing_held_by_instance">Mastodon veröffentlicht ihn</string>
+    <string name="publishing_sent_by_server">Der Server veröffentlicht ihn</string>
+    <string name="publishing_sent_by_phone">Dieses Telefon veröffentlicht ihn</string>
 </resources>

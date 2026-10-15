@@ -84,4 +84,7 @@
     <string name="receiver_post_not_ready">Not posted: %1$s It is open as a draft.</string>
     <string name="notify_undone_server">Undone. The post waits in Review.</string>
     <string name="notify_undo_too_late">Too late to undo, or no connection to the server.</string>
+    <string name="publishing_held_by_instance">Mastodon posts it</string>
+    <string name="publishing_sent_by_server">The server posts it</string>
+    <string name="publishing_sent_by_phone">This phone posts it</string>
 </resources>

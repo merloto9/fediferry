@@ -159,6 +159,31 @@ class Posts(
         return get(projectId, id)
     }
 
+    /**
+     * A post that was written already — one taken back from the instance that
+     * held it — straight into review, its text as it was.
+     */
+    fun createReady(
+        projectId: String,
+        channelId: String,
+        text: String,
+        contentWarning: String?,
+        visibility: String,
+        media: List<Pair<Media_asset, String?>>,
+    ): PostDto {
+        val id = UUID.randomUUID().toString()
+        val now = clock()
+        feed.change(projectId, "post", id) {
+            db.postQueries.insert(
+                projectId, id, PostStages.DRAFT, channelId, text, "", 0, contentWarning, visibility,
+                null, null, "{}", 0, null, now, now,
+            )
+            media.forEachIndexed { i, (asset, alt) -> db.postMediaQueries.insert(projectId, id, i.toLong(), asset.id, alt, 0) }
+            db.postQueries.markReady(text, now, now, projectId, id)
+        }
+        return get(projectId, id)
+    }
+
     /** The picture a draft waited for: it becomes the draft's first. */
     fun attachPicture(projectId: String, postId: String, shareId: String?, asset: Media_asset): PostDto {
         val post = row(projectId, postId)

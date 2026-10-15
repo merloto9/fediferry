@@ -66,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fediferry.R
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostStages
+import app.fediferry.api.PublicationDto
 import app.fediferry.api.PublishedStatusDto
 import app.fediferry.drafts.ServerMessages
 import app.fediferry.ui.LoadingScreen
@@ -162,7 +163,7 @@ fun PublishingScreen(
                             (publication?.attempts ?: 0) > 0 -> stringResource(R.string.publishing_retry_at, ScheduleWords.timeText(resources, at))
                             else -> ScheduleWords.timeText(resources, at)
                         },
-                        detail = listOfNotNull(channelOf(post), schedule).joinToString(" · "),
+                        detail = listOfNotNull(channelOf(post), schedule, stringResource(senderOf(publication, state.onServer))).joinToString(" · "),
                         onClick = { onOpenPost(post.id) },
                     )
                 }
@@ -184,6 +185,13 @@ fun PublishingScreen(
             }
         }
     }
+}
+
+/** Who sends a queued post: the instance holds it, or the server or this phone sends it at its time. */
+private fun senderOf(publication: PublicationDto?, onServer: Boolean): Int = when {
+    publication?.heldByInstance == true -> R.string.publishing_held_by_instance
+    onServer -> R.string.publishing_sent_by_server
+    else -> R.string.publishing_sent_by_phone
 }
 
 /** A post as Mastodon has it: FediFerry kept nothing of it once it was out. */

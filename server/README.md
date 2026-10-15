@@ -38,9 +38,24 @@ server/build/install/fediferry/bin/fediferry serve --data /var/lib/fediferry --p
 | Data directory (database, media) | `--data` | `FEDIFERRY_DATA` | `./data` |
 | Port | `--port` | `FEDIFERRY_PORT` | `8080` |
 | Listen address | `--host` | `FEDIFERRY_HOST` | `0.0.0.0` |
+| Master key (base64, 32 bytes) | | `FEDIFERRY_MASTER_KEY` | made in `<data>/master.key` |
+| Allow instances in private networks | | `FEDIFERRY_ALLOW_PRIVATE_HOSTS` | `false` |
 
 With Docker Compose, `FEDIFERRY_HOST_PORT` picks the port on the host and
 `FEDIFERRY_BIND=127.0.0.1` keeps it to the host (behind a reverse proxy).
+
+**The master key** encrypts account tokens and AI keys in the database.
+Without `FEDIFERRY_MASTER_KEY` it is made on first start as `master.key` in
+the data directory, readable by the server only — but then a backup of that
+directory holds both the key and what it protects. Set it from outside, e.g.
+`openssl rand -base64 32` kept in your secret store, to keep them apart.
+Losing the key only means signing in to accounts and entering AI keys again.
+
+**The server only contacts public hosts.** Instances, and the pages behind
+shared links, must resolve to public addresses; private, loopback and
+link-local ones are refused, so a project token cannot point the server at
+your own network. Set `FEDIFERRY_ALLOW_PRIVATE_HOSTS=true` if your Mastodon
+instance runs in the same private network.
 
 ## Projects and tokens
 

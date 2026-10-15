@@ -44,6 +44,22 @@ Obtainium installs.
   backups and device transfers; if the token store cannot be opened, it starts
   over and accounts are signed in again instead of the app failing at start.
 - **Deleting an AI model deletes its API key on the server.**
+- **Sign-in uses PKCE.** On the phone and through a server, the code coming
+  back from the instance is only worth a token together with a verifier that
+  never leaves the side that started the sign-in, so an app that catches the
+  redirect gets nothing. A stray redirect no longer cancels a sign-in under way.
+- **The server is stricter about what it talks to and accepts.** Instances
+  must be public host names, and the server refuses to connect to private,
+  loopback or link-local addresses (`FEDIFERRY_ALLOW_PRIVATE_HOSTS` lifts this).
+  A sign-in may only come back to the app; a sign-in left for more than 30
+  minutes has run out; and a channel's token can no longer be overwritten or
+  removed as a "secret".
+- **Stored secrets are bound to where they are kept**, so a value copied into
+  another row does not open; existing ones are bound on the first start. A new
+  `master.key` is created readable by the server only from the start.
+- **A changed app scheme no longer breaks sign-in.** The phone notes which
+  redirect each instance registration was made for and registers again when it
+  changes.
 
 ### Changed
 

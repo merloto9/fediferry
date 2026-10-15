@@ -60,16 +60,27 @@ class MastodonAccounts(private val http: OkHttpClient) {
             .apply { website?.let { add("website", it) } }
             .build())
 
-    fun authorizeUrl(instance: String, clientId: String, redirectUri: String, scopes: String, state: String): String =
+    /** Where to sign in; [codeVerifier] stays with the caller, the instance gets its [Pkce.challenge]. */
+    fun authorizeUrl(instance: String, clientId: String, redirectUri: String, scopes: String, state: String, codeVerifier: String): String =
         base(instance).addPathSegments("oauth/authorize")
             .addQueryParameter("client_id", clientId)
             .addQueryParameter("redirect_uri", redirectUri)
             .addQueryParameter("response_type", "code")
             .addQueryParameter("scope", scopes)
             .addQueryParameter("state", state)
+            .addQueryParameter("code_challenge", Pkce.challenge(codeVerifier))
+            .addQueryParameter("code_challenge_method", Pkce.METHOD)
             .build().toString()
 
-    suspend fun exchangeCode(instance: String, clientId: String, clientSecret: String, redirectUri: String, code: String, scopes: String): String =
+    suspend fun exchangeCode(
+        instance: String,
+        clientId: String,
+        clientSecret: String,
+        redirectUri: String,
+        code: String,
+        scopes: String,
+        codeVerifier: String?,
+    ): String =
         post<Token>(instance, "oauth/token", FormBody.Builder()
             .add("grant_type", "authorization_code")
             .add("client_id", clientId)
@@ -77,6 +88,7 @@ class MastodonAccounts(private val http: OkHttpClient) {
             .add("redirect_uri", redirectUri)
             .add("code", code)
             .add("scope", scopes)
+            .apply { codeVerifier?.let { add("code_verifier", it) } }
             .build()).access_token
 
     /**

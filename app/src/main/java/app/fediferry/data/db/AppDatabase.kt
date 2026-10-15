@@ -68,10 +68,14 @@ import app.fediferry.phone.PhoneSchedule
         PhoneReviewFolder::class,
         PhoneSchedule::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
     // The phone's project: new tables only, so Room adds them by itself.
-    autoMigrations = [AutoMigration(from = 11, to = 12)],
+    autoMigrations = [
+        AutoMigration(from = 11, to = 12),
+        // instance_apps.redirectUri: one new nullable column.
+        AutoMigration(from = 12, to = 13),
+    ],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

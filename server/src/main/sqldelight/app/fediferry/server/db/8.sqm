@@ -1,0 +1,4 @@
+-- PKCE: the verifier of a sign-in started on the server. It stays here and
+-- goes to the instance only with the code, so a code caught on the way back
+-- buys nothing. Null for sign-ins started before the update.
+ALTER TABLE oauth_pending ADD COLUMN code_verifier TEXT;

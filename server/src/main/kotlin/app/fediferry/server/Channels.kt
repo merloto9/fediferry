@@ -39,6 +39,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import app.fediferry.mastodon.MastodonAccounts
+import app.fediferry.mastodon.Pkce
 import app.fediferry.mastodon.MastodonException
 import app.fediferry.platform.PlatformDetector
 import app.fediferry.platform.PlatformException
@@ -106,35 +107,40 @@ class Channels(
      * instance and app build) and returns the address for the phone's browser.
      */
     suspend fun authorize(projectId: String, request: AuthorizeRequest): AuthorizeResponse {
-        val instance = MastodonAccounts.normaliseInstance(request.instance)
-        if (instance.isBlank() || '.' !in instance) throw ApiException.badRequest("instance")
-        if (!request.redirectUri.matches(Regex("""[a-z][a-z0-9+.-]*://[\w./-]+"""))) throw ApiException.badRequest("redirect_uri")
+        val instance = requireInstance(request.instance)
+        // Only the app's own address: a code sent anywhere else would be someone else's to use.
+        if (request.redirectUri !in REDIRECT_URIS) throw ApiException.badRequest("redirect_uri")
         request.channelId?.let { get(projectId, it) }
         requireSupported(instance)
         val app = registration(instance, request.redirectUri)
         val state = randomState()
+        val verifier = Pkce.verifier()
         db.oauthPendingQueries.expire(clock() - PENDING_TTL_MS)
-        db.oauthPendingQueries.insert(state, projectId, instance, request.redirectUri, clock(), request.channelId)
-        return AuthorizeResponse(mastodon.authorizeUrl(instance, app.first, request.redirectUri, SCOPES, state), state)
+        db.oauthPendingQueries.insert(state, projectId, instance, request.redirectUri, clock(), request.channelId, verifier)
+        return AuthorizeResponse(mastodon.authorizeUrl(instance, app.first, request.redirectUri, SCOPES, state, verifier), state)
     }
 
     /** Finishes a sign-in with the code the instance gave the phone. */
     suspend fun complete(projectId: String, request: CompleteRequest): ChannelDto {
-        val pending = db.oauthPendingQueries.take(request.state, projectId).executeAsOneOrNull()
+        val pending = db.oauthPendingQueries.take(request.state, projectId, clock() - PENDING_TTL_MS).executeAsOneOrNull()
             ?: throw ApiException(HttpStatusCode.BadRequest, "channel.unknown_state")
         db.oauthPendingQueries.delete(request.state)
         val (clientId, clientSecret) = registration(pending.instance, pending.redirect_uri)
-        val token = remote { mastodon.exchangeCode(pending.instance, clientId, clientSecret, pending.redirect_uri, request.code, SCOPES) }
+        val token = remote { mastodon.exchangeCode(pending.instance, clientId, clientSecret, pending.redirect_uri, request.code, SCOPES, pending.code_verifier) }
         return connect(projectId, pending.instance, token, TokenClient(clientId, clientSecret), channelId = pending.channel_id, newId = null)
     }
 
     /** Takes over an account a phone was signed in to, with its token, after checking it works. */
     suspend fun import(projectId: String, request: ImportAccountRequest): ChannelDto {
-        val instance = MastodonAccounts.normaliseInstance(request.instance)
+        val instance = requireInstance(request.instance)
         // Without the phone's app the token cannot be revoked from here; it still works.
         val client = request.clientId?.takeIf { it.isNotBlank() }?.let { id -> request.clientSecret?.takeIf { it.isNotBlank() }?.let { TokenClient(id, it) } }
         return connect(projectId, instance, request.accessToken.trim(), client, channelId = null, newId = request.channelId)
     }
+
+    /** [raw] as an instance's host name, or refused when it is not a public one. */
+    private fun requireInstance(raw: String): String =
+        MastodonAccounts.normaliseInstance(raw).takeIf(PublicHosts::isInstanceName) ?: throw ApiException.badRequest("instance")
 
     /**
      * Which software runs [instance], refusing what cannot be connected: an
@@ -296,12 +302,21 @@ class Channels(
         db.instanceAppQueries.byKey(instance, redirectUri).executeAsOneOrNull()
             ?.takeIf { it.scopes == SCOPES }
             // Sealed under a master key that is gone: register again rather than fail every sign-in.
-            ?.let { app -> runCatching { crypto.open(app.client_secret_ciphertext, app.client_secret_nonce) }.getOrNull()?.let { return app.client_id to it } }
+            ?.let { app -> runCatching { crypto.open(app.client_secret_ciphertext, app.client_secret_nonce, appContext(instance, redirectUri)) }.getOrNull()?.let { return app.client_id to it } }
         val registration = remote { mastodon.registerApp(instance, CLIENT_NAME, redirectUri, SCOPES, WEBSITE) }
-        val sealed = crypto.seal(registration.client_secret)
+        val sealed = crypto.seal(registration.client_secret, appContext(instance, redirectUri))
         db.instanceAppQueries.upsert(instance, redirectUri, registration.client_id, sealed.ciphertext, sealed.nonce, SCOPES, clock())
         return registration.client_id to registration.client_secret
     }
+
+    /** Seals again, bound to its place, every app secret sealed before values were bound. Returns how many. */
+    internal fun bindAppSecrets(): Int = db.instanceAppQueries.everything().executeAsList().count { app ->
+        val sealed = crypto.rebind(app.client_secret_ciphertext, app.client_secret_nonce, appContext(app.instance, app.redirect_uri)) ?: return@count false
+        db.instanceAppQueries.upsert(app.instance, app.redirect_uri, app.client_id, sealed.ciphertext, sealed.nonce, app.scopes, app.created_at)
+        true
+    }
+
+    private fun appContext(instance: String, redirectUri: String) = "instance-app|$instance|$redirectUri"
 
     private suspend fun <T> remote(block: suspend () -> T): T = try {
         block()
@@ -317,6 +332,9 @@ class Channels(
         const val CLIENT_NAME = "FediFerry"
         const val WEBSITE = "https://github.com/merloto9/fediferry"
         private const val PENDING_TTL_MS = 30 * 60 * 1000L
+
+        /** Where a sign-in may come back to: the app's schemes, release and debug, under both its names. */
+        val REDIRECT_URIS = setOf("neoferry://oauth", "neoferry-debug://oauth", "fediferry://oauth", "fediferry-debug://oauth")
 
         fun tokenId(channelId: String) = "channel-token:$channelId"
 

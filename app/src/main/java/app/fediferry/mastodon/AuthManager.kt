@@ -45,8 +45,12 @@ class AuthManager(
     private val tokens: TokenStore,
 ) {
 
-    /** One authorisation under way. No secret in it, so it is kept in plain preferences. */
-    private data class Pending(val instance: String, val state: String, val channelId: String? = null)
+    /**
+     * One authorisation under way, kept in the app's private preferences. The
+     * PKCE verifier is a secret only until the code is exchanged, and never
+     * leaves this phone.
+     */
+    private data class Pending(val instance: String, val state: String, val channelId: String? = null, val verifier: String? = null)
 
     /** A finished sign-in: the account, its id on the instance, and the channel it was for. */
     data class Connected(val account: Account, val remoteAccountId: String, val channelId: String?)
@@ -61,15 +65,22 @@ class AuthManager(
         get() {
             val instance = prefs.getString(KEY_INSTANCE, null) ?: return null
             val state = prefs.getString(KEY_STATE, null) ?: return null
-            return Pending(instance, state, prefs.getString(KEY_CHANNEL, null))
+            return Pending(instance, state, prefs.getString(KEY_CHANNEL, null), prefs.getString(KEY_VERIFIER, null))
         }
         set(value) {
             // Written at once: the browser opens next, and Android may end the app behind it.
             prefs.edit(commit = true) {
-                if (value == null) clear()
-                else putString(KEY_INSTANCE, value.instance).putString(KEY_STATE, value.state).putString(KEY_CHANNEL, value.channelId)
+                if (value == null) {
+                    clear()
+                } else {
+                    putString(KEY_INSTANCE, value.instance).putString(KEY_STATE, value.state)
+                        .putString(KEY_CHANNEL, value.channelId).putString(KEY_VERIFIER, value.verifier)
+                }
             }
         }
+
+    /** The state of the sign-in under way, so a redirect for another one can be told apart. */
+    fun pendingState(): String? = pending?.state
 
     /**
      * Registers with [rawInstance] if need be and returns where to sign in, for
@@ -77,15 +88,18 @@ class AuthManager(
      */
     suspend fun authorize(rawInstance: String, channelId: String?): AuthorizeResponse {
         val instance = normalise(rawInstance)
-        val app = accounts.appFor(instance)?.takeIf { it.scopes == SCOPES } ?: registerApp(instance)
+        val app = accounts.appFor(instance)?.takeIf { it.scopes == SCOPES && (it.redirectUri ?: REDIRECT_URI) == REDIRECT_URI }
+            ?: registerApp(instance)
         val state = randomState()
-        pending = Pending(instance, state, channelId)
+        val verifier = Pkce.verifier()
+        pending = Pending(instance, state, channelId, verifier)
         val url = client.authorizeUrl(
             instance = instance,
             clientId = app.clientId,
             redirectUri = REDIRECT_URI,
             scopes = SCOPES,
             state = state,
+            codeVerifier = verifier,
         )
         return AuthorizeResponse(url, state)
     }
@@ -113,6 +127,7 @@ class AuthManager(
                 redirectUri = REDIRECT_URI,
                 code = code,
                 scopes = SCOPES,
+                codeVerifier = session.verifier,
             )
             val me = client.verifyCredentials(session.instance, token.accessToken)
 
@@ -170,7 +185,7 @@ class AuthManager(
             scopes = SCOPES,
             website = WEBSITE,
         )
-        return InstanceApp(instance, registration.clientId, registration.clientSecret, scopes = SCOPES)
+        return InstanceApp(instance, registration.clientId, registration.clientSecret, scopes = SCOPES, redirectUri = REDIRECT_URI)
             .also { accounts.upsertApp(it) }
     }
 
@@ -198,6 +213,7 @@ class AuthManager(
         private const val KEY_INSTANCE = "instance"
         private const val KEY_STATE = "state"
         private const val KEY_CHANNEL = "channel"
+        private const val KEY_VERIFIER = "verifier"
 
         val REDIRECT_URI: String get() = "${BuildConfig.OAUTH_SCHEME}://oauth"
     }

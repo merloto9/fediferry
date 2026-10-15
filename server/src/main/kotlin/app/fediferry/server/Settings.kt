@@ -111,15 +111,23 @@ fun Route.settingsRoutes(services: Services) {
     // Secrets go in and are used by the server; only their names come back.
     get("/secrets") { call.respond(services.secrets.ids(call.projectId())) }
 
+    // Only AI keys come from phones. A channel's token is the server's own,
+    // set by signing in, and is never written or removed through here.
     put("/secrets/{id}") {
-        val id = call.parameters["id"].orEmpty()
-        if (id.isBlank() || id.length > 200) throw ApiException.badRequest("id")
+        val id = requireClientSecretId(call.parameters["id"].orEmpty())
         services.secrets.put(call.projectId(), id, call.receive<SecretInput>().value)
         call.respond(HttpStatusCode.NoContent)
     }
 
     delete("/secrets/{id}") {
-        services.secrets.delete(call.projectId(), call.parameters["id"].orEmpty())
+        services.secrets.delete(call.projectId(), requireClientSecretId(call.parameters["id"].orEmpty()))
         call.respond(HttpStatusCode.NoContent)
     }
+}
+
+/** [id] when a phone may set or remove it: an AI model's key. */
+private fun requireClientSecretId(id: String): String {
+    val model = SecretIds.aiModelOf(id)
+    if (model.isNullOrBlank() || id.length > 200) throw ApiException.badRequest("id")
+    return id
 }

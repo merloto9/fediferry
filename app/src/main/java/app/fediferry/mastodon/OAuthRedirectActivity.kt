@@ -58,8 +58,15 @@ class OAuthRedirectActivity : ComponentActivity() {
         val error = data?.getQueryParameter("error")
 
         if (code == null || state == null) {
-            ServiceLocator.auth(this).cancel()
-            toast(error?.let { getString(R.string.auth_failed, it) } ?: getString(R.string.auth_cancelled))
+            // Any app can open this address. Only a reply to the sign-in under
+            // way ends it; anything else is ignored, its text never shown.
+            val auth = ServiceLocator.auth(this)
+            val phone = state != null && state == auth.pendingState()
+            if (phone) auth.cancel()
+            val ours = phone || (state != null && PendingChannelSignIn.take(this, state))
+            if (ours) {
+                toast(error?.let { getString(R.string.auth_failed, it) } ?: getString(R.string.auth_cancelled))
+            }
             openApp()
             return
         }

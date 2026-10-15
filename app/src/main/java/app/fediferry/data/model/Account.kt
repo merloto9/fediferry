@@ -50,4 +50,11 @@ data class InstanceApp(
      * Null for registrations made before this was recorded.
      */
     val scopes: String? = null,
+    /**
+     * The redirect the client was registered with. An instance refuses a
+     * sign-in that comes back anywhere else, so a registration made for
+     * another app scheme is replaced. Null for registrations made before this
+     * was recorded, which were made for this install's own scheme.
+     */
+    val redirectUri: String? = null,
 )

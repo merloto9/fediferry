@@ -81,6 +81,7 @@ class MastodonClient(private val http: OkHttpClient, private val context: Contex
         redirectUri: String,
         scopes: String,
         state: String,
+        codeVerifier: String,
     ): String = base(instance)
         .addPathSegments("oauth/authorize")
         .addQueryParameter("client_id", clientId)
@@ -88,6 +89,8 @@ class MastodonClient(private val http: OkHttpClient, private val context: Contex
         .addQueryParameter("response_type", "code")
         .addQueryParameter("scope", scopes)
         .addQueryParameter("state", state)
+        .addQueryParameter("code_challenge", Pkce.challenge(codeVerifier))
+        .addQueryParameter("code_challenge_method", Pkce.METHOD)
         .build()
         .toString()
 
@@ -99,6 +102,7 @@ class MastodonClient(private val http: OkHttpClient, private val context: Contex
         redirectUri: String,
         code: String,
         scopes: String,
+        codeVerifier: String?,
     ): TokenResponse = withContext(Dispatchers.IO) {
         val form = FormBody.Builder()
             .add("grant_type", "authorization_code")
@@ -107,6 +111,7 @@ class MastodonClient(private val http: OkHttpClient, private val context: Contex
             .add("redirect_uri", redirectUri)
             .add("code", code)
             .add("scope", scopes)
+            .apply { codeVerifier?.let { add("code_verifier", it) } }
             .build()
 
         val request = Request.Builder()

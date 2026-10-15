@@ -88,6 +88,24 @@ class Services(
     val intake = Intake(storage, media, posts, resolvers, fetcher, clock) { projectId, picture, trim -> readyScreenshot(projectId, picture, trim) }
     val publishing = Publishing(storage, feed, posts, channels, media, settings, publisher, clock)
 
+    init {
+        bindSealedValues()
+    }
+
+    /**
+     * Once, on the first start after values were bound to their place: every
+     * secret sealed before is sealed again, bound. Afterwards only bound
+     * values open, so a value copied into another row is refused.
+     */
+    private fun bindSealedValues() {
+        val marker = File(dataDir, "secrets-bound")
+        if (marker.exists()) return
+        val count = storage.db.transactionWithResult { secrets.bindAll() + channels.bindAppSecrets() }
+        dataDir.mkdirs()
+        marker.writeText("1")
+        if (count > 0) LoggerFactory.getLogger("crypto").info("Bound {} stored secret(s) to their place", count)
+    }
+
     /** Sweeps every project's unused files and orphaned model keys now and then every [intervalMs]. */
     fun startSweeping(scope: CoroutineScope, intervalMs: Long = SWEEP_INTERVAL_MS): Job = scope.launch {
         while (isActive) {
@@ -110,6 +128,8 @@ internal val outboundHttp: OkHttpClient by lazy {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .followRedirects(true)
+        // Redirects are followed, so the check sits at the connection, where it covers every hop.
+        .dns(PublicHosts.dns)
         .build()
 }
 

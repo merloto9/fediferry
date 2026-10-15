@@ -17,3 +17,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 
 byKey:
 SELECT * FROM instance_app WHERE instance = ? AND redirect_uri = ?;
+
+everything:
+SELECT * FROM instance_app;

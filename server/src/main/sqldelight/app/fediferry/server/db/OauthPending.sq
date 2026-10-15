@@ -6,14 +6,17 @@ CREATE TABLE oauth_pending (
     redirect_uri TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     -- The channel the account is for; null makes a new one.
-    channel_id TEXT
+    channel_id TEXT,
+    -- PKCE: sent to the instance with the code, never to a client.
+    code_verifier TEXT
 );
 
 insert:
-INSERT INTO oauth_pending(state, project_id, instance, redirect_uri, created_at, channel_id) VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO oauth_pending(state, project_id, instance, redirect_uri, created_at, channel_id, code_verifier) VALUES (?, ?, ?, ?, ?, ?, ?);
 
+-- Only a state still fresh: an old one is as good as gone.
 take:
-SELECT * FROM oauth_pending WHERE state = ? AND project_id = ?;
+SELECT * FROM oauth_pending WHERE state = ? AND project_id = ? AND created_at >= ?;
 
 delete:
 DELETE FROM oauth_pending WHERE state = ?;

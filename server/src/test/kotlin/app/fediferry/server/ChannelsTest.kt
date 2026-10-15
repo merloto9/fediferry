@@ -48,6 +48,9 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import app.fediferry.api.SecretInput
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import io.ktor.client.request.put
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -71,6 +74,8 @@ class ChannelsTest {
     private var statusesDown = false
     /** Each revoke the fake instance received: client id, client secret and token. */
     private val revoked = mutableListOf<Triple<String?, String?, String?>>()
+    /** The PKCE verifier the last token exchange carried. */
+    private var tokenVerifier: String? = null
     /** What the fake instance says it runs. */
     private var software = "mastodon"
 
@@ -81,7 +86,11 @@ class ChannelsTest {
             "/.well-known/nodeinfo" -> 200 to """{"links":[{"rel":"http://nodeinfo.diaspora.software/ns/schema/2.0","href":"https://${request.url.host}/nodeinfo/2.0"}]}"""
             "/nodeinfo/2.0" -> 200 to """{"version":"2.0","software":{"name":"$software","version":"1"}}"""
             "/api/v1/apps" -> { appRegistrations++; 200 to """{"client_id":"cid","client_secret":"csecret"}""" }
-            "/oauth/token" -> 200 to """{"access_token":"good-token","token_type":"Bearer"}"""
+            "/oauth/token" -> {
+                val form = request.body as okhttp3.FormBody
+                tokenVerifier = (0 until form.size).firstOrNull { form.name(it) == "code_verifier" }?.let(form::value)
+                200 to """{"access_token":"good-token","token_type":"Bearer"}"""
+            }
             "/oauth/revoke" -> {
                 val form = request.body as okhttp3.FormBody
                 val field = { name: String -> (0 until form.size).firstOrNull { form.name(it) == name }?.let(form::value) }
@@ -146,6 +155,51 @@ class ChannelsTest {
 
         val projectId = services.projects.all().single().id
         assertEquals("good-token", services.channels.token(projectId, channel.id))
+    }
+
+    @Test
+    fun `a sign-in through the server uses PKCE`() = test { client, token ->
+        val auth = client.postJson("/api/v1/channels/mastodon/authorize", token, AuthorizeRequest("mastodon.social", "fediferry-debug://oauth")).body<AuthorizeResponse>()
+        val url = auth.url.toHttpUrl()
+        assertEquals("S256", url.queryParameter("code_challenge_method"))
+        client.postJson("/api/v1/channels/mastodon/complete", token, CompleteRequest("the-code", auth.state))
+        // The verifier never left the server until the exchange, and it matches the challenge.
+        assertEquals(url.queryParameter("code_challenge"), app.fediferry.mastodon.Pkce.challenge(tokenVerifier!!))
+    }
+
+    @Test
+    fun `a sign-in may only come back to the app`() = test { client, token ->
+        val evil = client.postJson("/api/v1/channels/mastodon/authorize", token, AuthorizeRequest("mastodon.social", "https://evil.example/cb"))
+        assertEquals(HttpStatusCode.BadRequest, evil.status)
+    }
+
+    @Test
+    fun `the server talks only to public instances`() = test { client, token ->
+        listOf("127.0.0.1", "localhost", "169.254.169.254", "mastodon.social:8443", "nas.local").forEach { host ->
+            val auth = client.postJson("/api/v1/channels/mastodon/authorize", token, AuthorizeRequest(host, "fediferry-debug://oauth"))
+            assertEquals(host, HttpStatusCode.BadRequest, auth.status)
+            val import = client.postJson("/api/v1/channels/mastodon/import", token, ImportAccountRequest(host, "good-token"))
+            assertEquals(host, HttpStatusCode.BadRequest, import.status)
+        }
+    }
+
+    @Test
+    fun `an old sign-in state has run out`() = test { client, token ->
+        val projectId = services.projects.all().single().id
+        val halfAnHourAgo = System.currentTimeMillis() - 31 * 60 * 1000L
+        storage.db.oauthPendingQueries.insert("old-state", projectId, "mastodon.social", "fediferry-debug://oauth", halfAnHourAgo, null, "v")
+        val late = client.postJson("/api/v1/channels/mastodon/complete", token, CompleteRequest("the-code", "old-state"))
+        assertEquals(HttpStatusCode.BadRequest, late.status)
+    }
+
+    @Test
+    fun `a channel's token cannot be set or removed as a secret`() = test { client, token ->
+        val channel = client.signIn(token)
+        val id = "channel-token:${channel.id}"
+        val put = client.put("/api/v1/secrets/${enc(id)}") { bearerAuth(token); contentType(ContentType.Application.Json); setBody(SecretInput("planted")) }
+        assertEquals(HttpStatusCode.BadRequest, put.status)
+        assertEquals(HttpStatusCode.BadRequest, client.delete("/api/v1/secrets/${enc(id)}") { bearerAuth(token) }.status)
+        assertEquals("good-token", services.channels.token(services.projects.all().single().id, channel.id))
     }
 
     @Test

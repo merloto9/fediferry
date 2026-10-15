@@ -146,11 +146,35 @@ class SettingsTest {
     }
 
     @Test
+    fun `a secret is bound to its place, and older ones are bound once`() = test { _, _ ->
+        val projectId = services.projects.all().single().id
+        services.secrets.put(projectId, "ai-model:a", "sk-a")
+        // Copied into another row, it does not open there.
+        val row = storage.db.secretQueries.byId(projectId, "ai-model:a").executeAsOne()
+        storage.db.secretQueries.upsert(projectId, "ai-model:b", row.ciphertext, row.nonce, 0)
+        assertEquals(null, services.secrets.get(projectId, "ai-model:b"))
+
+        // One sealed before binding opens again after the next start, bound.
+        val key = java.util.Base64.getDecoder().decode(File(dir, "master.key").readText().trim())
+        val nonce = ByteArray(12).also(java.security.SecureRandom()::nextBytes)
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding").apply {
+            init(javax.crypto.Cipher.ENCRYPT_MODE, javax.crypto.spec.SecretKeySpec(key, "AES"), javax.crypto.spec.GCMParameterSpec(128, nonce))
+        }
+        val b64 = java.util.Base64.getEncoder()
+        storage.db.secretQueries.upsert(projectId, "ai-model:old", b64.encodeToString(cipher.doFinal("sk-old".toByteArray())), b64.encodeToString(nonce), 0)
+        assertEquals(null, services.secrets.get(projectId, "ai-model:old"))
+        File(dir, "secrets-bound").delete()
+        val again = Services(storage, dir)
+        assertEquals("sk-old", again.secrets.get(projectId, "ai-model:old"))
+        assertEquals("sk-a", again.secrets.get(projectId, "ai-model:a"))
+    }
+
+    @Test
     fun `the master key is made once and kept`() {
         val a = Crypto.load(dir, env = null)
-        val sealed = a.seal("hello")
+        val sealed = a.seal("hello", "here")
         val b = Crypto.load(dir, env = null)
-        assertEquals("hello", b.open(sealed.ciphertext, sealed.nonce))
+        assertEquals("hello", b.open(sealed.ciphertext, sealed.nonce, "here"))
         assertTrue(File(dir, "master.key").exists())
     }
 }

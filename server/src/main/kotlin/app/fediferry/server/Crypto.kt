@@ -36,6 +36,9 @@ import org.slf4j.LoggerFactory
  * `FEDIFERRY_MASTER_KEY` (base64, 32 bytes) or, failing that, from
  * `<data>/master.key`, made on first start and readable by the server only.
  * Losing the key means those secrets have to be entered again; nothing else.
+ *
+ * Each value is bound to where it is stored (its `context`, as associated
+ * data): a value copied into another row or project does not open there.
  */
 class Crypto(private val key: ByteArray) {
     init {
@@ -46,17 +49,30 @@ class Crypto(private val key: ByteArray) {
 
     data class Sealed(val ciphertext: String, val nonce: String)
 
-    fun seal(plain: String): Sealed {
+    fun seal(plain: String, context: String): Sealed {
         val nonce = ByteArray(12).also(random::nextBytes)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce))
+        cipher.updateAAD(context.toByteArray())
         val bytes = cipher.doFinal(plain.toByteArray())
         return Sealed(b64.encodeToString(bytes), b64.encodeToString(nonce))
     }
 
-    fun open(ciphertext: String, nonce: String): String {
+    /** Opens a value sealed for [context]; throws when it was sealed for another place or under another key. */
+    fun open(ciphertext: String, nonce: String, context: String): String = decrypt(ciphertext, nonce, context)
+
+    /**
+     * Binds a value sealed before values were bound to their place: sealed
+     * again for [context]. Null when it does not open that way (already bound,
+     * or under another key). Only [bindSealedValues] uses it, once.
+     */
+    fun rebind(ciphertext: String, nonce: String, context: String): Sealed? =
+        runCatching { decrypt(ciphertext, nonce, null) }.getOrNull()?.let { seal(it, context) }
+
+    private fun decrypt(ciphertext: String, nonce: String, context: String?): String {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, b64d.decode(nonce)))
+        context?.let { cipher.updateAAD(it.toByteArray()) }
         return String(cipher.doFinal(b64d.decode(ciphertext)))
     }
 
@@ -70,9 +86,19 @@ class Crypto(private val key: ByteArray) {
             if (!file.exists()) {
                 dataDir.mkdirs()
                 val key = ByteArray(32).also(SecureRandom()::nextBytes)
-                file.writeText(b64.encodeToString(key))
-                runCatching { Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("rw-------")) }
+                // Created readable by the server only, rather than made so after it was written.
+                val path = runCatching {
+                    Files.createFile(file.toPath(), PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
+                }.getOrElse { e ->
+                    if (e !is UnsupportedOperationException) throw e
+                    Files.createFile(file.toPath()) // a file system without POSIX permissions
+                }
+                Files.write(path, b64.encodeToString(key).toByteArray())
             }
+            LoggerFactory.getLogger("crypto").warn(
+                "The master key is kept beside the data in {}; a backup of the data directory holds both. " +
+                    "Set FEDIFERRY_MASTER_KEY to keep it elsewhere.", file.absolutePath,
+            )
             return Crypto(b64d.decode(file.readText().trim()))
         }
     }
@@ -84,17 +110,26 @@ class Secrets(private val db: ServerDatabase, private val crypto: Crypto, privat
     private val log = LoggerFactory.getLogger(Secrets::class.java)
 
     fun put(projectId: String, id: String, value: String) {
-        val sealed = crypto.seal(value)
+        val sealed = crypto.seal(value, context(projectId, id))
         db.secretQueries.upsert(projectId, id, sealed.ciphertext, sealed.nonce, clock())
     }
 
     /** Null too when the secret was sealed under another master key: it has to be entered again. */
     fun get(projectId: String, id: String): String? =
         db.secretQueries.byId(projectId, id).executeAsOneOrNull()?.let { row ->
-            runCatching { crypto.open(row.ciphertext, row.nonce) }
+            runCatching { crypto.open(row.ciphertext, row.nonce, context(projectId, id)) }
                 .onFailure { log.warn("Secret {} cannot be opened with this master key", id) }
                 .getOrNull()
         }
+
+    /** Seals again, bound to its place, every secret sealed before values were bound. Returns how many. */
+    internal fun bindAll(): Int = db.secretQueries.everything().executeAsList().count { row ->
+        val sealed = crypto.rebind(row.ciphertext, row.nonce, context(row.project_id, row.id)) ?: return@count false
+        db.secretQueries.upsert(row.project_id, row.id, sealed.ciphertext, sealed.nonce, row.updated_at)
+        true
+    }
+
+    private fun context(projectId: String, id: String) = "secret|$projectId|$id"
 
     fun ids(projectId: String): List<String> = db.secretQueries.ids(projectId).executeAsList()
 

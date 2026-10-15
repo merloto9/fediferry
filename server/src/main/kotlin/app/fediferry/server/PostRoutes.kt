@@ -22,6 +22,7 @@ package app.fediferry.server
 import app.fediferry.api.AltSuggestionRequest
 import app.fediferry.api.CleanupArea
 import app.fediferry.api.DeriveRequest
+import app.fediferry.api.PostImport
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PlanRequest
 import app.fediferry.api.ScheduleInput
@@ -40,6 +41,7 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -85,6 +87,13 @@ fun Route.postRoutes(services: Services) {
         call.respond(HttpStatusCode.NoContent)
     }
     get("/labels") { call.respond(posts.labels(call.projectId())) }
+
+    /** A post from a phone's own project, taken over as it is; repeating the same import id returns the first result. */
+    put("/import/posts/{importId}") {
+        val importId = call.parameters["importId"].orEmpty()
+        if (importId.isBlank() || importId.length > 64) throw ApiException.badRequest("import_id")
+        call.respond(posts.importPost(call.projectId(), call.deviceId(), importId, call.receive<PostImport>()))
+    }
 
     val publishing = services.publishing
     post("/posts/{id}/plan") {

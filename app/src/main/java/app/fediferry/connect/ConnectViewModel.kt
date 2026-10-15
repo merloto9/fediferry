@@ -29,6 +29,7 @@ import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ConnectState(
@@ -38,14 +39,29 @@ data class ConnectState(
     val error: String? = null,
     /** Posts kept on this phone that are not in the project yet. */
     val waitingToImport: Int = 0,
-    /** How many were just queued for copying, to confirm it. */
+    /** How many were just copied, to confirm it. */
     val justImported: Int? = null,
+    /** A checked project this phone would bring its own into, waiting for the user's yes or no. */
+    val pendingJoin: PendingJoin? = null,
+    /** This phone's project is being copied into the server's. */
+    val joining: Boolean = false,
+)
+
+/** A project ready to join, what joining copies, and the side chosen for each conflict. */
+data class PendingJoin(
+    val connection: ServerConnection,
+    val plan: JoinPlan,
+    val choices: Map<String, MergeSide> = plan.conflicts.associate { it.key to MergeSide.SERVER },
 )
 
 /**
  * Connects this phone to a FediFerry server project: checks the address,
  * checks the token by asking for its project, registers the phone, and keeps
  * the result. Nothing is kept until all three have worked.
+ *
+ * A phone with a project of its own does not connect straight away: it shows
+ * what joining would copy, and asks which side stays where both have one
+ * thing differently. Going back leaves everything as it was.
  */
 class ConnectViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -57,6 +73,10 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
     private var lastAddress: String? = null
 
     private val importer get() = ServiceLocator.localImporter(getApplication())
+    private val merge get() = ServiceLocator.projectMerge(getApplication())
+
+    /** Copying outlives this screen: leaving it half-way must not stop it. */
+    private val appScope get() = ServiceLocator.appScope
 
     init {
         refreshImport()
@@ -64,19 +84,22 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun refreshImport() = viewModelScope.launch {
         val connection = connections.current() ?: return@launch
-        _state.value = _state.value.copy(waitingToImport = importer.waiting(connection.projectId))
+        _state.update { it.copy(waitingToImport = importer.waiting(connection.projectId)) }
     }
 
-    /** Copies this phone's posts into the project as drafts. */
-    fun importPosts() = viewModelScope.launch {
+    /** Copies this phone's posts not in the project yet: a try again after an interrupted join. */
+    fun importPosts() = appScope.launch {
         val connection = connections.current() ?: return@launch
-        val queued = importer.importAll(connection.projectId)
-        _state.value = _state.value.copy(waitingToImport = importer.waiting(connection.projectId), justImported = queued)
+        _state.update { it.copy(joining = true) }
+        val copied = runCatching {
+            merge.copyPostsAndSchedules(connections.client(connection), connection.projectId, merge.channels(connection.projectId))
+        }.getOrDefault(0)
+        _state.update { it.copy(joining = false, waitingToImport = importer.waiting(connection.projectId), justImported = copied) }
     }
 
     fun connect(address: String, token: String) = viewModelScope.launch {
         lastAddress = address
-        _state.value = _state.value.copy(busy = true, error = null)
+        _state.update { it.copy(busy = true, error = null) }
         val cleanAddress = ServerClient.normalise(address)?.toString()?.trimEnd('/')
         val cleanToken = token.trim()
         val result = runCatching {
@@ -84,17 +107,64 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
             val client = connections.client(cleanAddress, cleanToken)
             client.health()
             val project = client.project()
-            client.registerDevice(connections.registration())
-            ServerConnection(cleanAddress, project.id, project.name, cleanToken, connections.deviceId)
+            val connection = ServerConnection(cleanAddress, project.id, project.name, cleanToken, connections.deviceId)
+            connection to merge.plan(client)
         }
-        result.onSuccess { connection ->
+        result.onSuccess { (connection, plan) ->
+            if (plan.phoneHasOwn) {
+                _state.update { it.copy(busy = false, pendingJoin = PendingJoin(connection, plan)) }
+            } else {
+                join(connection, plan = null)
+            }
+        }.onFailure { e ->
+            _state.update { it.copy(busy = false, error = describe(e)) }
+        }
+    }
+
+    /** Which side stays for one conflict. */
+    fun choose(key: String, side: MergeSide) = _state.update { s ->
+        s.copy(pendingJoin = s.pendingJoin?.let { it.copy(choices = it.choices + (key to side)) })
+    }
+
+    /** The same side for every conflict. */
+    fun chooseAll(side: MergeSide) = _state.update { s ->
+        s.copy(pendingJoin = s.pendingJoin?.let { p -> p.copy(choices = p.plan.conflicts.associate { it.key to side }) })
+    }
+
+    /** Back without connecting: nothing was kept, nothing changed. */
+    fun cancelJoin() = _state.update { it.copy(pendingJoin = null) }
+
+    /** Yes: joins, copying this phone's project into the server's with the sides chosen. */
+    fun confirmJoin() {
+        val pending = _state.value.pendingJoin ?: return
+        join(pending.connection, pending)
+    }
+
+    /**
+     * Registers the phone and keeps the connection. With a [plan], settings
+     * and channels are merged first, and posts are copied once connected.
+     * Without one, the first sync takes the project's settings, or sends this
+     * phone's to a project that has none.
+     */
+    private fun join(connection: ServerConnection, plan: PendingJoin?) = appScope.launch {
+        _state.update { it.copy(busy = true, joining = plan != null, error = null) }
+        val client = connections.client(connection)
+        val result = runCatching {
+            client.registerDevice(connections.registration())
+            val channels = plan?.let { merge.mergeSettingsAndChannels(client, connection.projectId, it.choices) }
             connections.save(connection)
-            // The first sync: this phone's settings go up, or the project's come down.
             ServiceLocator.projectSync(getApplication()).restartFollowing()
-            _state.value = ConnectState(connection = connection)
+            _state.update { ConnectState(connection = connection, joining = plan != null) }
+            channels
+        }
+        result.onSuccess { channels ->
+            if (channels != null) {
+                val copied = runCatching { merge.copyPostsAndSchedules(client, connection.projectId, channels) }.getOrDefault(0)
+                _state.update { it.copy(joining = false, justImported = copied) }
+            }
             refreshImport()
         }.onFailure { e ->
-            _state.value = _state.value.copy(busy = false, error = describe(e))
+            _state.update { it.copy(busy = false, joining = false, error = describe(e)) }
         }
     }
 

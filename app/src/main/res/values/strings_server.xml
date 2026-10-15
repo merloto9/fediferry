@@ -21,9 +21,69 @@
         <item quantity="one">%1$d post on this phone is not in the project yet.</item>
         <item quantity="other">%1$d posts on this phone are not in the project yet.</item>
     </plurals>
-    <string name="server_import">Copy them as drafts</string>
+    <string name="server_import">Copy them over</string>
     <plurals name="server_imported">
-        <item quantity="one">%1$d post is being copied as a draft.</item>
-        <item quantity="other">%1$d posts are being copied as drafts.</item>
+        <item quantity="one">%1$d post was copied, in the stage it was in.</item>
+        <item quantity="other">%1$d posts were copied, in the stage they were in.</item>
     </plurals>
+    <string name="server_joining">Copying this phone\'s project…</string>
+
+    <!-- Joining a server project with a phone that has a project of its own -->
+    <string name="join_title">This phone already has a project</string>
+    <string name="join_intro">Connecting to \"%1$s\" copies this phone\'s project into it. Nothing in the server project is deleted, and what only one side has is kept on both. This phone keeps its own copy of its posts for when you disconnect.</string>
+    <string name="join_copies">What goes to the server:</string>
+    <plurals name="join_drafts">
+        <item quantity="one">%1$d draft, staying a draft</item>
+        <item quantity="other">%1$d drafts, staying drafts</item>
+    </plurals>
+    <plurals name="join_in_review">
+        <item quantity="one">%1$d post in review, staying in review with its folder and labels</item>
+        <item quantity="other">%1$d posts in review, staying in review with their folders and labels</item>
+    </plurals>
+    <plurals name="join_planned">
+        <item quantity="one">%1$d planned post, planned on the server for the same time; it leaves this phone\'s queue</item>
+        <item quantity="other">%1$d planned posts, planned on the server for the same time; they leave this phone\'s queue</item>
+    </plurals>
+    <plurals name="join_channels">
+        <item quantity="one">%1$d channel. Its Mastodon account moves to the server, and this phone signs out of it</item>
+        <item quantity="other">%1$d channels. Their Mastodon accounts move to the server, and this phone signs out of them</item>
+    </plurals>
+    <plurals name="join_schedules">
+        <item quantity="one">%1$d upload schedule</item>
+        <item quantity="other">%1$d upload schedules</item>
+    </plurals>
+    <plurals name="join_hashtags">
+        <item quantity="one">%1$d hashtag; how often each was used is added up</item>
+        <item quantity="other">%1$d hashtags; how often each was used is added up</item>
+    </plurals>
+    <plurals name="join_ai_models">
+        <item quantity="one">%1$d AI model, with its key</item>
+        <item quantity="other">%1$d AI models, with their keys</item>
+    </plurals>
+    <plurals name="join_other_settings">
+        <item quantity="one">%1$d other setting (template, placeholder, clean-up, source)</item>
+        <item quantity="other">%1$d other settings (templates, placeholders, clean-up, sources)</item>
+    </plurals>
+    <plurals name="join_from_server">
+        <item quantity="one">The project brings %1$d setting this phone does not have yet.</item>
+        <item quantity="other">The project brings %1$d settings this phone does not have yet.</item>
+    </plurals>
+    <string name="join_conflicts">Both have these, but differently. Choose which to keep:</string>
+    <string name="join_keep_phone">This phone</string>
+    <string name="join_keep_server">Server</string>
+    <string name="join_all_phone">All from this phone</string>
+    <string name="join_all_server">All from the server</string>
+    <string name="join_default_of">Default: %1$s</string>
+    <string name="join_back">Back, don\'t connect</string>
+    <string name="join_confirm">Connect and copy</string>
+    <string name="join_area_template">Template</string>
+    <string name="join_area_placeholder_key">Placeholder</string>
+    <string name="join_area_hashtag">Hashtag</string>
+    <string name="join_area_ai_model">AI model</string>
+    <string name="join_area_cleanup_profile">Clean-up profile</string>
+    <string name="join_area_cleanup_rule">Clean-up rule</string>
+    <string name="join_area_source">Source</string>
+    <string name="join_area_channel">Channel</string>
+    <string name="join_ai_alt_text">alt-text model</string>
+    <string name="join_ai_image_edit">image-edit model</string>
 </resources>

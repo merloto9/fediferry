@@ -95,6 +95,37 @@ data class PostPatch(
 )
 
 /** One picture's change: its alt text, or a replacement asset (an edit of it). */
+/**
+ * `PUT /import/posts/{importId}`: a post a phone kept in its own project,
+ * taken into the server's as it is — its text, its pictures (uploaded first
+ * through `POST /media`) and its stage. A ready post stays ready with the
+ * text it was frozen with; it is not checked again.
+ */
+@Serializable
+data class PostImport(
+    /** DRAFT or READY; anything else arrives as READY. */
+    val stage: String,
+    val channelId: String? = null,
+    val body: String = "",
+    val hashtags: List<String> = emptyList(),
+    val addSourceHashtags: Boolean = true,
+    val contentWarning: String? = null,
+    val visibility: String = "PUBLIC",
+    val sourceUrl: String? = null,
+    val origin: String? = null,
+    val sourceFields: Map<String, String> = emptyMap(),
+    val linkMayIdentify: Boolean = false,
+    val media: List<PostMediaImport> = emptyList(),
+    val finalText: String? = null,
+    val readyAt: Long? = null,
+    val reviewFolderId: String? = null,
+    val labels: List<String> = emptyList(),
+    val createdAt: Long,
+)
+
+@Serializable
+data class PostMediaImport(val assetId: String, val altText: String? = null, val altFailed: Boolean = false)
+
 @Serializable
 data class PostMediaPatch(val position: Int, val altText: String? = null, val assetId: String? = null, val remove: Boolean = false)
 

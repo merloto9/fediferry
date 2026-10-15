@@ -21,9 +21,69 @@
         <item quantity="one">%1$d Beitrag auf diesem Telefon ist noch nicht im Projekt.</item>
         <item quantity="other">%1$d Beiträge auf diesem Telefon sind noch nicht im Projekt.</item>
     </plurals>
-    <string name="server_import">Als Entwürfe kopieren</string>
+    <string name="server_import">Jetzt kopieren</string>
     <plurals name="server_imported">
-        <item quantity="one">%1$d Beitrag wird als Entwurf kopiert.</item>
-        <item quantity="other">%1$d Beiträge werden als Entwürfe kopiert.</item>
+        <item quantity="one">%1$d Beitrag wurde kopiert, in der Phase, in der er war.</item>
+        <item quantity="other">%1$d Beiträge wurden kopiert, in der Phase, in der sie waren.</item>
     </plurals>
+    <string name="server_joining">Das Projekt dieses Telefons wird kopiert…</string>
+
+    <!-- Einem Serverprojekt beitreten, wenn das Telefon ein eigenes Projekt hat -->
+    <string name="join_title">Dieses Telefon hat schon ein Projekt</string>
+    <string name="join_intro">Beim Verbinden mit „%1$s“ wird das Projekt dieses Telefons hineinkopiert. Im Serverprojekt wird nichts gelöscht, und was nur eine Seite hat, bleibt auf beiden erhalten. Dieses Telefon behält seine Beiträge für den Fall, dass du die Verbindung trennst.</string>
+    <string name="join_copies">Das geht auf den Server:</string>
+    <plurals name="join_drafts">
+        <item quantity="one">%1$d Entwurf, bleibt Entwurf</item>
+        <item quantity="other">%1$d Entwürfe, bleiben Entwürfe</item>
+    </plurals>
+    <plurals name="join_in_review">
+        <item quantity="one">%1$d Beitrag in Prüfung, bleibt in Prüfung mit Ordner und Labels</item>
+        <item quantity="other">%1$d Beiträge in Prüfung, bleiben in Prüfung mit Ordnern und Labels</item>
+    </plurals>
+    <plurals name="join_planned">
+        <item quantity="one">%1$d geplanter Beitrag, auf dem Server zur selben Zeit geplant; er verlässt die Warteschlange dieses Telefons</item>
+        <item quantity="other">%1$d geplante Beiträge, auf dem Server zur selben Zeit geplant; sie verlassen die Warteschlange dieses Telefons</item>
+    </plurals>
+    <plurals name="join_channels">
+        <item quantity="one">%1$d Kanal. Sein Mastodon-Konto zieht auf den Server um, dieses Telefon meldet sich davon ab</item>
+        <item quantity="other">%1$d Kanäle. Ihre Mastodon-Konten ziehen auf den Server um, dieses Telefon meldet sich davon ab</item>
+    </plurals>
+    <plurals name="join_schedules">
+        <item quantity="one">%1$d Veröffentlichungsplan</item>
+        <item quantity="other">%1$d Veröffentlichungspläne</item>
+    </plurals>
+    <plurals name="join_hashtags">
+        <item quantity="one">%1$d Hashtag; wie oft er benutzt wurde, wird zusammengezählt</item>
+        <item quantity="other">%1$d Hashtags; wie oft sie benutzt wurden, wird zusammengezählt</item>
+    </plurals>
+    <plurals name="join_ai_models">
+        <item quantity="one">%1$d KI-Modell, mit Schlüssel</item>
+        <item quantity="other">%1$d KI-Modelle, mit ihren Schlüsseln</item>
+    </plurals>
+    <plurals name="join_other_settings">
+        <item quantity="one">%1$d weitere Einstellung (Vorlage, Platzhalter, Bereinigung, Quelle)</item>
+        <item quantity="other">%1$d weitere Einstellungen (Vorlagen, Platzhalter, Bereinigung, Quellen)</item>
+    </plurals>
+    <plurals name="join_from_server">
+        <item quantity="one">Das Projekt bringt %1$d Einstellung mit, die dieses Telefon noch nicht hat.</item>
+        <item quantity="other">Das Projekt bringt %1$d Einstellungen mit, die dieses Telefon noch nicht hat.</item>
+    </plurals>
+    <string name="join_conflicts">Beide haben das, aber unterschiedlich. Wähle, was bleibt:</string>
+    <string name="join_keep_phone">Dieses Telefon</string>
+    <string name="join_keep_server">Server</string>
+    <string name="join_all_phone">Alles vom Telefon</string>
+    <string name="join_all_server">Alles vom Server</string>
+    <string name="join_default_of">Standard: %1$s</string>
+    <string name="join_back">Zurück, nicht verbinden</string>
+    <string name="join_confirm">Verbinden und kopieren</string>
+    <string name="join_area_template">Vorlage</string>
+    <string name="join_area_placeholder_key">Platzhalter</string>
+    <string name="join_area_hashtag">Hashtag</string>
+    <string name="join_area_ai_model">KI-Modell</string>
+    <string name="join_area_cleanup_profile">Bereinigungsprofil</string>
+    <string name="join_area_cleanup_rule">Bereinigungsregel</string>
+    <string name="join_area_source">Quelle</string>
+    <string name="join_area_channel">Kanal</string>
+    <string name="join_ai_alt_text">Alt-Text-Modell</string>
+    <string name="join_ai_image_edit">Bildbearbeitungsmodell</string>
 </resources>

@@ -35,6 +35,7 @@ import app.fediferry.api.DeriveRequest
 import app.fediferry.api.LockDto
 import app.fediferry.api.MediaAssetDto
 import app.fediferry.api.PostDto
+import app.fediferry.api.PostImport
 import app.fediferry.api.PostPatch
 import app.fediferry.api.CompleteRequest
 import app.fediferry.api.ChannelPatch
@@ -166,6 +167,29 @@ class ServerClient(
     suspend fun backToDraft(id: String): PostDto = post("posts/$id/unready", "{}")
 
     suspend fun sortForReview(id: String, patch: ReviewPatch): PostDto = send("posts/$id/review", "PATCH", json.encodeToString(patch))
+
+    /**
+     * Takes a post from this phone's own project into the server's, as it is.
+     * Its pictures must be up already ([uploadMedia]). The same [importId]
+     * returns the post the first try made.
+     */
+    suspend fun importPost(importId: String, post: PostImport): PostDto = send("import/posts/$importId", "PUT", json.encodeToString(post))
+
+    // --- media -----------------------------------------------------------------
+
+    /** The asset the server keeps for content with this hash, or null when it has none. */
+    suspend fun mediaBySha(sha256: String): MediaAssetDto? = try {
+        get("media/by-hash/$sha256")
+    } catch (e: ServerException) {
+        if (e.status == 404) null else throw e
+    }
+
+    suspend fun uploadMedia(file: ByteArray, mime: String): MediaAssetDto {
+        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+            .addFormDataPart("file", "media", file.toRequestBody(mime.toMediaTypeOrNull()))
+            .build()
+        return call(request("media", auth = true).post(body).build())
+    }
 
     suspend fun reviewFolders(): List<ReviewFolderDto> = get("review/folders")
 

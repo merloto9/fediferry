@@ -8,6 +8,28 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [Unreleased]
+
+### Changed
+
+- Connecting a phone that has a project of its own to a server project now
+  asks first. A warning lists what will be copied, with a way back that
+  leaves everything as it was. On the go-ahead the phone's project is
+  mirrored into the server's: drafts stay drafts, posts in review stay in
+  review with their folders and labels, planned posts are planned on the
+  server for the same time, and channels move over with their accounts,
+  settings and upload schedules. Settings are merged instead of replaced:
+  hashtags and AI models (with their keys) from both sides are kept, and
+  hashtag counts are added up. Where both sides have the same thing
+  differently, or a different default template, AI model or channel, you
+  choose whose to keep.
+
+### Fixed
+
+- Joining a server project no longer drops this phone's templates, hashtags
+  and AI models when the project already had settings.
+- AI models still set up the old single-model way are synced to the server.
+
 ## [0.22.0] — 2026-10-15
 
 The new FediFerry: one app for a project on this phone or on a FediFerry

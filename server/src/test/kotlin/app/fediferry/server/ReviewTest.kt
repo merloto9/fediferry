@@ -25,7 +25,10 @@ import app.fediferry.api.DeviceRegistration
 import app.fediferry.api.ImportAccountRequest
 import app.fediferry.api.IngestResult
 import app.fediferry.api.LabelDto
+import app.fediferry.api.MediaAssetDto
 import app.fediferry.api.PostDto
+import app.fediferry.api.PostImport
+import app.fediferry.api.PostMediaImport
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
 import app.fediferry.api.ReviewFolderDto
@@ -43,6 +46,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
@@ -220,5 +224,63 @@ class ReviewTest {
             bearerAuth(token); contentType(ContentType.Application.Json); setBody(ReviewPatch(labels = listOf("x")))
         }
         assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
+    private suspend fun HttpClient.upload(token: String): MediaAssetDto = submitFormWithBinaryData(
+        url = "/api/v1/media",
+        formData = formData {
+            append("file", png(40 + shares++), Headers.build {
+                append(HttpHeaders.ContentType, "image/png"); append(HttpHeaders.ContentDisposition, "filename=\"x.png\"")
+            })
+        },
+    ) { bearerAuth(token) }.body()
+
+    private suspend fun HttpClient.import(token: String, id: String, post: PostImport): HttpResponse = put("/api/v1/import/posts/$id") {
+        bearerAuth(token); header("X-Device-Id", "pixel"); contentType(ContentType.Application.Json); setBody(post)
+    }
+
+    @Test
+    fun `a phone's ready post arrives in review as it was`() = test { client, token ->
+        val channel = client.channel(token)
+        val folder = client.post("/api/v1/review/folders") {
+            bearerAuth(token); contentType(ContentType.Application.Json); setBody(ReviewFolderInput("Weekend"))
+        }.body<ReviewFolderDto>()
+        val picture = client.upload(token)
+        val input = PostImport(
+            stage = PostStages.READY, channelId = channel.id, body = "Look {tags}", hashtags = listOf("#meme", "#cats"),
+            contentWarning = "cw", visibility = "UNLISTED", sourceUrl = "https://example.org/meme",
+            media = listOf(PostMediaImport(picture.id, altText = "A cat")),
+            finalText = "Look #meme #cats", readyAt = 1_000, reviewFolderId = folder.id, labels = listOf("evening"), createdAt = 500,
+        )
+        val imported = client.import(token, "import-1", input).body<PostDto>()
+        assertEquals(PostStages.READY, imported.stage)
+        assertEquals(channel.id, imported.channelId)
+        assertEquals(listOf("#meme", "#cats"), imported.hashtags)
+        assertEquals("Look #meme #cats", imported.finalText)
+        assertEquals(1_000L, imported.readyAt)
+        assertEquals(folder.id, imported.reviewFolderId)
+        assertEquals(listOf("evening"), imported.labels)
+        assertEquals("A cat", imported.media.single().altText)
+        assertEquals("UNLISTED", imported.visibility)
+
+        // Sent again, it is the same post.
+        assertEquals(imported.id, client.import(token, "import-1", input).body<PostDto>().id)
+        assertEquals(1, client.get("/api/v1/posts?stage=READY") { bearerAuth(token) }.body<List<PostDto>>().size)
+    }
+
+    @Test
+    fun `an imported draft stays a draft and loses what the project lacks`() = test { client, token ->
+        val imported = client.import(
+            token, "import-2",
+            PostImport(stage = PostStages.DRAFT, channelId = "gone", body = "Hello", hashtags = listOf("#meme"), reviewFolderId = "gone", createdAt = 1),
+        ).body<PostDto>()
+        assertEquals(PostStages.DRAFT, imported.stage)
+        assertNull(imported.channelId)
+        assertEquals("Hello", imported.body)
+        assertNull(imported.finalText)
+
+        // A picture the server does not have is asked for, not dropped.
+        val missing = client.import(token, "import-3", PostImport(stage = PostStages.DRAFT, media = listOf(PostMediaImport("nope")), createdAt = 1))
+        assertEquals(HttpStatusCode.NotFound, missing.status)
     }
 }

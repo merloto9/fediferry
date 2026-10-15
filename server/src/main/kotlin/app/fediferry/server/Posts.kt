@@ -25,6 +25,7 @@ import app.fediferry.api.LockDto
 import app.fediferry.api.PlaceholderKeyData
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostMediaDto
+import app.fediferry.api.PostImport
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
 import app.fediferry.api.LabelDto
@@ -180,6 +181,47 @@ class Posts(
             )
             media.forEachIndexed { i, (asset, alt) -> db.postMediaQueries.insert(projectId, id, i.toLong(), asset.id, alt, 0) }
             db.postQueries.markReady(text, now, now, projectId, id)
+        }
+        return get(projectId, id)
+    }
+
+    /**
+     * A post from a phone's own project, as it was there: a draft stays a
+     * draft, a ready post stays in review with its folder, labels and frozen
+     * text. A channel or folder the project does not have is left out rather
+     * than refusing the post. Safe to repeat: the same [importId] returns the
+     * post it made the first time.
+     */
+    fun importPost(projectId: String, deviceId: String?, importId: String, input: PostImport): PostDto {
+        db.ingestRecordQueries.byShare(projectId, importId).executeAsOneOrNull()?.let { return get(projectId, it) }
+        val assets = input.media.map { m -> (media.byId(projectId, m.assetId) ?: throw ApiException.notFound("media")) to m }
+        val channelId = input.channelId?.takeIf { db.channelQueries.byId(projectId, it).executeAsOneOrNull() != null }
+        val folderId = input.reviewFolderId?.takeIf { db.reviewFolderQueries.byId(projectId, it).executeAsOneOrNull() != null }
+        val ready = input.stage != PostStages.DRAFT
+        val id = UUID.randomUUID().toString()
+        val now = clock()
+        feed.change(projectId, "post", id) {
+            db.postQueries.insert(
+                projectId, id, PostStages.DRAFT, channelId,
+                input.body,
+                Hashtags.format(input.hashtags),
+                if (input.addSourceHashtags) 1 else 0,
+                input.contentWarning?.ifBlank { null },
+                input.visibility,
+                input.sourceUrl, input.origin, json.encodeToString(input.sourceFields),
+                if (input.linkMayIdentify) 1 else 0, deviceId, input.createdAt.coerceAtMost(now), now,
+            )
+            assets.forEachIndexed { i, (asset, m) ->
+                db.postMediaQueries.insert(projectId, id, i.toLong(), asset.id, m.altText?.ifBlank { null }, if (m.altFailed) 1 else 0)
+            }
+            if (ready) {
+                val text = input.finalText ?: PostValidator.finalText(dto(projectId, row(projectId, id)))
+                db.postQueries.markReady(text, input.readyAt ?: now, now, projectId, id)
+                if (folderId != null) db.postQueries.setReviewFolder(folderId, now, projectId, id)
+                input.labels.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
+                    .forEach { db.postLabelQueries.add(projectId, id, it.take(MAX_LABEL)) }
+            }
+            db.ingestRecordQueries.insert(projectId, importId, id, now)
         }
         return get(projectId, id)
     }

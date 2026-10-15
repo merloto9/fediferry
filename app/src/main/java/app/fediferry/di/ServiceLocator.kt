@@ -20,6 +20,7 @@
 package app.fediferry.di
 
 import app.fediferry.connect.LocalImporter
+import app.fediferry.connect.ProjectMerge
 import app.fediferry.connect.ProjectSync
 import app.fediferry.connect.ServerAuth
 import app.fediferry.upload.PendingShares
@@ -159,7 +160,10 @@ object ServiceLocator {
     }
 
     fun localImporter(context: Context): LocalImporter =
-        LocalImporter(context.applicationContext, database(context), pendingShares(context))
+        LocalImporter(context.applicationContext, database(context), pendingShares(context), phone(context))
+
+    fun projectMerge(context: Context): ProjectMerge =
+        ProjectMerge(context.applicationContext, database(context), tokens(context), auth(context), projectSync(context), localImporter(context))
 
     fun projectSync(context: Context): ProjectSync = projectSync ?: synchronized(this) {
         projectSync ?: ProjectSync(

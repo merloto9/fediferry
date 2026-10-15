@@ -77,6 +77,9 @@ class AiModels(
 
     suspend fun setDefault(model: AiModel) = dao.setDefault(model.kind, model.id)
 
+    /** Drops this phone's key for a model, leaving the model; the server's key is the one in use. */
+    fun forgetKey(modelId: String) = keys.remove(keyId(modelId))
+
     /** Deletes the model and its key; if it was the default, the next one takes over. */
     suspend fun delete(model: AiModel) {
         dao.delete(model.id)

@@ -108,8 +108,10 @@ class ServerBackend(
     override suspend fun refreshLimits(id: String) = client.refreshLimits(id)
     override suspend fun connectAccount(instance: String, channelId: String?) =
         client.authorizeMastodon(instance, AuthManager.REDIRECT_URI, channelId)
-    override fun mediaUrl(assetId: String) = client.mediaUrl(assetId)
-    override fun thumbnailUrl(assetId: String) = client.thumbnailUrl(assetId)
+    // A post Mastodon holds names its pictures by their address there; the
+    // server's own pictures by their id, fetched from the server.
+    override fun mediaUrl(assetId: String) = if (assetId.startsWith("http")) assetId else client.mediaUrl(assetId)
+    override fun thumbnailUrl(assetId: String) = if (assetId.startsWith("http")) assetId else client.thumbnailUrl(assetId)
 
     private companion object {
         const val RETRY_MS = 5_000L

@@ -8,6 +8,14 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.2.1] — 2026-10-15 (NeoFerry)
+
+### Fixed
+
+- **Pictures of posts Mastodon holds show with a server too.** In the
+  queue and when opened, such a post showed no picture: the app asked the
+  FediFerry server for a file that is on Mastodon.
+
 ## [0.2.0] — 2026-10-15 (NeoFerry)
 
 ### Added

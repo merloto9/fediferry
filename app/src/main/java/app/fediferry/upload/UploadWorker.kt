@@ -124,7 +124,12 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             try {
                 val file = pending.file(share).takeIf { share.hasFile && it.exists() }?.readBytes()
                 val trim = ServiceLocator.settings(context).current().autoCrop
-                val result = client.ingest(share.id, share.mode, share.link, share.text, file, share.mime, share.capturedAt, autoCrop = trim)
+                // A share link some services only redirect for a phone is followed here, and
+                // goes up as the post's own address; in the text too, so it is not kept as words.
+                val link = share.link?.let { shared -> ServiceLocator.linkResolvers().firstOrNull { it.handles(shared) }?.expandShareLink(shared) }
+                    ?.also { DebugLog.d(LOG, "Followed a share link before uploading") }
+                val text = if (link != null && share.link != null) share.text?.replace(share.link, link) else share.text
+                val result = client.ingest(share.id, share.mode, link ?: share.link, text, file, share.mime, share.capturedAt, autoCrop = trim)
                 if (share.mode != IngestModes.POST_NOW || result.post == null) pending.remove(share)
                 DebugLog.d(LOG, "Uploaded a share")
                 result.post?.id

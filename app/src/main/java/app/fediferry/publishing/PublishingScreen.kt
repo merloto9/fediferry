@@ -34,6 +34,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Notes
@@ -52,6 +54,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +94,7 @@ fun PublishingScreen(
     val state by viewModel.state.collectAsState()
     val resources = LocalResources.current
     val uriHandler = LocalUriHandler.current
+    var showPublished by rememberSaveable { mutableStateOf(false) }
 
     LifecycleResumeEffect(Unit) {
         viewModel.start()
@@ -170,12 +176,20 @@ fun PublishingScreen(
             }
 
             if (state.published.isNotEmpty() || state.publishedUnreachable.isNotEmpty()) {
-                item { Heading(stringResource(R.string.publishing_published)) }
-                state.publishedUnreachable.forEach { id ->
+                item(key = "published") {
+                    FoldingHeading(
+                        text = stringResource(R.string.publishing_published),
+                        count = state.published.size,
+                        open = showPublished,
+                        onToggle = { showPublished = !showPublished },
+                    )
+                }
+                // Folded by default: what went out matters less here than what goes next.
+                if (showPublished) state.publishedUnreachable.forEach { id ->
                     val name = state.channels.firstOrNull { it.id == id }?.label ?: id
                     item(key = "unreachable-$id") { Notice(stringResource(R.string.publishing_published_unreachable, name)) }
                 }
-                items(state.published, key = { "${it.channelId}/${it.id}" }) { status ->
+                if (showPublished) items(state.published, key = { "${it.channelId}/${it.id}" }) { status ->
                     PublishedRow(
                         status,
                         detail = state.channels.firstOrNull { it.id == status.channelId }?.label,
@@ -230,6 +244,29 @@ private fun PublishedRow(status: PublishedStatusDto, detail: String?, onClick: (
                 detail?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
+    }
+}
+
+/** A heading that folds its section away, or opens it, with one tap anywhere on it. */
+@Composable
+private fun FoldingHeading(text: String, count: Int, open: Boolean, onToggle: () -> Unit) {
+    val action = stringResource(if (open) R.string.publishing_fold else R.string.publishing_unfold)
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp).clip(MaterialTheme.shapes.small).clickable(onClickLabel = action, onClick = onToggle),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (count > 0) "$text · $count" else text,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            if (open) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(4.dp),
+        )
     }
 }
 

@@ -364,6 +364,55 @@ class RedditResolverTest {
         assertEquals(1, seen.count { it == "GET https://embed.reddit.com/r/comics/comments/1wmu6f7/" })
     }
 
+    // --- following a share link on the phone -----------------------------
+
+    @Test
+    fun `a share link is followed to the post's plain address, without loading a page`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { _, url ->
+            if (url == "https://www.reddit.com/r/dankmemes/s/CqLqi3PRjz") {
+                redirect("https://www.reddit.com/r/dankmemes/comments/1x6naxp/oh_ok_ill_do_that_then/?share_id=P0o&utm_source=share")
+            } else {
+                notFound()
+            }
+        }
+
+        val expanded = RedditResolver(http).expandShareLink("https://www.reddit.com/r/dankmemes/s/CqLqi3PRjz")
+
+        assertEquals("https://www.reddit.com/r/dankmemes/comments/1x6naxp/", expanded)
+        assertEquals(listOf("GET https://www.reddit.com/r/dankmemes/s/CqLqi3PRjz"), seen)
+    }
+
+    @Test
+    fun `a refused share link is left for the server, and other links are not followed`() = runTest {
+        val seen = mutableListOf<String>()
+        val resolver = RedditResolver(fake(seen) { _, _ -> status(403) })
+
+        assertEquals(null, resolver.expandShareLink("https://www.reddit.com/r/dankmemes/s/CqLqi3PRjz"))
+        seen.clear()
+        assertEquals(null, resolver.expandShareLink("https://www.reddit.com/r/comics/comments/1wmu6f7/the_next_episode/?share_id=x"))
+        assertEquals(null, resolver.expandShareLink("https://i.redd.it/qlmiuotnsyqh1.jpg"))
+        assertTrue(seen.isEmpty())
+    }
+
+    @Test
+    fun `the expanded address resolves on embed pages alone`() = runTest {
+        val seen = mutableListOf<String>()
+        val http = fake(seen) { method, url ->
+            when {
+                url.startsWith("https://www.reddit.com/") -> status(403)
+                url == "https://embed.reddit.com/r/comics/comments/1wmu6f7/" -> page(fixture("reddit_gallery.html"))
+                method == "HEAD" -> ok()
+                else -> notFound()
+            }
+        }
+        val resolver = RedditResolver(http)
+
+        assertEquals(CleanedLink.Unchanged, resolver.cleanLink("https://www.reddit.com/r/comics/comments/1wmu6f7/"))
+        assertTrue(resolver.resolve("https://www.reddit.com/r/comics/comments/1wmu6f7/").isSuccess)
+        assertTrue(seen.none { it.contains("www.reddit.com") })
+    }
+
     // --- fake network ---------------------------------------------------
 
     private class Reply(val code: Int, val body: String = "", val location: String? = null)

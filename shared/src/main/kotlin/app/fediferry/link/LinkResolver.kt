@@ -73,6 +73,16 @@ interface LinkResolver {
 
     /** Whether [cleanLink] does anything, so the share can say it is checking. */
     val cleansLinks: Boolean get() = false
+
+    /**
+     * Where a share link leads: the post's own address, read off the
+     * redirect without loading the page, with nothing of the sharer in it.
+     * For a service that redirects a phone but refuses a server, so the phone
+     * follows the link before handing the share on. Null when [url] is no
+     * such link or could not be followed; it then goes on as it was. Never
+     * throws.
+     */
+    suspend fun expandShareLink(url: String): String? = null
 }
 
 /** What [LinkResolver.cleanLink] found. */

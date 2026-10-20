@@ -125,6 +125,17 @@ class RedditResolver(
 
     override val cleansLinks = true
 
+    /**
+     * Reddit refuses the share link's redirect to many servers (a 403 on
+     * www.reddit.com) while answering embed pages there, and redirects a
+     * phone fine. Followed on the phone, the server gets the post's address
+     * and needs the embed page only.
+     */
+    override suspend fun expandShareLink(url: String): String? = withContext(Dispatchers.IO) {
+        val link = linkOf(url)?.takeIf { SHARE.matches(it) } ?: return@withContext null
+        runCatching { postOf(followShareLink(link))?.permalink }.getOrNull()
+    }
+
     /** The last post page found, so a clean-up and then a fetch load it once. */
     @Volatile private var lastPage: Pair<String, String>? = null
 
@@ -194,6 +205,9 @@ class RedditResolver(
     data class PostRef(val owner: String?, val id: String) {
         /** The embed page's path. Any subreddit does for looking up the real one. */
         val path: String get() = "${owner ?: "r/$PLACEHOLDER_SUBREDDIT"}/comments/$id/"
+
+        /** The post's plain address, without the title slug or anything tracking. */
+        val permalink: String get() = "https://www.reddit.com/${owner?.let { "$it/" }.orEmpty()}comments/$id/"
     }
 
     companion object {

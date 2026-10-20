@@ -8,6 +8,25 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [0.23.1] — 2026-10-20
+
+Only the app changed; a 0.23.0 server needs no update.
+
+### Changed
+
+- Publishing folds the "Published" section away by default, so the queue
+  is what the screen shows. One tap on its heading, which shows how many
+  posts it holds, opens or folds it.
+
+### Fixed
+
+- Reddit posts shared to a server get their picture again. Reddit refuses
+  to redirect a share link (`…/s/<code>`) for many servers, so the server
+  never found the post. The phone now follows the link before uploading
+  and sends the post's own address, with the share id and tracking tags
+  left behind; the server only needs Reddit's embed page, which it still
+  answers. A link the phone cannot follow goes up as before.
+
 ## [0.23.0] — 2026-10-20
 
 ### Added

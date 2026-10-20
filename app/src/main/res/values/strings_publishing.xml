@@ -10,6 +10,8 @@
     <string name="publishing_retry_at">Trying again at %1$s</string>
     <string name="publishing_published">Published</string>
     <string name="publishing_published_unreachable">%1$s could not be read just now; its latest posts are missing here.</string>
+    <string name="publishing_fold">Fold away</string>
+    <string name="publishing_unfold">Show</string>
 
     <string name="schedules_title">Schedules</string>
     <string name="schedules_new">New schedule</string>

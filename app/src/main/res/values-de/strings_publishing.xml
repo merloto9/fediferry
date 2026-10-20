@@ -24,6 +24,12 @@
     <string name="schedules_remove_slot">Slot entfernen</string>
     <string name="schedules_add_slot">Slot hinzufügen</string>
     <string name="schedules_delete">Plan löschen</string>
+    <string name="schedules_order">Reihenfolge</string>
+    <string name="schedules_order_alphabetical">Alphabetisch</string>
+    <string name="schedules_order_next_free">Nach nächstem freien Slot</string>
+    <string name="schedules_order_manual">Manuell</string>
+    <string name="schedules_move_up">Nach oben</string>
+    <string name="schedules_move_down">Nach unten</string>
 
     <string name="post_title_planned">Geplanter Beitrag</string>
     <string name="post_title_sending">Wird gesendet</string>

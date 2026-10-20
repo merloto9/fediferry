@@ -29,13 +29,18 @@ import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SchedulesState(
+    /** In [order]. */
     val schedules: List<ScheduleDto> = emptyList(),
     val channels: List<ChannelDto> = emptyList(),
+    val order: ScheduleOrder = ScheduleOrder.NEXT_FREE,
     val loaded: Boolean = false,
     val message: String? = null,
 )
@@ -45,8 +50,12 @@ class SchedulesViewModel(app: Application) : AndroidViewModel(app) {
 
     private val backend: PostBackend? get() = ServiceLocator.backend(getApplication())
 
+    private val settings = ServiceLocator.settings(app)
+
     private val _state = MutableStateFlow(SchedulesState())
-    val state: StateFlow<SchedulesState> = _state
+    val state: StateFlow<SchedulesState> = combine(_state, settings.settings) { state, s ->
+        state.copy(schedules = state.schedules.ordered(s.scheduleOrder, s.scheduleManualOrder), order = s.scheduleOrder)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, SchedulesState())
 
     fun refresh() = viewModelScope.launch {
         val api = backend ?: return@launch
@@ -61,6 +70,24 @@ class SchedulesViewModel(app: Application) : AndroidViewModel(app) {
     fun setActive(schedule: ScheduleDto, active: Boolean) = act { it.updateSchedule(schedule.id, ScheduleInput(active = active)) }
 
     fun delete(schedule: ScheduleDto) = act { it.deleteSchedule(schedule.id) }
+
+    /** Going manual starts from the order shown, unless an arranged one is kept from before. */
+    fun setOrder(order: ScheduleOrder) = viewModelScope.launch {
+        if (order == ScheduleOrder.MANUAL && settings.current().scheduleManualOrder.isEmpty()) {
+            settings.setScheduleManualOrder(state.value.schedules.map { it.id })
+        }
+        settings.setScheduleOrder(order)
+    }
+
+    /** Moves [schedule] [by] places in the manual order: -1 up, 1 down. */
+    fun move(schedule: ScheduleDto, by: Int) = viewModelScope.launch {
+        val ids = state.value.schedules.map { it.id }.toMutableList()
+        val from = ids.indexOf(schedule.id)
+        val to = from + by
+        if (from < 0 || to !in ids.indices) return@launch
+        ids.add(to, ids.removeAt(from))
+        settings.setScheduleManualOrder(ids)
+    }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 

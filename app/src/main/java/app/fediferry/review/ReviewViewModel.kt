@@ -43,10 +43,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Which ready posts are shown. */
+/**
+ * Which ready posts are shown. Like a file manager: the top shows the folders
+ * and the posts in none, a folder its own posts; a label shows its posts
+ * wherever they are filed.
+ */
 sealed interface ReviewFilter {
     data object All : ReviewFilter
-    data object Unsorted : ReviewFilter
     data class Folder(val id: String) : ReviewFilter
     data class Label(val name: String) : ReviewFilter
 }
@@ -60,13 +63,18 @@ data class ReviewState(
     val loadedOnce: Boolean = false,
     val error: String? = null,
 ) {
+    /** The posts shown as tiles; at the top, the folders are shown beside them. */
     val shown: List<PostDto>
         get() = when (val f = filter) {
-            ReviewFilter.All -> posts
-            ReviewFilter.Unsorted -> posts.filter { it.reviewFolderId == null }
+            ReviewFilter.All -> posts.filter { p -> p.reviewFolderId == null || folders.none { it.id == p.reviewFolderId } }
             is ReviewFilter.Folder -> posts.filter { it.reviewFolderId == f.id }
             is ReviewFilter.Label -> posts.filter { p -> p.labels.any { it.equals(f.name, ignoreCase = true) } }
         }
+
+    val folder: ReviewFolderDto?
+        get() = (filter as? ReviewFilter.Folder)?.let { f -> folders.firstOrNull { it.id == f.id } }
+
+    fun postsIn(folder: ReviewFolderDto): List<PostDto> = posts.filter { it.reviewFolderId == folder.id }
 }
 
 /**

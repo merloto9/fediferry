@@ -39,6 +39,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -85,7 +87,7 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 
 /** Upload schedules: weekly slots per channel, which "next free slot" fills in turn. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SchedulesScreen(onBack: () -> Unit, viewModel: SchedulesViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
@@ -148,8 +150,24 @@ fun SchedulesScreen(onBack: () -> Unit, viewModel: SchedulesViewModel = viewMode
                     }
                 }
             }
+            if (state.schedules.size > 1) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(stringResource(R.string.schedules_order), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ScheduleOrder.entries.forEach { order ->
+                                FilterChip(
+                                    selected = state.order == order,
+                                    onClick = { viewModel.setOrder(order) },
+                                    label = { Text(stringResource(orderLabel(order))) },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             items(state.schedules, key = { it.id }) { schedule ->
-                Card(Modifier.fillMaxWidth().clickable { editing = schedule }) {
+                Card(Modifier.fillMaxWidth().animateItem().clickable { editing = schedule }) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -159,6 +177,15 @@ fun SchedulesScreen(onBack: () -> Unit, viewModel: SchedulesViewModel = viewMode
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                            }
+                            if (state.order == ScheduleOrder.MANUAL) {
+                                val index = state.schedules.indexOf(schedule)
+                                IconButton(onClick = { viewModel.move(schedule, -1) }, enabled = index > 0) {
+                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.schedules_move_up))
+                                }
+                                IconButton(onClick = { viewModel.move(schedule, 1) }, enabled = index < state.schedules.lastIndex) {
+                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.schedules_move_down))
+                                }
                             }
                             Switch(checked = schedule.active, onCheckedChange = { viewModel.setActive(schedule, it) })
                         }
@@ -179,6 +206,12 @@ fun SchedulesScreen(onBack: () -> Unit, viewModel: SchedulesViewModel = viewMode
             }
         }
     }
+}
+
+private fun orderLabel(order: ScheduleOrder) = when (order) {
+    ScheduleOrder.ALPHABETICAL -> R.string.schedules_order_alphabetical
+    ScheduleOrder.NEXT_FREE -> R.string.schedules_order_next_free
+    ScheduleOrder.MANUAL -> R.string.schedules_order_manual
 }
 
 /** "Mon, Wed, Fri · 18:00", or "Every day · 18:00". */

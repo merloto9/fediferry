@@ -19,11 +19,7 @@
  */
 package app.fediferry.drafts
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -31,19 +27,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,8 +55,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -78,9 +69,10 @@ import app.fediferry.template.TemplateEngine
 import app.fediferry.ui.DeletePostsDialog
 import app.fediferry.ui.LoadingScreen
 import app.fediferry.ui.OfflineBanner
+import app.fediferry.ui.PostTile
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
-import coil3.compose.AsyncImage
+import app.fediferry.ui.TileColumns
 
 /** The project's drafts: what is being written, on which channel, and who is at it. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -155,22 +147,26 @@ fun DraftsScreen(
             )
             return@Scaffold
         }
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = TileColumns,
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             state.error?.takeIf { it != "client.unreachable" }?.let { code ->
-                item { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) }
+                item(span = { GridItemSpan(maxLineSpan) }) { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) }
             }
             if (pending.isNotEmpty()) {
-                item(key = "pending") { PendingSharesRow(pending, onRetry = viewModel::retryUploads, onDiscard = viewModel::discardPending) }
+                item(key = "pending", span = { GridItemSpan(maxLineSpan) }) {
+                    PendingSharesRow(pending, onRetry = viewModel::retryUploads, onDiscard = viewModel::discardPending)
+                }
             }
             if (state.drafts.isEmpty() && pending.isEmpty() && state.error == null) {
-                item { Notice(Icons.Outlined.EditNote, stringResource(R.string.drafts_empty)) }
+                item(span = { GridItemSpan(maxLineSpan) }) { Notice(Icons.Outlined.EditNote, stringResource(R.string.drafts_empty)) }
             }
             items(state.drafts, key = { it.id }) { draft ->
-                DraftRow(
+                DraftTile(
                     draft = draft,
                     channel = state.channels.firstOrNull { it.id == draft.channelId },
                     thumbnailUrl = draft.media.firstOrNull()?.let { viewModel.thumbnailUrl(it.asset.id) },
@@ -186,9 +182,8 @@ fun DraftsScreen(
 
 private fun Set<String>.toggle(id: String) = if (id in this) this - id else this + id
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DraftRow(
+private fun DraftTile(
     draft: PostDto,
     channel: ChannelDto?,
     thumbnailUrl: String?,
@@ -197,46 +192,25 @@ private fun DraftRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        ),
+    PostTile(
+        thumbnailUrl = thumbnailUrl,
+        text = TemplateEngine.finish(draft.body, draft.hashtags).ifBlank { stringResource(R.string.drafts_no_text) },
+        caption = channel?.label ?: stringResource(R.string.drafts_no_channel),
+        selected = selected,
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
-        Row(Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier.size(72.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (thumbnailUrl != null) {
-                    AsyncImage(model = thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                } else {
-                    Icon(Icons.Outlined.Notes, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        editedElsewhere?.let { device ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(
-                    TemplateEngine.finish(draft.body, draft.hashtags).ifBlank { stringResource(R.string.drafts_no_text) },
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    channel?.label ?: stringResource(R.string.drafts_no_channel),
+                    stringResource(R.string.drafts_being_edited, device),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 4.dp),
                 )
-                editedElsewhere?.let { device ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text(
-                            stringResource(R.string.drafts_being_edited, device),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
-                }
             }
         }
     }

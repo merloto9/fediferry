@@ -24,6 +24,12 @@
     <string name="schedules_remove_slot">Remove slot</string>
     <string name="schedules_add_slot">Add slot</string>
     <string name="schedules_delete">Delete schedule</string>
+    <string name="schedules_order">Order</string>
+    <string name="schedules_order_alphabetical">Alphabetically</string>
+    <string name="schedules_order_next_free">By next free slot</string>
+    <string name="schedules_order_manual">Manually</string>
+    <string name="schedules_move_up">Move up</string>
+    <string name="schedules_move_down">Move down</string>
 
     <string name="post_title_planned">Planned post</string>
     <string name="post_title_sending">Being sent</string>

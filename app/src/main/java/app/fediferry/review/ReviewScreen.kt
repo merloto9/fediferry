@@ -19,13 +19,10 @@
  */
 package app.fediferry.review
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -33,37 +30,37 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.DriveFileRenameOutline
+import androidx.compose.material.icons.outlined.FolderDelete
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,8 +71,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -89,11 +84,13 @@ import app.fediferry.api.PostDto
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.drafts.ServerMessages
 import app.fediferry.ui.DeletePostsDialog
+import app.fediferry.ui.FolderTile
 import app.fediferry.ui.LoadingScreen
 import app.fediferry.ui.OfflineBanner
+import app.fediferry.ui.PostTile
 import app.fediferry.ui.Space
 import app.fediferry.ui.SpaceBar
-import coil3.compose.AsyncImage
+import app.fediferry.ui.TileColumns
 
 /** Ready posts: frozen, sorted into folders and labels, waiting to be scheduled. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,8 +116,20 @@ fun ReviewScreen(
         onPauseOrDispose { viewModel.stop() }
     }
     LaunchedEffect(Unit) { viewModel.messages.collect { snackbar.showSnackbar(ServerMessages.describe(resources, it)) } }
-    // Posts that went back to draft elsewhere drop out of the selection.
-    LaunchedEffect(state.posts) { selection = selection.filter { id -> state.posts.any { it.id == id } }.toSet() }
+    // Posts that went back to draft elsewhere, or out of sight, drop out of the selection.
+    LaunchedEffect(state.shown) { selection = selection.filter { id -> state.shown.any { it.id == id } }.toSet() }
+    val openFolder = state.folder
+    // Back from a folder or a label goes up to the top, as in a file manager.
+    BackHandler(enabled = selection.isEmpty() && state.filter != ReviewFilter.All) { viewModel.setFilter(ReviewFilter.All) }
+    var folderMenu by remember { mutableStateOf<ReviewFolderDto?>(null) }
+    folderMenu?.let { folder ->
+        FolderActions(
+            folder = folder,
+            onRename = { folderMenu = null; naming = Naming.Rename(folder) },
+            onDelete = { folderMenu = null; viewModel.deleteFolder(folder) },
+            onDismiss = { folderMenu = null },
+        )
+    }
 
     if (moving) {
         FolderPicker(
@@ -169,14 +178,23 @@ fun ReviewScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (selection.isEmpty()) stringResource(R.string.review_title)
-                        else pluralStringResource(R.plurals.selection_count, selection.size, selection.size),
+                        when {
+                            selection.isNotEmpty() -> pluralStringResource(R.plurals.selection_count, selection.size, selection.size)
+                            openFolder != null -> openFolder.name
+                            else -> stringResource(R.string.review_title)
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
                     if (selection.isNotEmpty()) {
                         IconButton(onClick = { selection = emptySet() }) {
                             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.selection_clear))
+                        }
+                    } else if (openFolder != null) {
+                        IconButton(onClick = { viewModel.setFilter(ReviewFilter.All) }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.folder_back))
                         }
                     }
                 },
@@ -198,6 +216,13 @@ fun ReviewScreen(
                         }
                         IconButton(onClick = { deleting = true }) {
                             Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.drafts_delete))
+                        }
+                    } else if (openFolder != null) {
+                        IconButton(onClick = { naming = Naming.Rename(openFolder) }) {
+                            Icon(Icons.Outlined.DriveFileRenameOutline, contentDescription = stringResource(R.string.folder_rename))
+                        }
+                        IconButton(onClick = { viewModel.deleteFolder(openFolder); viewModel.setFilter(ReviewFilter.All) }) {
+                            Icon(Icons.Outlined.FolderDelete, contentDescription = stringResource(R.string.folder_delete))
                         }
                     } else {
                         IconButton(onClick = { naming = Naming.Create() }) {
@@ -221,26 +246,52 @@ fun ReviewScreen(
             )
             return@Scaffold
         }
-        LazyColumn(
+        val atTop = state.filter == ReviewFilter.All
+        val folderTiles = if (atTop) state.folders else emptyList()
+        LazyVerticalGrid(
+            columns = TileColumns,
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item { Filters(state, viewModel::setFilter, onRename = { naming = Naming.Rename(it) }, onDeleteFolder = viewModel::deleteFolder) }
-            state.error?.takeIf { it != "client.unreachable" }?.let { code -> item { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) } }
-            if (state.shown.isEmpty() && state.error == null) {
-                item {
-                    Notice(
-                        Icons.Outlined.TaskAlt,
-                        stringResource(if (state.filter == ReviewFilter.All) R.string.review_empty else R.string.review_empty_filtered),
+            if (state.labels.isNotEmpty()) {
+                item(key = "labels", span = { GridItemSpan(maxLineSpan) }) { Labels(state, viewModel::setFilter) }
+            }
+            state.error?.takeIf { it != "client.unreachable" }?.let { code ->
+                item(span = { GridItemSpan(maxLineSpan) }) { Notice(Icons.Outlined.Warning, ServerMessages.describe(resources, code)) }
+            }
+            if (state.shown.isEmpty() && folderTiles.isEmpty() && state.error == null) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Notice(Icons.Outlined.TaskAlt, stringResource(if (atTop) R.string.review_empty else R.string.review_empty_filtered))
+                }
+            }
+            items(folderTiles, key = { "folder-${it.id}" }) { folder ->
+                val inside = state.postsIn(folder)
+                FolderTile(
+                    name = folder.name,
+                    count = inside.size,
+                    thumbnailUrls = inside.mapNotNull { p -> p.media.firstOrNull()?.let { viewModel.thumbnailUrl(it.asset.id) } },
+                    onClick = { selection = emptySet(); viewModel.setFilter(ReviewFilter.Folder(folder.id)) },
+                    onLongClick = { folderMenu = folder },
+                )
+            }
+            if (folderTiles.isNotEmpty() && state.shown.isNotEmpty()) {
+                item(key = "unsorted", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        stringResource(R.string.folder_not_in_any),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp, start = 4.dp),
                     )
                 }
             }
             items(state.shown, key = { it.id }) { post ->
-                ReviewRow(
+                ReviewTile(
                     post = post,
                     channel = state.channels.firstOrNull { it.id == post.channelId },
-                    folder = state.folders.firstOrNull { it.id == post.reviewFolderId }?.name,
+                    // Inside a folder its name is in the title already.
+                    folder = state.folders.firstOrNull { it.id == post.reviewFolderId }?.name?.takeIf { state.filter is ReviewFilter.Label },
                     thumbnailUrl = post.media.firstOrNull()?.let { viewModel.thumbnailUrl(it.asset.id) },
                     selected = post.id in selection,
                     onClick = { if (selection.isNotEmpty()) selection = selection.toggle(post.id) else onOpenPost(post.id) },
@@ -258,44 +309,49 @@ private sealed interface Naming {
     data class Rename(val folder: ReviewFolderDto) : Naming
 }
 
+/** The labels, as chips; one picked shows its posts from every folder. */
 @Composable
-private fun Filters(state: ReviewState, onFilter: (ReviewFilter) -> Unit, onRename: (ReviewFolderDto) -> Unit, onDeleteFolder: (ReviewFolderDto) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(state.filter == ReviewFilter.All, { onFilter(ReviewFilter.All) }, { Text(stringResource(R.string.folder_all)) })
-            FilterChip(state.filter == ReviewFilter.Unsorted, { onFilter(ReviewFilter.Unsorted) }, { Text(stringResource(R.string.folder_none)) })
-            state.folders.forEach { folder ->
-                var menu by remember { mutableStateOf(false) }
-                val on = state.filter == ReviewFilter.Folder(folder.id)
-                Box {
-                    FilterChip(
-                        selected = on,
-                        onClick = { onFilter(ReviewFilter.Folder(folder.id)) },
-                        label = { Text(folder.name) },
-                        leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = if (on) { { Text("⋯", modifier = Modifier.clickable { menu = true }) } } else null,
-                    )
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.folder_rename)) }, onClick = { menu = false; onRename(folder) })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.folder_delete)) }, onClick = { menu = false; onDeleteFolder(folder) })
-                    }
-                }
-            }
-        }
-        if (state.labels.isNotEmpty()) {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                state.labels.forEach { label ->
-                    val on = state.filter == ReviewFilter.Label(label.name)
-                    FilterChip(on, { onFilter(if (on) ReviewFilter.All else ReviewFilter.Label(label.name)) }, { Text("${label.name} · ${label.uses}") })
-                }
-            }
+private fun Labels(state: ReviewState, onFilter: (ReviewFilter) -> Unit) {
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        state.labels.forEach { label ->
+            val on = state.filter == ReviewFilter.Label(label.name)
+            FilterChip(
+                selected = on,
+                onClick = { onFilter(if (on) ReviewFilter.All else ReviewFilter.Label(label.name)) },
+                label = { Text("${label.name} · ${label.uses}") },
+                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            )
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** What a long press on a folder tile offers. */
 @Composable
-private fun ReviewRow(
+private fun FolderActions(folder: ReviewFolderDto, onRename: () -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(folder.name) },
+        text = {
+            Column {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.folder_rename)) },
+                    leadingContent = { Icon(Icons.Outlined.DriveFileRenameOutline, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = onRename),
+                )
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.folder_delete)) },
+                    leadingContent = { Icon(Icons.Outlined.FolderDelete, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = onDelete),
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.delete_back)) } },
+    )
+}
+
+@Composable
+private fun ReviewTile(
     post: PostDto,
     channel: ChannelDto?,
     folder: String?,
@@ -304,45 +360,22 @@ private fun ReviewRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        ),
+    PostTile(
+        thumbnailUrl = thumbnailUrl,
+        text = post.finalText.orEmpty().ifBlank { stringResource(R.string.drafts_no_text) },
+        caption = listOfNotNull(channel?.label, folder).joinToString(" · "),
+        selected = selected,
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
-        Row(Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier.size(72.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (thumbnailUrl != null) {
-                    AsyncImage(model = thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                } else {
-                    Icon(Icons.Outlined.Notes, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    post.finalText.orEmpty().ifBlank { stringResource(R.string.drafts_no_text) },
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    listOfNotNull(channel?.label, folder).joinToString(" · "),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (post.labels.isNotEmpty()) {
-                    Text(
-                        post.labels.joinToString("  ") { "◦ $it" },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+        if (post.labels.isNotEmpty()) {
+            Text(
+                post.labels.joinToString("  ") { "◦ $it" },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

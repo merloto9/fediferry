@@ -33,6 +33,8 @@ import app.fediferry.api.ScheduleDto
 import app.fediferry.backend.PostBackend
 import app.fediferry.client.ServerException
 import app.fediferry.di.ServiceLocator
+import app.fediferry.publishing.ScheduleOrder
+import app.fediferry.publishing.ordered
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -45,6 +47,8 @@ data class ReviewPostState(
     val folders: List<ReviewFolderDto> = emptyList(),
     val labels: List<LabelDto> = emptyList(),
     val schedules: List<ScheduleDto> = emptyList(),
+    val scheduleOrder: ScheduleOrder = ScheduleOrder.NEXT_FREE,
+    val scheduleManualOrder: List<String> = emptyList(),
     /** Posts in the queue, on every channel, for the calendar to show. */
     val queue: List<PostDto> = emptyList(),
     /** An error code, for the screen to word. */
@@ -52,9 +56,9 @@ data class ReviewPostState(
 ) {
     val channel: ChannelDto? get() = channels.firstOrNull { it.id == post?.channelId }
 
-    /** The schedules the post can be planned into: its channel's, paused ones included. */
+    /** The schedules the post can be planned into: its channel's, paused ones included, in the chosen order. */
     val channelSchedules: List<ScheduleDto>
-        get() = schedules.filter { it.channelId == post?.channelId }
+        get() = schedules.filter { it.channelId == post?.channelId }.ordered(scheduleOrder, scheduleManualOrder)
 }
 
 /** One ready post: read-only, but it can be sorted, sent back to draft or deleted. */
@@ -65,6 +69,14 @@ class ReviewPostViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _state = MutableStateFlow(ReviewPostState())
     val state: StateFlow<ReviewPostState> = _state
+
+    init {
+        viewModelScope.launch {
+            ServiceLocator.settings(app).settings.collect { s ->
+                _state.update { it.copy(scheduleOrder = s.scheduleOrder, scheduleManualOrder = s.scheduleManualOrder) }
+            }
+        }
+    }
 
     fun load(id: String) {
         postId = id

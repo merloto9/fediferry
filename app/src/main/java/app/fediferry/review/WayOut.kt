@@ -58,6 +58,7 @@ import app.fediferry.api.PostDto
 import app.fediferry.api.PostStages
 import app.fediferry.api.ScheduleDto
 import app.fediferry.drafts.ServerMessages
+import app.fediferry.publishing.nextSlot
 import app.fediferry.ui.PlannedMark
 import app.fediferry.ui.SchedulePicker
 import app.fediferry.work.ScheduleWords
@@ -114,7 +115,8 @@ internal fun WayOut(post: PostDto, state: ReviewPostState, onPlan: () -> Unit, o
 
 /**
  * Into the queue: the next free slot of a schedule the person picks from
- * [schedules] (the post's channel's), a time of one's own, or right away.
+ * [schedules] (the post's channel's, in the order Schedules shows them), a
+ * time of one's own, or right away.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,8 +169,8 @@ internal fun PlanSheet(
                     leadingContent = { Icon(Icons.Outlined.EventAvailable, contentDescription = null) },
                 )
             }
-            // Soonest first; a paused or full schedule last, shown but not offered.
-            schedules.sortedWith(compareBy({ it.nextSlot() == null }, { it.nextSlot() ?: Long.MAX_VALUE }, { it.name.lowercase() })).forEach { schedule ->
+            // A paused or full schedule is shown but not offered.
+            schedules.forEach { schedule ->
                 val next = schedule.nextSlot()
                 ListItem(
                     headlineContent = { Text(schedule.name) },
@@ -209,6 +211,3 @@ internal fun PlanSheet(
         }
     }
 }
-
-/** The next slot this schedule would give, or null when it is paused or has none free. */
-private fun ScheduleDto.nextSlot(): Long? = nextFree.firstOrNull()?.takeIf { active }

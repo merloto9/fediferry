@@ -27,6 +27,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import app.fediferry.publishing.ScheduleOrder
 import app.fediferry.ui.theme.ColorSource
 import app.fediferry.ui.theme.ContrastLevel
 import app.fediferry.ui.theme.ThemeMode
@@ -83,6 +84,12 @@ data class Settings(
     val colorSource: ColorSource = ColorSource.APP,
     val contrastLevel: ContrastLevel = ContrastLevel.SYSTEM,
 
+    // --- schedules -------------------------------------------------------
+    /** How Schedules and "Next free slot of" list the schedules; this phone's choice. */
+    val scheduleOrder: ScheduleOrder = ScheduleOrder.NEXT_FREE,
+    /** Schedule ids in the order arranged by hand, for [ScheduleOrder.MANUAL]. */
+    val scheduleManualOrder: List<String> = emptyList(),
+
     // --- the image model used by the "Erase with AI" treatment -----------
     val imageEndpoint: String = "",
     val imageModel: String = "",
@@ -123,6 +130,8 @@ class SettingsStore(private val context: Context) {
         val imageInstruction = stringPreferencesKey("image_instruction")
         val imageWireFormat = stringPreferencesKey("image_wire_format")
         val imageMaskPolarity = stringPreferencesKey("image_mask_polarity")
+        val scheduleOrder = stringPreferencesKey("schedule_order")
+        val scheduleManualOrder = stringPreferencesKey("schedule_manual_order")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -147,6 +156,8 @@ class SettingsStore(private val context: Context) {
             imageInstruction = p[Keys.imageInstruction].orEmpty(),
             imageWireFormat = p[Keys.imageWireFormat] ?: "MULTIPART",
             imageMaskPolarity = p[Keys.imageMaskPolarity] ?: "TRANSPARENT_HOLE",
+            scheduleOrder = enumOr(p[Keys.scheduleOrder], ScheduleOrder.NEXT_FREE),
+            scheduleManualOrder = p[Keys.scheduleManualOrder].orEmpty().split(',').filter { it.isNotEmpty() },
         )
     }
 
@@ -178,6 +189,8 @@ class SettingsStore(private val context: Context) {
     suspend fun setThemeMode(v: ThemeMode) = edit { it[Keys.themeMode] = v.name }
     suspend fun setColorSource(v: ColorSource) = edit { it[Keys.colorSource] = v.name }
     suspend fun setContrastLevel(v: ContrastLevel) = edit { it[Keys.contrastLevel] = v.name }
+    suspend fun setScheduleOrder(v: ScheduleOrder) = edit { it[Keys.scheduleOrder] = v.name }
+    suspend fun setScheduleManualOrder(ids: List<String>) = edit { it[Keys.scheduleManualOrder] = ids.joinToString(",") }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         context.dataStore.edit(block)

@@ -5,7 +5,6 @@
         <item quantity="other">%1$d pictures saved as drafts in \"%2$s\". They go up as soon as there is a connection.</item>
     </plurals>
     <string name="server_loading_detail">Reading what is in the project on the FediFerry server.</string>
-    <string name="folder_all">All</string>
     <string name="folder_none">Unsorted</string>
     <string name="folder_new">New folder</string>
     <string name="folder_new_more">New folder…</string>
@@ -15,6 +14,12 @@
     <string name="action_save">Save</string>
     <string name="folder_move">Move to folder</string>
     <string name="folder_move_to">Move to</string>
+    <string name="folder_back">Back to all folders</string>
+    <string name="folder_not_in_any">Not in a folder</string>
+    <plurals name="folder_post_count">
+        <item quantity="one">%1$d post</item>
+        <item quantity="other">%1$d posts</item>
+    </plurals>
     <string name="selection_clear">Clear selection</string>
     <plurals name="selection_count">
         <item quantity="one">%1$d selected</item>

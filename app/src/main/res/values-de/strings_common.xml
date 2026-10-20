@@ -5,7 +5,6 @@
         <item quantity="other">%1$d Bilder als Entwürfe in „%2$s“ gespeichert. Sie werden hochgeladen, sobald eine Verbindung besteht.</item>
     </plurals>
     <string name="server_loading_detail">Der Inhalt des Projekts wird vom FediFerry-Server gelesen.</string>
-    <string name="folder_all">Alle</string>
     <string name="folder_none">Unsortiert</string>
     <string name="folder_new">Neuer Ordner</string>
     <string name="folder_new_more">Neuer Ordner…</string>
@@ -15,6 +14,12 @@
     <string name="action_save">Speichern</string>
     <string name="folder_move">In Ordner verschieben</string>
     <string name="folder_move_to">Verschieben nach</string>
+    <string name="folder_back">Zurück zu allen Ordnern</string>
+    <string name="folder_not_in_any">In keinem Ordner</string>
+    <plurals name="folder_post_count">
+        <item quantity="one">%1$d Beitrag</item>
+        <item quantity="other">%1$d Beiträge</item>
+    </plurals>
     <string name="selection_clear">Auswahl aufheben</string>
     <plurals name="selection_count">
         <item quantity="one">%1$d ausgewählt</item>

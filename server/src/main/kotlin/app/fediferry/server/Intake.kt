@@ -27,6 +27,7 @@ import app.fediferry.link.MediaFetcher
 import app.fediferry.server.db.Media_asset
 import app.fediferry.server.db.Post
 import org.slf4j.LoggerFactory
+import java.net.UnknownHostException
 
 /** A file that came with a share. */
 class Upload(val bytes: ByteArray, val mime: String)
@@ -100,8 +101,8 @@ class Intake(
                     fetcher.fetch(post.mediaUrl).onSuccess { bytes ->
                         asset = media.store(projectId, bytes, post.mimeType)
                         resolved = true
-                    }.onFailure { log.info("Fetching the media from ${resolver.serviceName} failed: ${it.javaClass.simpleName}") }
-                }.onFailure { log.info("${resolver.serviceName} could not resolve a link: ${it.javaClass.simpleName}") }
+                    }.onFailure { log.info("Fetching the media from ${resolver.serviceName} failed: ${reason(it)}") }
+                }.onFailure { log.info("${resolver.serviceName} could not resolve a link: ${reason(it)}") }
             }
         }
         val source = Posts.Source(url, resolver?.source?.name, fields, mayIdentify)
@@ -158,5 +159,15 @@ class Intake(
         private val LINK = Regex("""https?://[^\s<>"']+""", RegexOption.IGNORE_CASE)
 
         fun firstLink(text: String): String? = LINK.find(text)?.value?.trimEnd('.', ',', ')', ']', '!', '?')
+
+        /**
+         * Why a fetch failed, for the log. The resolvers' own messages and a
+         * refused host name are kept; any other message may carry the shared
+         * link, which can name who shared it, so only its kind is.
+         */
+        fun reason(e: Throwable): String = when (e) {
+            is IllegalStateException, is UnknownHostException -> "${e.javaClass.simpleName}: ${e.message}"
+            else -> e.javaClass.simpleName
+        }
     }
 }

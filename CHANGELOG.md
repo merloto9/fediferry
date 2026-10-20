@@ -8,6 +8,31 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [Unreleased]
+
+### Added
+
+- Schedules can be listed alphabetically, by their next free slot, or in
+  an order of one's own (arranged with the arrows on each schedule). Plan's
+  "Next free slot of" lists them in the same order as Schedules does. The
+  choice is kept on the phone.
+
+### Changed
+
+- Drafts and Review show posts as tiles again, as the original app did: a
+  grid of square pictures with the start of the text under each.
+- Review works like a file manager. The top shows the folders as tiles,
+  with up to four of their pictures, and the posts in no folder. Tapping a
+  folder opens it; back returns to the top. A folder is renamed or deleted
+  with a long press on its tile, or from its own top bar. A label still
+  shows its posts from every folder.
+
+### Fixed
+
+- The server's log says why a shared link could not be read ("Reddit
+  returned 403", "Reddit page has no post") instead of only the kind of
+  error. Messages that could carry the shared link are still left out.
+
 ## [0.22.2] — 2026-10-15
 
 ### Fixed

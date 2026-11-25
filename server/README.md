@@ -19,8 +19,8 @@ docker compose -f server/docker-compose.yml exec fediferry /opt/fediferry/bin/fe
 
 GitHub builds the image (`.github/workflows/server-image.yml`) for amd64 and
 arm64 and publishes it as `ghcr.io/merloto9/fediferry-server`: `:latest` and
-`:1.2.3` from release tags, `:main` from every push to main. To run what is
-in your checkout instead, `up -d --build`.
+`:1.2.3` from release tags; a pre-release tag such as `v1.2.3-rc.1` publishes
+only `:1.2.3-rc.1`. To run what is in your checkout instead, `up -d --build`.
 
 The second command prints the project token once. Keep it; a lost one is
 replaced with `fediferry token add Memes`.

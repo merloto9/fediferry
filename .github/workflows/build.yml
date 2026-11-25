@@ -1,8 +1,9 @@
 name: Build
 
 on:
-  push:
-    branches: [main]
+  # Pull requests only: branch protection on main requires these checks, with
+  # the branch up to date, so a run after the merge would test the same code
+  # again. Releases run the unit tests themselves (release.yml).
   pull_request:
   workflow_dispatch:
 

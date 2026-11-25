@@ -50,6 +50,9 @@ data class Health(
 object Features {
     /** `PUT /import/posts/{id}`: takes a phone's post over in the stage it is in. */
     const val POST_IMPORT = "post_import"
+
+    /** Settings of kind `option`, which the server also acts on (see `ProjectOptions`). */
+    const val PROJECT_OPTIONS = "project_options"
 }
 
 /** `GET /project` — the project the token belongs to. */

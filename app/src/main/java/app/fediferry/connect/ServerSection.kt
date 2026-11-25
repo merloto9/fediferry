@@ -260,6 +260,7 @@ private fun areaLabel(area: String): Int = when (area) {
     SettingsKinds.CLEANUP_PROFILE -> R.string.join_area_cleanup_profile
     SettingsKinds.CLEANUP_RULE -> R.string.join_area_cleanup_rule
     SettingsKinds.SOURCE -> R.string.join_area_source
+    SettingsKinds.OPTION -> R.string.join_area_option
     else -> R.string.join_area_channel
 }
 

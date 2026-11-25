@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import app.fediferry.R
 import app.fediferry.ai.ModelTestReport
 import app.fediferry.ai.ModelTester
+import app.fediferry.api.SettingsKinds
 import app.fediferry.data.Settings
 import app.fediferry.data.model.AiKind
 import app.fediferry.data.model.AiModel
@@ -243,7 +244,11 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setThemeMode(v: ThemeMode) = persist { settingsStore.setThemeMode(v) }
     fun setColorSource(v: ColorSource) = persist { settingsStore.setColorSource(v) }
     fun setContrastLevel(v: ContrastLevel) = persist { settingsStore.setContrastLevel(v) }
-    fun setRememberSentHashtags(enabled: Boolean) = persist { settingsStore.setRememberSentHashtags(enabled) }
+    /** A project option: with a server, every phone and the server's own sending follow it. */
+    fun setRememberSentHashtags(enabled: Boolean) = persist {
+        settingsStore.setRememberSentHashtags(enabled)
+        ServiceLocator.projectSync(getApplication()).sync(SettingsKinds.OPTION)
+    }
 
     fun setImageInstruction(v: String) =
         persist { settingsStore.setImageInstruction(v) }

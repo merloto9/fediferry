@@ -54,7 +54,7 @@
     <string name="placeholders_new_hashtag_example">#politics</string>
     <string name="placeholders_add_hashtag">Add hashtag</string>
     <string name="placeholders_remember_sent">Add new hashtags when a post is sent</string>
-    <string name="placeholders_remember_sent_explain">Every hashtag a sent post carried that is not on the list yet joins it — typed in the editor, added by a source, or written into the text. Only posts that actually went out count.</string>
+    <string name="placeholders_remember_sent_explain">Every hashtag a sent post carried that is not on the list yet joins it — typed in the editor, added by a source, or written into the text. Only posts that actually went out count. With a server, this holds for the whole project.</string>
 
     <!-- Settings → Placeholders -->
     <string name="placeholders_title">Placeholders</string>

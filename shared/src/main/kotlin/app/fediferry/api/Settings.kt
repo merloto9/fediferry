@@ -47,10 +47,23 @@ object SettingsKinds {
     const val CLEANUP_RULE = "cleanup_rule"
     const val SOURCE = "source"
 
-    val ALL = setOf(TEMPLATE, PLACEHOLDER_KEY, HASHTAG, HASHTAG_USAGE, AI_MODEL, CLEANUP_PROFILE, CLEANUP_RULE, SOURCE)
+    /** A project-wide switch, one [ProjectOption] per entry; ids in [ProjectOptions]. */
+    const val OPTION = "option"
+
+    val ALL = setOf(TEMPLATE, PLACEHOLDER_KEY, HASHTAG, HASHTAG_USAGE, AI_MODEL, CLEANUP_PROFILE, CLEANUP_RULE, SOURCE, OPTION)
 
     /** The change-feed type for a kind, e.g. `settings.template`. */
     fun changeType(kind: String) = "settings.$kind"
+}
+
+/** A switch that holds for the whole project, on the phone and on the server alike. */
+@Serializable
+data class ProjectOption(val id: String, val enabled: Boolean)
+
+/** Ids of the [ProjectOption]s. */
+object ProjectOptions {
+    /** After a post goes out, hashtags it carried that are not on the list yet join it. Off when unset. */
+    const val REMEMBER_SENT_HASHTAGS = "remember_sent_hashtags"
 }
 
 @Serializable

@@ -21,9 +21,14 @@ package app.fediferry.connect
 
 import android.content.Context
 import androidx.room.InvalidationTracker
+import app.fediferry.R
+import app.fediferry.api.ProjectOption
+import app.fediferry.api.ProjectOptions
 import app.fediferry.api.SecretIds
+import app.fediferry.api.SettingsEntryDto
 import app.fediferry.api.SettingsKinds
 import app.fediferry.client.ServerClient
+import app.fediferry.client.ServerException
 import app.fediferry.data.AiModels
 import app.fediferry.data.db.AppDatabase
 import app.fediferry.data.model.AiModel
@@ -34,6 +39,7 @@ import app.fediferry.data.model.PlaceholderKey
 import app.fediferry.data.model.ProfileRule
 import app.fediferry.data.model.Source
 import app.fediferry.data.model.Template
+import app.fediferry.di.ServiceLocator
 import app.fediferry.log.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -51,7 +57,8 @@ import java.security.MessageDigest
 
 /**
  * Keeps this phone's copy of the project settings — templates, placeholders,
- * hashtags, AI models, clean-up profiles, sources — in step with the server.
+ * hashtags, AI models, clean-up profiles, sources, project options — in step
+ * with the server.
  *
  * The settings screens keep working on the phone's database as before. For
  * each kind the sync compares three states: the phone's, the server's, and
@@ -142,7 +149,45 @@ class ProjectSync(
             SettingsKinds.SOURCE, setOf("sources"), Source.serializer(), { db.sources().all() }, { it.id }, { db.sources().upsert(it) }, { db.sources().delete(it) },
             describe = { it.displayName to it.handle },
         ),
+        // Kept in the phone's settings, not in Room: no table tells the sync of a
+        // change, so whoever changes one calls [sync] with this kind.
+        Kind(
+            SettingsKinds.OPTION, emptySet(), ProjectOption.serializer(), { options() }, { it.id }, { setOption(it) }, { setOption(ProjectOption(it, false)) },
+            seeds = { listOf(ProjectOption(ProjectOptions.REMEMBER_SENT_HASHTAGS, false)) },
+            describe = { optionName(it.id) to context.getString(if (it.enabled) R.string.join_option_on else R.string.join_option_off) },
+        ),
     )
+
+    // --- project options, which the phone keeps in its settings store ----------
+
+    private val settingsStore get() = ServiceLocator.settings(context)
+
+    private suspend fun options(): List<ProjectOption> = listOf(
+        ProjectOption(ProjectOptions.REMEMBER_SENT_HASHTAGS, settingsStore.current().rememberSentHashtags),
+    )
+
+    /** An option this version does not know is left alone. */
+    private suspend fun setOption(option: ProjectOption) {
+        when (option.id) {
+            ProjectOptions.REMEMBER_SENT_HASHTAGS -> settingsStore.setRememberSentHashtags(option.enabled)
+        }
+    }
+
+    private fun optionName(id: String): String = when (id) {
+        ProjectOptions.REMEMBER_SENT_HASHTAGS -> context.getString(R.string.placeholders_remember_sent)
+        else -> id
+    }
+
+    /**
+     * The server's entries of [kind], or null when the server is too old to
+     * know the kind; that kind then stays on the phone until it is updated.
+     */
+    private suspend fun remoteOf(kind: Kind<*>, client: ServerClient): List<SettingsEntryDto>? =
+        try {
+            client.settings(kind.name)
+        } catch (e: ServerException) {
+            if (e.status == 404 && e.code == "settings.unknown_kind") null else throw e
+        }
 
     // --- the state both sides had at the last sync, per project ---------------
 
@@ -184,7 +229,7 @@ class ProjectSync(
         val state = readState(projectId)
         val firstTime = state == null
         val known = state?.get(kind.name).orEmpty()
-        val remote = client.settings(kind.name).associate { it.id to it.data }
+        val remote = (remoteOf(kind, client) ?: return).associate { it.id to it.data }
         val local = kind.local()
 
         if (firstTime && remote.isNotEmpty()) {
@@ -224,7 +269,7 @@ class ProjectSync(
     }
 
     private suspend fun <T> previewKind(kind: Kind<T>, client: ServerClient, into: SettingsPreview) {
-        val remote = client.settings(kind.name).associate { it.id to kind.decode(it.data) }
+        val remote = (remoteOf(kind, client) ?: return).associate { it.id to kind.decode(it.data) }
         val local = kind.load().associateBy(kind.id)
         val seeds = kind.seeds().associate { kind.id(it) to digest(kind.encode(it)) }
         if (local.any { (id, value) -> seeds[id] != digest(kind.encode(value)) }) into.phoneHasOwn = true
@@ -270,7 +315,7 @@ class ProjectSync(
     }
 
     private suspend fun <T> mergeKind(kind: Kind<T>, client: ServerClient, choices: Map<String, MergeSide>): MutableMap<String, String> {
-        val remote = client.settings(kind.name).associate { it.id to kind.decode(it.data) }
+        val remote = (remoteOf(kind, client) ?: return mutableMapOf()).associate { it.id to kind.decode(it.data) }
         val local = kind.load().associateBy(kind.id)
         val merged = LinkedHashMap<String, T>()
         for (id in remote.keys + local.keys) {

@@ -84,6 +84,9 @@
     <string name="join_area_cleanup_rule">Clean-up rule</string>
     <string name="join_area_source">Source</string>
     <string name="join_area_channel">Channel</string>
+    <string name="join_area_option">Setting</string>
+    <string name="join_option_on">On</string>
+    <string name="join_option_off">Off</string>
     <string name="join_ai_alt_text">alt-text model</string>
     <string name="join_ai_image_edit">image-edit model</string>
     <string name="server_error_too_old">The server is older than this app and cannot take posts over in the stage they are in. They wait on this phone: update the server, then copy them over.</string>

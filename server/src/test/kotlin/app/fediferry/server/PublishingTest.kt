@@ -29,6 +29,7 @@ import app.fediferry.api.PlanRequest
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
+import app.fediferry.api.ProjectOptions
 import app.fediferry.api.ScheduleDto
 import app.fediferry.api.ScheduleInput
 import app.fediferry.api.SettingsEntryDto
@@ -48,6 +49,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
@@ -59,8 +61,10 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -215,6 +219,33 @@ class PublishingTest {
 
         services.publishing.tick()
         assertEquals("a post goes out once", 1, sent.size)
+    }
+
+    @Test
+    fun `with the project remembering sent hashtags, a new one joins the list`() = test { ctx ->
+        ctx.client.put("/api/v1/settings/hashtag/%23cats") {
+            bearerAuth(ctx.token); contentType(ContentType.Application.Json)
+            setBody(buildJsonObject { put("tag", "#cats"); put("sortOrder", 0) })
+        }
+        ctx.client.put("/api/v1/settings/option/${ProjectOptions.REMEMBER_SENT_HASHTAGS}") {
+            bearerAuth(ctx.token); contentType(ContentType.Application.Json)
+            setBody(buildJsonObject { put("id", ProjectOptions.REMEMBER_SENT_HASHTAGS); put("enabled", true) })
+        }
+        ctx.plan(ctx.readyPost(), PlanRequest(PlanModes.NOW))
+        services.publishing.tick()
+        assertEquals("Look #meme", sent.single().text)
+
+        val list = ctx.client.get("/api/v1/settings/hashtag") { bearerAuth(ctx.token) }.body<List<SettingsEntryDto>>()
+        assertEquals(listOf("#cats", "#meme"), list.sortedBy { it.data["sortOrder"]!!.jsonPrimitive.int }.map { it.id })
+        assertEquals(1, list.single { it.id == "#meme" }.data["sortOrder"]!!.jsonPrimitive.int)
+    }
+
+    @Test
+    fun `without the option, sent hashtags are only counted`() = test { ctx ->
+        ctx.plan(ctx.readyPost(), PlanRequest(PlanModes.NOW))
+        services.publishing.tick()
+        assertEquals(1, sent.size)
+        assertTrue(ctx.client.get("/api/v1/settings/hashtag") { bearerAuth(ctx.token) }.body<List<SettingsEntryDto>>().isEmpty())
     }
 
     @Test

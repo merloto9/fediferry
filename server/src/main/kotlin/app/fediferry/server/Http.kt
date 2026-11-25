@@ -177,7 +177,7 @@ fun Application.fediferry(services: Services) {
 
     routing {
         route(Api.PREFIX) {
-            get("/health") { call.respond(Health(version = services.version, features = listOf(Features.POST_IMPORT))) }
+            get("/health") { call.respond(Health(version = services.version, features = listOf(Features.POST_IMPORT, Features.PROJECT_OPTIONS))) }
 
             authenticate("project") {
                 get("/project") {

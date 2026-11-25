@@ -80,5 +80,21 @@ object Hashtags {
     /** The hashtags in [text] that [known] does not have yet, in the order written. */
     fun newIn(text: String, known: List<String>): List<String> = inText(text).filterNot { contains(known, it) }
 
+    /**
+     * What a post that went out with [finalText] does to the hashtags, the same
+     * on the phone and on the server: every tag it carried counts as used once,
+     * and with [remember] the ones [known] does not have yet join the list.
+     */
+    fun sent(finalText: String, known: List<String>, remember: Boolean): Sent {
+        val carried = inText(finalText)
+        return Sent(
+            usedKeys = carried.map(::key),
+            added = if (remember) carried.filterNot { contains(known, it) } else emptyList(),
+        )
+    }
+
+    /** See [sent]. [usedKeys] are [key]s; [added] are tags as written, in the order the post had them. */
+    data class Sent(val usedKeys: List<String>, val added: List<String>)
+
     private val IN_TEXT = Regex("""(?<![\p{L}\p{N}_/#&])#([\p{L}\p{N}_]+)""")
 }

@@ -8,6 +8,24 @@ Each release's APK is attached to its
 [GitHub release](https://github.com/merloto9/fediferry/releases) and is what
 Obtainium installs.
 
+## [Unreleased]
+
+Needs the app and the server updated together; an older server keeps
+working, but without the option.
+
+### Fixed
+
+- "Add new hashtags when a post is sent" works with a FediFerry server too.
+  It is now a project setting: every phone in the project shares it, and the
+  server follows it when it sends a post. Before, the switch only affected
+  posts sent from the phone itself.
+
+### Changed
+
+- The server counts hashtag use the way the phone does: every hashtag in
+  the text that went out, including ones written into the body, not only
+  the picked ones.
+
 ## [0.23.1] — 2026-10-20
 
 Only the app changed; a 0.23.0 server needs no update.

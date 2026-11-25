@@ -54,7 +54,7 @@
     <string name="placeholders_new_hashtag_example">#politik</string>
     <string name="placeholders_add_hashtag">Hashtag hinzufügen</string>
     <string name="placeholders_remember_sent">Neue Hashtags beim Senden übernehmen</string>
-    <string name="placeholders_remember_sent_explain">Jeder Hashtag eines gesendeten Beitrags, der noch nicht auf der Liste steht, kommt dazu – ob im Editor getippt, von einer Quelle ergänzt oder in den Text geschrieben. Es zählen nur Beiträge, die wirklich rausgegangen sind.</string>
+    <string name="placeholders_remember_sent_explain">Jeder Hashtag eines gesendeten Beitrags, der noch nicht auf der Liste steht, kommt dazu – ob im Editor getippt, von einer Quelle ergänzt oder in den Text geschrieben. Es zählen nur Beiträge, die wirklich rausgegangen sind. Mit einem Server gilt das für das ganze Projekt.</string>
 
     <!-- Einstellungen → Platzhalter -->
     <string name="placeholders_title">Platzhalter</string>

@@ -119,10 +119,11 @@ class PhonePublishWorker(context: Context, params: WorkerParameters) : Coroutine
     private suspend fun recordHashtags(text: String) {
         runCatching {
             val db = ServiceLocator.database(applicationContext)
-            db.hashtagUsage().countUse(Hashtags.inText(text).map(Hashtags::key))
-            if (!ServiceLocator.settings(applicationContext).current().rememberSentHashtags) return
+            val remember = ServiceLocator.settings(applicationContext).current().rememberSentHashtags
+            val sent = Hashtags.sent(text, db.hashtags().all().map { it.tag }, remember)
+            db.hashtagUsage().countUse(sent.usedKeys)
             var next = db.hashtags().count()
-            Hashtags.newIn(text, db.hashtags().all().map { it.tag }).forEach { db.hashtags().insert(Hashtag(it, sortOrder = next++)) }
+            sent.added.forEach { db.hashtags().insert(Hashtag(it, sortOrder = next++)) }
         }
     }
 

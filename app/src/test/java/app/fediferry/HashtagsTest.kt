@@ -82,6 +82,15 @@ class HashtagsTest {
         )
     }
 
+    @Test
+    fun `a sent post counts every tag it carried, and adds the new ones only when remembering`() {
+        val text = "Look #Meme #cats, see example.com/page#top"
+        val off = Hashtags.sent(text, known = listOf("#meme"), remember = false)
+        assertEquals(listOf("meme", "cats"), off.usedKeys)
+        assertEquals(emptyList<String>(), off.added)
+        assertEquals(listOf("#cats"), Hashtags.sent(text, known = listOf("#meme"), remember = true).added)
+    }
+
     // --- order ---------------------------------------------------------------
 
     @Test

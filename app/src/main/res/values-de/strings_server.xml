@@ -84,6 +84,9 @@
     <string name="join_area_cleanup_rule">Bereinigungsregel</string>
     <string name="join_area_source">Quelle</string>
     <string name="join_area_channel">Kanal</string>
+    <string name="join_area_option">Einstellung</string>
+    <string name="join_option_on">An</string>
+    <string name="join_option_off">Aus</string>
     <string name="join_ai_alt_text">Alt-Text-Modell</string>
     <string name="join_ai_image_edit">Bildbearbeitungsmodell</string>
     <string name="server_error_too_old">Der Server ist älter als diese App und kann Beiträge nicht in ihrer Phase übernehmen. Sie bleiben auf diesem Telefon: aktualisiere den Server und kopiere sie dann.</string>

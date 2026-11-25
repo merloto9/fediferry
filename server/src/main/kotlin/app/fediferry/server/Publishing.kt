@@ -23,6 +23,7 @@ import app.fediferry.api.PlanModes
 import app.fediferry.api.PlanRequest
 import app.fediferry.api.PostDto
 import app.fediferry.api.PostStages
+import app.fediferry.api.ProjectOptions
 import app.fediferry.api.PublicationDto
 import app.fediferry.api.PublicationStates
 import app.fediferry.api.ScheduleDto
@@ -50,6 +51,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -269,7 +271,7 @@ class Publishing(
         outcome.onSuccess {
             // Out: Mastodon keeps it from here, and the server lets go of the
             // post and every file no other post uses.
-            runCatching { countHashtags(p.project_id, p.post_id) }
+            runCatching { recordHashtags(p.project_id, p.post_id) }
             // Out already: a failing clean-up must not put it back in the queue to be sent again.
             runCatching { posts.purge(p.project_id, p.post_id) }.onFailure {
                 log.warn("Letting go of a published post failed: {}", it.javaClass.simpleName)
@@ -309,13 +311,24 @@ class Publishing(
         )
     }
 
-    /** A sent post's hashtags count as used, so the phones offer the most used first. */
-    private fun countHashtags(projectId: String, postId: String) {
-        val tags = posts.get(projectId, postId).hashtags
-        for (tag in tags) {
-            val key = Hashtags.key(tag)
+    /**
+     * A sent post's hashtags count as used, so the phones offer the most used
+     * first; with the project's "remember" option on, new ones join the list.
+     */
+    private fun recordHashtags(projectId: String, postId: String) {
+        val text = posts.get(projectId, postId).finalText ?: return
+        val remember = settings.get(projectId, SettingsKinds.OPTION, ProjectOptions.REMEMBER_SENT_HASHTAGS)
+            ?.get("enabled")?.jsonPrimitive?.booleanOrNull == true
+        val known = settings.list(projectId, SettingsKinds.HASHTAG)
+        val sent = Hashtags.sent(text, known.map { it.id }, remember)
+        for (key in sent.usedKeys) {
             val uses = settings.get(projectId, SettingsKinds.HASHTAG_USAGE, key)?.get("uses")?.jsonPrimitive?.intOrNull ?: 0
             settings.put(projectId, SettingsKinds.HASHTAG_USAGE, key, buildJsonObject { put("key", key); put("uses", uses + 1) }, null)
+        }
+        // Stored as the app stores a hashtag, at the end of the list.
+        var next = known.size
+        for (tag in sent.added) {
+            settings.put(projectId, SettingsKinds.HASHTAG, tag, buildJsonObject { put("tag", tag); put("sortOrder", next++) }, null)
         }
     }
 

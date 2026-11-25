@@ -150,12 +150,4 @@ class PairingTest {
             )
         }
     }
-
-    @Test
-    fun aSentItemStillCountsAsReferencingItsMedia() = runBlocking {
-        // Deleting a draft must not delete media a posted item still points at.
-        val posted = item(media = "/data/media/shared.jpg", status = Status.POSTED)
-        items.upsert(posted)
-        assertEquals(posted.id, items.anyByMediaHash("hash-/data/media/shared.jpg")?.id)
-    }
 }

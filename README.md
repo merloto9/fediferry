@@ -454,10 +454,9 @@ picks it up from there. `workflow_dispatch` does the same with a hand-entered
 version.
 
 The same tag makes `.github/workflows/server-image.yml` publish the server
-image as `:<version>`, `:<major>.<minor>` and `:latest`. A pre-release tag
-(`v1.2.3-rc.1`) publishes only `:1.2.3-rc.1`, a GitHub pre-release and its
-APK, to try on the test server (`server/docker-compose.test.yml`) before the
-real release. Nothing is published on a merge to `main`. GitHub makes a new image private;
+image as `:<version>`, `:<major>.<minor>` and `:latest`. Every push to `main`
+also publishes `:main` and `:sha-<commit>`, which the test server
+(`server/docker-compose.test.yml`) runs. GitHub makes a new image private;
 set the package to public, or `docker login ghcr.io` on the host, before
 pulling it.
 

@@ -1,5 +1,4 @@
-# FediFerry test server. It runs the latest release; to try a release
-# candidate first, set the image to its version, e.g. :0.24.0-rc.1.
+# FediFerry test server, running the image GitHub builds from main.
 # Standalone: copy this one file to the host, no checkout needed.
 #
 #   Start / update:  docker compose -f docker-compose.test.yml pull && docker compose -f docker-compose.test.yml up -d
@@ -12,7 +11,7 @@ name: fediferry-test
 
 services:
   fediferry:
-    image: ghcr.io/merloto9/fediferry-server:latest
+    image: ghcr.io/merloto9/fediferry-server:main
     restart: unless-stopped
     ports:
       - "127.0.0.1:8088:8080"

@@ -1,19 +1,24 @@
 name: Server image
 
-# Builds the server's Docker image, runs it (server/smoke-test.sh) and, for a
-# release, publishes it to the GitHub Container Registry as
+# Builds the server's Docker image, runs it (server/smoke-test.sh) and
+# publishes it to the GitHub Container Registry as
 # ghcr.io/<owner>/fediferry-server:
 #
-#   pull request  ->  tested and smoke-tested, not pushed
-#   tag v1.2.3    ->  :1.2.3, :1.2 and :latest     (same tags as the app releases)
-#   tag v1.2.3-rc.1 -> :1.2.3-rc.1 only            (to try on the test server first)
-#
-# Nothing runs on a merge: main is protected, so what lands there was tested
-# in its pull request.
+#   pull request    ->  tested and smoke-tested, not pushed
+#   push to main    ->  :main and :sha-<short sha>   (what the test server runs)
+#   tag v1.2.3      ->  :1.2.3, :1.2 and :latest     (same tags as the app releases)
+#   tag v1.2.3-rc.1 ->  :1.2.3-rc.1 only
 on:
   pull_request:
   push:
+    branches: [main]
     tags: ['v*']
+    # On main only a change to the server or what it is built from needs a
+    # new image. (Tag pushes ignore path filters, so a release always builds.)
+    paths-ignore:
+      - 'app/**'
+      - 'design/**'
+      - '**.md'
 
 concurrency:
   group: server-image-${{ github.ref }}
@@ -84,6 +89,8 @@ jobs:
         with:
           images: ${{ env.IMAGE }}
           tags: |
+            type=ref,event=branch
+            type=sha
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 

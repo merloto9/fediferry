@@ -1,6 +1,6 @@
 name: Server image
 
-# Builds the server's Docker image and publishes it to the GitHub Container
+# Builds the server's Docker image, runs it (server/smoke-test.sh) and publishes it to the GitHub Container
 # Registry as ghcr.io/<owner>/fediferry-server:
 #
 #   push to main  ->  :main and :sha-<short sha>   (what the test server runs)
@@ -65,6 +65,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # One platform, loaded into the runner's Docker, so the image is run
+      # before anything is pushed. The multi-arch build below reuses its layers.
+      - name: Build for the smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: server/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: fediferry-server:smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Starts it, upgrades onto it from the last release's data, and checks
+      # the API, the volume and a restart. See the script.
+      - name: Smoke test
+        run: server/smoke-test.sh fediferry-server:smoke ${{ env.IMAGE }}:latest
 
       - name: Tags
         id: meta

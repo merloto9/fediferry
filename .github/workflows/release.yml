@@ -65,7 +65,7 @@ jobs:
           echo "Releasing $NAME (versionCode $CODE)"
 
       - name: Unit tests
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew :shared:test :server:test :app:testDebugUnitTest
 
       # A release is never signed with the public debug key alone: anyone could
       # sign an "update" with it. Without the release key there is no release.

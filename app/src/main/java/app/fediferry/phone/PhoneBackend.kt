@@ -46,6 +46,14 @@ import app.fediferry.api.PublicationDto
 import app.fediferry.api.PublicationStates
 import app.fediferry.api.PublishedMediaDto
 import app.fediferry.api.PublishedPage
+import app.fediferry.api.ChannelInsightsDto
+import app.fediferry.api.InsightsPage
+import app.fediferry.channel.ChannelAccess
+import app.fediferry.channel.ChannelInsights
+import app.fediferry.insights.Analysis
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import app.fediferry.api.PublishedStatusDto
 import app.fediferry.api.ReviewFolderDto
 import app.fediferry.api.ReviewFolderInput
@@ -422,6 +430,66 @@ class PhoneBackend(private val context: Context) : PostBackend {
         return PublishedPage(statuses.sortedByDescending { it.createdAt }.take(size), unreachable)
     }
 
+    // --- analyze -----------------------------------------------------------------------------
+
+    private val followerCounts by lazy { FollowerCounts(File(context.filesDir, "insights/followers.json")) }
+
+    /**
+     * Every connected channel read through its platform's [ChannelInsights],
+     * as the server does it; a channel that cannot be read is named, never
+     * failing the rest.
+     */
+    override suspend fun insights(days: Int): InsightsPage = coroutineScope {
+        val now = System.currentTimeMillis()
+        val since = now - days.coerceIn(1, MAX_INSIGHT_DAYS) * DAY_MS
+        val readings = dao.channels().filter { it.accountId != null }.map { channel ->
+            async {
+                val reader = ChannelInsights.forPlatform(Platform.fromName(channel.platform), ServiceLocator.http())
+                val access = reader?.let { insightAccess(channel) } ?: return@async channel.id to null
+                channel.id to runCatching { reader.read(access, since) }
+                    .onFailure { DebugLog.w(LOG, "Reading a channel for Analyze failed: ${it.javaClass.simpleName}") }
+                    .getOrNull()
+            }
+        }.awaitAll()
+        val channels = readings.mapNotNull { (channelId, reading) ->
+            reading ?: return@mapNotNull null
+            followerCounts.record(channelId, Analysis.utcDay(now), reading.counts.followers)
+            ChannelInsightsDto(
+                channelId = channelId,
+                followers = reading.counts.followers,
+                following = reading.counts.following,
+                posts = reading.counts.posts,
+                recent = reading.recent,
+                interactions = reading.interactions,
+                interactionsAccess = reading.interactionsAccess,
+                followerHistory = followerCounts.since(channelId, Analysis.utcDay(since)),
+            )
+        }
+        InsightsPage(since, channels, readings.filter { it.second == null }.map { it.first })
+    }
+
+    /** Notes today's follower count of every channel that has none yet; [FollowerCountWorker] calls it daily. */
+    suspend fun recordFollowersToday() {
+        val today = Analysis.utcDay(System.currentTimeMillis())
+        for (channel in dao.channels().filter { it.accountId != null }) {
+            if (followerCounts.has(channel.id, today)) continue
+            val reader = ChannelInsights.forPlatform(Platform.fromName(channel.platform), ServiceLocator.http()) ?: continue
+            val access = insightAccess(channel) ?: continue
+            runCatching { reader.counts(access) }
+                .onSuccess { followerCounts.record(channel.id, today, it.followers) }
+                .onFailure { DebugLog.w(LOG, "Noting a channel's follower count failed: ${it.javaClass.simpleName}") }
+        }
+    }
+
+    /** How to reach the channel's account, learning its id at the instance on first use. */
+    private suspend fun insightAccess(channel: PhoneChannel): ChannelAccess? {
+        val (account, token) = accountOf(channel) ?: return null
+        val remoteId = channel.remoteAccountId ?: runCatching { mastodon.verifyCredentials(account.instance, token).id }.getOrNull()
+            ?.also { dao.upsertChannel(channel.copy(remoteAccountId = it)) }
+            ?: return null
+        return ChannelAccess(account.instance, token, remoteId)
+    }
+
     // --- channels -------------------------------------------------------------------------
 
     override suspend fun channels(): List<ChannelDto> = dao.channels().map { channelDto(it) }
@@ -454,6 +522,7 @@ class PhoneBackend(private val context: Context) : PostBackend {
         dao.releaseChannel(id)
         dao.deleteSchedulesOf(id)
         dao.deleteChannel(id)
+        followerCounts.forget(id)
         if (channel.isDefault) dao.channels().firstOrNull()?.let { dao.setDefaultChannel(it.id) }
         val accountId = channel.accountId ?: return
         if (dao.channels().none { it.accountId == accountId }) ServiceLocator.auth(context).disconnect(accountId)
@@ -907,6 +976,8 @@ class PhoneBackend(private val context: Context) : PostBackend {
         private const val LOCK_MS = 60 * 60 * 1000L
         private const val MAX_LABEL = 40
         private const val MAX_UNDO_SECONDS = 60
+        private const val MAX_INSIGHT_DAYS = 90
+        private const val DAY_MS = 24 * 60 * 60 * 1000L
         private const val PAST_GRACE_MS = 60_000L
 
         /** A link and its screenshot shared within this long of each other become one draft. */

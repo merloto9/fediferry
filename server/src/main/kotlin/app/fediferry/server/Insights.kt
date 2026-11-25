@@ -25,6 +25,7 @@ import app.fediferry.api.InsightsPage
 import app.fediferry.api.Platform
 import app.fediferry.channel.ChannelAccess
 import app.fediferry.channel.ChannelInsights
+import app.fediferry.insights.Analysis
 import app.fediferry.server.db.Channel
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -33,9 +34,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
 
 /**
  * Analyze on the server: every channel read live through its platform's
@@ -112,8 +110,7 @@ class Insights(
         const val MAX_DAYS = 90
         private const val DAY_MS = 24 * 60 * 60 * 1000L
 
-        /** Days are UTC dates, `2026-11-26`, the same for every phone of the project. */
-        fun day(millis: Long): String = LocalDate.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC).toString()
+        fun day(millis: Long): String = Analysis.utcDay(millis)
     }
 }
 

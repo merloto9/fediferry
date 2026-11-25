@@ -11,7 +11,21 @@ Obtainium installs.
 ## [Unreleased]
 
 Needs the app and the server updated together; an older server keeps
-working, but without the option.
+working, but without the option and without Analyze.
+
+### Added
+
+- **Analyze**, a new space next to Sources: followers and how they grew,
+  posts in the last 7, 30 or 90 days with their favourites, boosts and
+  replies, the best weekday and hour to post, which hashtags do well, top
+  posts, interactions per day and the most active accounts. Per channel or
+  all channels together.
+- FediFerry notes each channel's follower count once a day (on the server,
+  or on the phone without one), since Mastodon reports only today's. Growth
+  shows from the day this version is installed.
+- To show who interacted, FediFerry now asks Mastodon to read notifications.
+  Accounts connected before keep working; Analyze offers to sign them in
+  again to add interactions.
 
 ### Fixed
 

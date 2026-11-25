@@ -20,6 +20,7 @@
 package app.fediferry.ui
 
 import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.runtime.getValue
@@ -40,6 +41,7 @@ enum class Space(val route: String, @StringRes val labelRes: Int) {
     REVIEW(Routes.REVIEW, R.string.nav_review),
     PUBLISHING(Routes.PUBLISHING, R.string.nav_publishing),
     SOURCES(Routes.SOURCES, R.string.nav_sources),
+    ANALYZE(Routes.ANALYZE, R.string.nav_analyze),
 }
 
 @Composable
@@ -58,6 +60,7 @@ fun SpaceBar(current: Space, onNavigate: (Space) -> Unit) {
                             Space.REVIEW -> Icons.Outlined.TaskAlt
                             Space.PUBLISHING -> Icons.AutoMirrored.Outlined.Send
                             Space.SOURCES -> Icons.Default.Subscriptions
+                            Space.ANALYZE -> Icons.Outlined.Insights
                         },
                         contentDescription = label,
                     )

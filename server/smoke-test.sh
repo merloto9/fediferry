@@ -14,7 +14,7 @@
 #
 # Needs docker and curl. Leaves nothing behind.
 
-set -euo pipefail
+set -Eeuo pipefail
 
 image=${1:?image to test}
 previous=${2:-}
@@ -25,21 +25,29 @@ png=$(mktemp)
 trap 'docker rm -f "$name" >/dev/null 2>&1 || true; docker volume rm -f "$volume" >/dev/null 2>&1 || true; rm -f "$png"' EXIT
 
 fail() {
+    trap - ERR
     echo "::error::smoke test: $*"
     echo "--- server log ---"
     docker logs "$name" 2>&1 | tail -50 || true
     exit 1
 }
 
-# The token is the one indented line `project create` prints.
+# Any command that stops the script says which one, instead of ending it silently.
+trap 'fail "line $LINENO stopped the script: $BASH_COMMAND"' ERR
+
+# The token is the one indented line `project create` prints. The output is
+# read whole first: a reader that stops early would break docker's pipe.
 create_project() {
-    docker run --rm -v "$volume:/data" "$1" project create "Smoke" | awk '/^    [A-Za-z0-9_.~-]+$/ { print $1; exit }'
+    local out
+    out=$(docker run --rm -v "$volume:/data" "$1" project create "Smoke" 2>&1) || fail "$1 could not create a project: $out"
+    awk '!t && /^    [A-Za-z0-9_.~-]+$/ { t = $1 } END { print t }' <<<"$out"
 }
 
 start() {
     docker rm -f "$name" >/dev/null 2>&1 || true
-    docker run -d --name "$name" -v "$volume:/data" -p 127.0.0.1::8080 "$1" >/dev/null
-    port=$(docker port "$name" 8080/tcp | head -1 | sed 's/.*://')
+    docker run -d --name "$name" -v "$volume:/data" -p 127.0.0.1::8080 "$1" >/dev/null || fail "$1 did not start"
+    port=$(docker port "$name" 8080/tcp | sed -n '1s/.*://p')
+    [ -n "$port" ] || fail "$1 publishes no port"
     base="http://127.0.0.1:$port"
     for _ in $(seq 1 60); do
         if curl -fsS "$base/api/v1/health" >/dev/null 2>&1; then return 0; fi
@@ -111,7 +119,7 @@ expect 200 "writing a setting"
 base64 -d >"$png" <<<'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
 call -X POST "$base/api/v1/media" -H "Authorization: Bearer $token" -F "file=@$png;type=image/png"
 case "$status" in 200|201) ;; *) fail "uploading a picture: expected 200 or 201, got $status: $body" ;; esac
-asset=$(sed -n 's/.*"id":"\([^"]*\)".*/\1/p' <<<"$body" | head -1)
+asset=$(sed -n '1s/.*"id":"\([^"]*\)".*/\1/p' <<<"$body")
 [ -n "$asset" ] || fail "the upload returned no asset id: $body"
 
 # Everything is still there after a restart: it lives in the volume.

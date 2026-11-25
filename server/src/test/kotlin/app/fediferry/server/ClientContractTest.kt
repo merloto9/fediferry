@@ -26,6 +26,8 @@ import app.fediferry.api.PlanModes
 import app.fediferry.api.PlanRequest
 import app.fediferry.api.PostPatch
 import app.fediferry.api.PostStages
+import app.fediferry.api.ProjectOption
+import app.fediferry.api.ProjectOptions
 import app.fediferry.api.SettingsKinds
 import app.fediferry.channel.PublishJob
 import app.fediferry.channel.Published
@@ -37,8 +39,10 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.Interceptor
@@ -142,6 +146,8 @@ class ClientContractTest {
         val health = client.health()
         assertEquals("fediferry", health.service)
         assertTrue(Features.POST_IMPORT in health.features)
+        // The phone looks for this before it syncs project options.
+        assertTrue(Features.PROJECT_OPTIONS in health.features)
 
         assertEquals("Memes", client.project().name)
         val device = client.registerDevice(DeviceRegistration("pixel", "Pixel", "android", "0.24.0"))
@@ -191,6 +197,19 @@ class ClientContractTest {
         val changes = client.changes(rev, waitSeconds = 0)
         assertTrue(changes.rev > rev)
         assertTrue(changes.changed.any { it.type == SettingsKinds.changeType(SettingsKinds.HASHTAG) && it.id == "#meme" })
+    }
+
+    /** Turning "add new hashtags when sent" on, as ProjectSync sends it, reaches the other phones. */
+    @Test
+    fun `a project option goes up as the phone stores it and other phones hear of it`() = runBlocking {
+        val rev = client.project().rev
+        val option = ProjectOption(ProjectOptions.REMEMBER_SENT_HASHTAGS, enabled = true)
+        client.putSetting(SettingsKinds.OPTION, option.id, Json.encodeToJsonElement(ProjectOption.serializer(), option).jsonObject)
+
+        val changes = client.changes(rev, waitSeconds = 0)
+        assertTrue(changes.changed.any { it.type == SettingsKinds.changeType(SettingsKinds.OPTION) && it.id == option.id })
+        val stored = client.settings(SettingsKinds.OPTION).single()
+        assertEquals(option, Json.decodeFromJsonElement(ProjectOption.serializer(), stored.data))
     }
 
     @Test

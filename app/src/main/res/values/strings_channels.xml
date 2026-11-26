@@ -34,6 +34,8 @@
     <string name="channel_account">Account</string>
     <string name="channel_platform">Runs %1$s</string>
     <string name="channel_change_account">Connect another account</string>
+    <string name="channel_sign_in_again">Sign in again</string>
+    <string name="channel_sign_in_again_hint">Signing in again keeps this channel with its schedules and planned posts. Use it when FediFerry asks for new permissions.</string>
     <string name="channel_instance_hint">The server it runs on is detected; only Mastodon can be connected so far.</string>
     <string name="channel_limits">Limits</string>
     <string name="channel_limits_of">What %1$s takes</string>

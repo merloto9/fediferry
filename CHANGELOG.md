@@ -10,6 +10,18 @@ Obtainium installs.
 
 ## [Unreleased]
 
+## [0.25.1] — 2026-11-26
+
+App only; the server stays at 0.25.0.
+
+### Fixed
+
+- A channel can sign in again from its settings without being removed, as
+  Analyze asks channels connected before 0.25.0 to. Signing in again keeps
+  the channel with its schedules and planned posts. Removing it instead
+  left planned posts failing with "not found"; to send those, take each
+  back to draft, pick the channel again and plan it.
+
 ## [0.25.0] — 2026-11-26
 
 Needs the app and the server updated together; an older server keeps

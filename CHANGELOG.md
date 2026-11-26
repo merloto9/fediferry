@@ -10,8 +10,10 @@ Obtainium installs.
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-11-26
+
 Needs the app and the server updated together; an older server keeps
-working, but without the option and without Analyze.
+working, but without Analyze.
 
 ### Added
 
@@ -26,6 +28,11 @@ working, but without the option and without Analyze.
 - To show who interacted, FediFerry now asks Mastodon to read notifications.
   Accounts connected before keep working; Analyze offers to sign them in
   again to add interactions.
+
+## [0.24.0] — 2026-11-26
+
+Needs the app and the server updated together; an older server keeps
+working, but without the option.
 
 ### Fixed
 

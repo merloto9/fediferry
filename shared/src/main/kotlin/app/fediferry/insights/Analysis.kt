@@ -42,7 +42,8 @@ object Analysis {
      * The day a follower count belongs to: a UTC date, `2026-11-26`, so the
      * phone and the server, and every phone of a project, agree on it.
      */
-    fun utcDay(millis: Long): String = LocalDate.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC).toString()
+    // Not LocalDate.ofInstant: Android has it only from 12 (API 31), the app runs from 8.
+    fun utcDay(millis: Long): String = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
 
     data class Totals(val posts: Int, val favourites: Int, val boosts: Int, val replies: Int, val quotes: Int) {
         val engagement: Int get() = favourites + boosts + replies + quotes

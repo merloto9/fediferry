@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_analyze">Analyse</string>
+    <string name="analyze_title">Analyse</string>
+    <string name="analyze_refresh">Neu lesen</string>
+    <string name="analyze_loading">Deine Kanäle werden gelesen …</string>
+    <string name="analyze_days">%1$d Tage</string>
+    <string name="analyze_all_channels">Alle Kanäle</string>
+    <string name="analyze_no_channels">Noch ist kein Kanal mit einem Konto verbunden. Verbinde einen unter Einstellungen → Kanäle, um hier seine Zahlen zu sehen.</string>
+    <string name="analyze_unreadable">Die Zahlen konnten gerade nicht gelesen werden.</string>
+    <string name="analyze_retry">Nochmal versuchen</string>
+    <string name="analyze_server_too_old">Dieser Server ist älter als die App und kennt die Analyse noch nicht. Aktualisiere den Server, um sie zu nutzen.</string>
+    <string name="analyze_unreachable">Gerade nicht lesbar: %1$s</string>
+    <string name="analyze_reconnect">Um zu sehen, wer reagiert hat, melde dich bei %1$s neu an: FediFerry fragt jetzt auch nach Benachrichtigungen.</string>
+    <string name="analyze_reconnect_action">Neu anmelden</string>
+    <string name="analyze_no_reach">Mastodon meldet keine Aufrufe oder Reichweite. Diese Zahlen zeigen, was andere mit deinen Beiträgen gemacht haben.</string>
+
+    <string name="analyze_followers">Follower</string>
+    <string name="analyze_followers_change">%1$s in diesem Zeitraum</string>
+    <string name="analyze_posts">Beiträge</string>
+    <string name="analyze_posts_detail">in diesem Zeitraum</string>
+    <string name="analyze_per_post">Pro Beitrag</string>
+    <string name="analyze_per_post_detail">Favoriten, Boosts, Antworten</string>
+    <string name="analyze_interactions">Reaktionen</string>
+    <string name="analyze_interactions_detail">inkl. neuer Follower</string>
+
+    <string name="analyze_growth_title">Follower-Entwicklung</string>
+    <string name="analyze_growth_empty">Die Entwicklung zeigt sich ab dem ersten Tag, an dem FediFerry eine Zahl notiert hat. Es notiert eine am Tag.</string>
+    <string name="analyze_activity_title">Reaktionen pro Tag</string>
+    <string name="analyze_nothing">Nichts in diesem Zeitraum.</string>
+    <string name="analyze_best_times_title">Beste Zeiten zum Posten</string>
+    <string name="analyze_best_times_detail">Was Beiträge aus jeder Stunde im Schnitt bekommen haben, in deiner Zeit. Kräftigere Farbe ist besser.</string>
+    <string name="analyze_best_times_empty">Zu wenige Beiträge in diesem Zeitraum für eine Aussage.</string>
+    <string name="analyze_top_posts_title">Top-Beiträge</string>
+    <string name="analyze_post_counts">%1$d Favoriten · %2$d Boosts · %3$d Antworten</string>
+    <string name="analyze_hashtags_title">Hashtags</string>
+    <string name="analyze_hashtags_detail">Was Beiträge mit dem Hashtag im Schnitt bekommen haben; nur Hashtags, die mindestens zweimal benutzt wurden.</string>
+    <string name="analyze_hashtags_empty">Kein Hashtag wurde in diesem Zeitraum zweimal benutzt.</string>
+    <string name="analyze_hashtag_row">%1$d Beiträge · %2$s pro Beitrag</string>
+    <string name="analyze_fans_title">Aktivste Konten</string>
+    <string name="analyze_fans_row">%1$d Reaktionen</string>
+    <string name="analyze_open_post">Beitrag öffnen</string>
+</resources>

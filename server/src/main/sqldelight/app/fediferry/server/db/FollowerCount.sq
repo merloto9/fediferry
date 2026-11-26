@@ -1,0 +1,24 @@
+-- One follower count per channel and day, kept for Analyze: Mastodon reports
+-- only today's. Recorded once a day, and whenever Analyze reads the channel.
+CREATE TABLE follower_count (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    channel_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    followers INTEGER NOT NULL,
+    recorded_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, channel_id, day)
+);
+
+record:
+INSERT INTO follower_count(project_id, channel_id, day, followers, recorded_at) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(project_id, channel_id, day) DO UPDATE SET followers = excluded.followers, recorded_at = excluded.recorded_at;
+
+has:
+SELECT COUNT(*) FROM follower_count WHERE project_id = ? AND channel_id = ? AND day = ?;
+
+since:
+SELECT day, followers FROM follower_count WHERE project_id = ? AND channel_id = ? AND day >= ? ORDER BY day;
+
+-- A channel that goes takes its counts along.
+forget:
+DELETE FROM follower_count WHERE project_id = ? AND channel_id = ?;

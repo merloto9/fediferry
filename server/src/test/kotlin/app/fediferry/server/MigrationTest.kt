@@ -135,4 +135,25 @@ class MigrationTest {
             assertEquals("c1", storage.db.postQueries.byId("p", "x").executeAsOne().channel_id)
         }
     }
+
+    @Test
+    fun `a server from before Analyze keeps its channels and gets the follower counts table`() {
+        File("src/main/sqldelight/databases/9.db").copyTo(file)
+        DriverManager.getConnection("jdbc:sqlite:${file.absolutePath}").use { c ->
+            c.createStatement().use { st ->
+                listOf(
+                    "INSERT INTO project(id, name, created_at) VALUES ('p', 'Memes', 1)",
+                    "INSERT INTO channel(project_id, id, platform, name, instance, remote_account_id, acct, display_name, created_at, updated_at) " +
+                        "VALUES ('p', 'c1', 'MASTODON', 'Memes', 'social.example', '1', 'memes', 'Memes', 1, 1)",
+                    "PRAGMA user_version = 9",
+                ).forEach(st::execute)
+            }
+        }
+
+        Storage.open(file).use { storage ->
+            assertEquals("memes", storage.db.channelQueries.byId("p", "c1").executeAsOne().acct)
+            storage.db.followerCountQueries.record("p", "c1", "2026-11-26", 120, 1)
+            assertEquals(listOf(120L), storage.db.followerCountQueries.since("p", "c1", "2026-11-01").executeAsList().map { it.followers })
+        }
+    }
 }

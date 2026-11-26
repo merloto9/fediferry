@@ -19,6 +19,7 @@
  */
 package app.fediferry.ui
 
+import app.fediferry.analyze.AnalyzeScreen
 import app.fediferry.drafts.DraftEditorScreen
 import app.fediferry.drafts.DraftsScreen
 import app.fediferry.review.ReviewPostScreen
@@ -49,6 +50,7 @@ object Routes {
     const val PUBLISHING = "publishing"
     const val SCHEDULES = "schedules"
     const val SOURCES = "sources"
+    const val ANALYZE = "analyze"
     const val CHANNEL = "channel/{sourceId}"
     const val SETTINGS = "settings"
     const val SETTINGS_PAGE = "settings/{page}"
@@ -129,6 +131,13 @@ fun FediFerryNavHost(
             SourcesScreen(
                 onOpenChannel = { navController.navigate(Routes.channel(it)) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onSwitchSpace = { navController.switchSpace(it) },
+            )
+        }
+        composable(Routes.ANALYZE) {
+            AnalyzeScreen(
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenChannelSettings = { navController.navigate(Routes.channelSettings(it)) },
                 onSwitchSpace = { navController.switchSpace(it) },
             )
         }

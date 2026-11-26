@@ -1,0 +1,9 @@
+-- Analyze: one follower count per channel and day.
+CREATE TABLE follower_count (
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    channel_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    followers INTEGER NOT NULL,
+    recorded_at INTEGER NOT NULL,
+    PRIMARY KEY (project_id, channel_id, day)
+);

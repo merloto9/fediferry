@@ -24,6 +24,7 @@ import app.fediferry.api.AltSuggestion
 import app.fediferry.api.AltSuggestionRequest
 import app.fediferry.api.LabelDto
 import app.fediferry.api.PlanRequest
+import app.fediferry.api.InsightsPage
 import app.fediferry.api.PublishedPage
 import app.fediferry.api.ScheduleDto
 import app.fediferry.api.ScheduleInput
@@ -220,6 +221,9 @@ class ServerClient(
 
     /** The latest posts that went out, read live from the channels' instances. */
     suspend fun published(limit: Int = 20): PublishedPage = get("published", query = mapOf("limit" to limit.toString()))
+
+    /** Analyze: every channel's numbers over the last [days] days; a server without the `insights` feature answers 404. */
+    suspend fun insights(days: Int): InsightsPage = get("insights", query = mapOf("days" to days.toString()))
 
     suspend fun suggestAlt(postId: String, position: Int, modelId: String? = null): AltSuggestion =
         post("posts/$postId/media/$position/alt-suggestion", json.encodeToString(AltSuggestionRequest(modelId)))

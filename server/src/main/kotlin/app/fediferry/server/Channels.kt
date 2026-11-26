@@ -226,6 +226,7 @@ class Channels(
         feed.change(projectId, "channel", id, deleted = true) {
             db.channelQueries.delete(projectId, id)
             db.scheduleQueries.deleteForChannel(projectId, id)
+            db.followerCountQueries.forget(projectId, id)
             secrets.delete(projectId, tokenId(id))
             secrets.delete(projectId, clientId(id))
         }
@@ -328,7 +329,9 @@ class Channels(
     private fun randomState(): String = ByteArray(24).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
 
     companion object {
-        const val SCOPES = "read:accounts read:statuses write:statuses write:media"
+        // read:notifications is for Analyze. An app registered with fewer scopes
+        // is registered again; accounts signed in before keep working without it.
+        const val SCOPES = "read:accounts read:statuses read:notifications write:statuses write:media"
         const val CLIENT_NAME = "FediFerry"
         const val WEBSITE = "https://github.com/merloto9/fediferry"
         private const val PENDING_TTL_MS = 30 * 60 * 1000L

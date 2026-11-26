@@ -29,6 +29,7 @@ import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.video.VideoFrameDecoder
 import app.fediferry.di.ServiceLocator
+import app.fediferry.phone.FollowerCountWorker
 import app.fediferry.phone.LegacyInbox
 import app.fediferry.log.DebugLog
 import app.fediferry.share.ShortcutPublisher
@@ -84,6 +85,8 @@ class FediFerryApp : Application(), SingletonImageLoader.Factory {
         // Keeps the project settings in step with the server while the app runs.
         ServiceLocator.projectSync(this).start()
         ShortcutPublisher.publish(this)
+        // Analyze's follower growth in the phone's own project.
+        FollowerCountWorker.schedule(this)
 
         // Installed before anything can log, and left off until the setting
         // says otherwise; the collector outlives the app's other work.

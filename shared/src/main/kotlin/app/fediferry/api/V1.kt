@@ -53,6 +53,9 @@ object Features {
 
     /** Settings of kind `option`, which the server also acts on (see `ProjectOptions`). */
     const val PROJECT_OPTIONS = "project_options"
+
+    /** `GET /insights` and the daily follower counts behind it, for Analyze. */
+    const val INSIGHTS = "insights"
 }
 
 /** `GET /project` — the project the token belongs to. */

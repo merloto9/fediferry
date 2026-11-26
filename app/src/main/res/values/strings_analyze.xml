@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_analyze">Analyze</string>
+    <string name="analyze_title">Analyze</string>
+    <string name="analyze_refresh">Read again</string>
+    <string name="analyze_loading">Reading your channels…</string>
+    <string name="analyze_days">%1$d days</string>
+    <string name="analyze_all_channels">All channels</string>
+    <string name="analyze_no_channels">No channel is connected to an account yet. Connect one under Settings → Channels to see its numbers here.</string>
+    <string name="analyze_unreadable">The numbers could not be read just now.</string>
+    <string name="analyze_retry">Try again</string>
+    <string name="analyze_server_too_old">This server is older than the app and has no Analyze yet. Update the server to use it.</string>
+    <string name="analyze_unreachable">Could not be read just now: %1$s</string>
+    <string name="analyze_reconnect">To see who interacted, sign in to %1$s again: FediFerry now asks to read notifications.</string>
+    <string name="analyze_reconnect_action">Sign in again</string>
+    <string name="analyze_no_reach">Mastodon reports no views or reach. These numbers are what others did with your posts.</string>
+
+    <string name="analyze_followers">Followers</string>
+    <string name="analyze_followers_change">%1$s in this period</string>
+    <string name="analyze_posts">Posts</string>
+    <string name="analyze_posts_detail">in this period</string>
+    <string name="analyze_per_post">Per post</string>
+    <string name="analyze_per_post_detail">favourites, boosts, replies</string>
+    <string name="analyze_interactions">Interactions</string>
+    <string name="analyze_interactions_detail">incl. new followers</string>
+
+    <string name="analyze_growth_title">Follower growth</string>
+    <string name="analyze_growth_empty">Growth shows from the first day FediFerry noted a count. It notes one a day.</string>
+    <string name="analyze_activity_title">Interactions per day</string>
+    <string name="analyze_nothing">Nothing in this period.</string>
+    <string name="analyze_best_times_title">Best times to post</string>
+    <string name="analyze_best_times_detail">What posts made in each hour got on average, in your time. Stronger colour is better.</string>
+    <string name="analyze_best_times_empty">Too few posts in this period to tell.</string>
+    <string name="analyze_top_posts_title">Top posts</string>
+    <string name="analyze_post_counts">%1$d favourites · %2$d boosts · %3$d replies</string>
+    <string name="analyze_hashtags_title">Hashtags</string>
+    <string name="analyze_hashtags_detail">What posts with each hashtag got on average; only hashtags used at least twice.</string>
+    <string name="analyze_hashtags_empty">No hashtag was used twice in this period.</string>
+    <string name="analyze_hashtag_row">%1$d posts · %2$s per post</string>
+    <string name="analyze_fans_title">Most active accounts</string>
+    <string name="analyze_fans_row">%1$d interactions</string>
+    <string name="analyze_open_post">Open the post</string>
+</resources>

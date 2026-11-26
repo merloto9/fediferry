@@ -206,7 +206,8 @@ class AuthManager(
 
     companion object {
         /** `read:statuses` reads the posts Mastodon holds for later, for the Queue. */
-        const val SCOPES = "write:statuses write:media read:accounts read:statuses"
+        // read:notifications is for Analyze; accounts signed in before keep working without it.
+        const val SCOPES = "write:statuses write:media read:accounts read:statuses read:notifications"
         const val CLIENT_NAME = "FediFerry"
         const val WEBSITE = "https://github.com/merloto9/fediferry"
         private const val LOG = "auth"

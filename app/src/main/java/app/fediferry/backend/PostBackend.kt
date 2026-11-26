@@ -22,6 +22,7 @@ package app.fediferry.backend
 import app.fediferry.api.AltSuggestion
 import app.fediferry.api.AuthorizeResponse
 import app.fediferry.api.ChannelDto
+import app.fediferry.api.InsightsPage
 import app.fediferry.api.ChannelInput
 import app.fediferry.api.ChannelPatch
 import app.fediferry.api.DeriveRequest
@@ -131,6 +132,9 @@ interface PostBackend {
 
     /** The latest posts that went out, as their channels have them. */
     suspend fun published(limit: Int = 20): PublishedPage
+
+    /** Analyze: every channel's numbers over the last [days] days, read from the instances now. */
+    suspend fun insights(days: Int): InsightsPage
 
     // --- channels ------------------------------------------------------------------------------
 

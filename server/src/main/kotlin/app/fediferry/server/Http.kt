@@ -19,6 +19,7 @@
  */
 package app.fediferry.server
 
+import app.fediferry.channel.ChannelInsights
 import app.fediferry.channel.ChannelPublisher
 import app.fediferry.channel.MastodonPublisher
 import app.fediferry.mastodon.MastodonAccounts
@@ -44,6 +45,7 @@ import app.fediferry.api.DeviceRegistration
 import app.fediferry.api.ErrorCodes
 import app.fediferry.api.Features
 import app.fediferry.api.Health
+import app.fediferry.api.Platform
 import app.fediferry.api.ProjectInfo
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -77,6 +79,7 @@ class Services(
     mastodon: MastodonAccounts = MastodonAccounts(outboundHttp),
     publisher: ChannelPublisher = MastodonPublisher(outboundHttp),
     detector: PlatformDetector = PlatformDetector(outboundHttp),
+    insightsReader: (Platform?) -> ChannelInsights? = { ChannelInsights.forPlatform(it, outboundHttp) },
 ) {
     val projects = Projects(storage, clock)
     val feed = ChangeFeed(storage, clock)
@@ -90,6 +93,7 @@ class Services(
     val mastodonQueue = MastodonQueue(storage, channels, mastodon, posts, media, fetcher, clock)
     val publishing = Publishing(storage, feed, posts, channels, media, settings, publisher, clock, mastodonQueue::heldTimes)
         .also { mastodonQueue.publishing = it }
+    val insights = Insights(storage, channels, insightsReader, clock)
 
     init {
         bindSealedValues()
@@ -115,6 +119,7 @@ class Services(
             projects.all().forEach { p ->
                 runCatching { media.sweep(p.id) }
                 runCatching { settings.dropOrphanedKeys(p.id) }
+                runCatching { insights.recordToday(p.id) }
             }
             delay(intervalMs)
         }
@@ -177,7 +182,7 @@ fun Application.fediferry(services: Services) {
 
     routing {
         route(Api.PREFIX) {
-            get("/health") { call.respond(Health(version = services.version, features = listOf(Features.POST_IMPORT, Features.PROJECT_OPTIONS))) }
+            get("/health") { call.respond(Health(version = services.version, features = listOf(Features.POST_IMPORT, Features.PROJECT_OPTIONS, Features.INSIGHTS))) }
 
             authenticate("project") {
                 get("/project") {
@@ -191,6 +196,7 @@ fun Application.fediferry(services: Services) {
                 settingsRoutes(services)
                 channelRoutes(services)
                 postRoutes(services)
+                insightsRoutes(services)
 
                 get("/changes") {
                     val since = call.request.queryParameters["since"]?.toLongOrNull() ?: 0L

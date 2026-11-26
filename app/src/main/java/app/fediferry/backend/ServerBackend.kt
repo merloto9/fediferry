@@ -100,6 +100,7 @@ class ServerBackend(
     override suspend fun updateSchedule(id: String, input: ScheduleInput) = client.updateSchedule(id, input)
     override suspend fun deleteSchedule(id: String) = client.deleteSchedule(id)
     override suspend fun published(limit: Int) = read { client.published(limit) }
+    override suspend fun insights(days: Int) = read { client.insights(days) }
 
     override suspend fun channels() = read { client.channels() }
     override suspend fun createChannel(input: ChannelInput) = client.createChannel(input)

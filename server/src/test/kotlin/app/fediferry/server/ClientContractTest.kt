@@ -148,6 +148,7 @@ class ClientContractTest {
         assertTrue(Features.POST_IMPORT in health.features)
         // The phone looks for this before it syncs project options.
         assertTrue(Features.PROJECT_OPTIONS in health.features)
+        assertTrue(Features.INSIGHTS in health.features)
 
         assertEquals("Memes", client.project().name)
         val device = client.registerDevice(DeviceRegistration("pixel", "Pixel", "android", "0.24.0"))
@@ -284,6 +285,16 @@ class ClientContractTest {
             assertEquals(404, e.status)
         }
         assertEquals(1, client.settings(SettingsKinds.HASHTAG_USAGE).single { it.id == "meme" }.data["uses"]!!.jsonPrimitive.int)
+    }
+
+    /** Analyze with a server: the phone asks for a period and gets every channel back. */
+    @Test
+    fun `insights come back for the period asked`() = runBlocking {
+        val channel = client.importMastodon("social.example", "good-token", null)
+        val page = client.insights(days = 7)
+        assertEquals(now - 7 * 86_400_000L, page.since)
+        // The fake instance knows no counts: the channel is named, not dropped silently.
+        assertEquals(listOf(channel.id), page.channels.map { it.channelId } + page.unreachable)
     }
 
     @Test

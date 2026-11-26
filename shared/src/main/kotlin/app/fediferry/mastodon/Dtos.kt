@@ -90,3 +90,50 @@ data class ScheduledParams(
 /** The body Mastodon sends with an error: a reason, never the post. */
 @Serializable
 data class ErrorBody(val error: String? = null)
+
+// --- for Analyze (MastodonInsights) -----------------------------------------------
+
+@Serializable
+data class AccountWithCounts(
+    val id: String,
+    @SerialName("followers_count") val followersCount: Int = 0,
+    @SerialName("following_count") val followingCount: Int = 0,
+    @SerialName("statuses_count") val statusesCount: Int = 0,
+)
+
+@Serializable
+data class StatusTag(val name: String)
+
+/** One of the account's posts with its counts. `quotes_count` arrived in Mastodon 4.5. */
+@Serializable
+data class StatusWithCounts(
+    val id: String,
+    @SerialName("created_at") val createdAt: String,
+    val url: String? = null,
+    val content: String = "",
+    @SerialName("media_attachments") val media: List<MediaAttachment> = emptyList(),
+    val tags: List<StatusTag> = emptyList(),
+    @SerialName("favourites_count") val favouritesCount: Int = 0,
+    @SerialName("reblogs_count") val reblogsCount: Int = 0,
+    @SerialName("replies_count") val repliesCount: Int = 0,
+    @SerialName("quotes_count") val quotesCount: Int? = null,
+)
+
+@Serializable
+data class NotificationAccount(val acct: String = "")
+
+@Serializable
+data class NotificationStatus(
+    val id: String,
+    @SerialName("in_reply_to_id") val inReplyToId: String? = null,
+)
+
+/** `GET /api/v1/notifications`; needs the read:notifications scope. */
+@Serializable
+data class Notification(
+    val id: String,
+    val type: String,
+    @SerialName("created_at") val createdAt: String,
+    val account: NotificationAccount = NotificationAccount(),
+    val status: NotificationStatus? = null,
+)

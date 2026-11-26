@@ -34,6 +34,8 @@
     <string name="channel_account">Konto</string>
     <string name="channel_platform">Läuft mit %1$s</string>
     <string name="channel_change_account">Anderes Konto verbinden</string>
+    <string name="channel_sign_in_again">Neu anmelden</string>
+    <string name="channel_sign_in_again_hint">Neu anmelden behält diesen Kanal mit seinen Zeitplänen und geplanten Posts. Nötig, wenn FediFerry neue Berechtigungen braucht.</string>
     <string name="channel_instance_hint">Welche Software der Server nutzt, wird erkannt; verbinden lässt sich bisher nur Mastodon.</string>
     <string name="channel_limits">Grenzen</string>
     <string name="channel_limits_of">Was %1$s annimmt</string>

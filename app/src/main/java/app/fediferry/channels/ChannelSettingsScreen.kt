@@ -201,7 +201,17 @@ private fun AccountPart(channel: ChannelDto, busy: Boolean, onConnect: (String) 
             }
         }
         if (!changing) {
-            TextButton(onClick = { changing = true }) { Text(stringResource(R.string.channel_change_account)) }
+            Text(
+                stringResource(R.string.channel_sign_in_again_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { onConnect(account.instance) }, enabled = !busy) {
+                    Text(stringResource(R.string.channel_sign_in_again))
+                }
+                TextButton(onClick = { changing = true }) { Text(stringResource(R.string.channel_change_account)) }
+            }
             return
         }
     } else {
